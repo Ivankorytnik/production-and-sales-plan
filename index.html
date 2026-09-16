@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM Sales Plan One Page</title>
   <link rel="stylesheet" href="./styles.css?v=1.1.0" />
-  <link rel="stylesheet" href="./sales-only.css?v=1.0.0" />
+  <link rel="stylesheet" href="./sales-only.css?v=1.1.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -23,9 +23,9 @@
         <a href="#changes">Изменения</a>
       </nav>
       <div class="user-nav">
-        <span>Версия v2.0.1</span>
+        <span>Версия v2.0.2</span>
         <span class="divider"></span>
-        <span>Обновлено 16.09.2026 · 19:35</span>
+        <span>Обновлено 16.09.2026 · 19:50</span>
       </div>
     </div>
   </header>
@@ -48,7 +48,7 @@
       <div class="source-title-row">
         <div>
           <h2>Загрузите 2 файла</h2>
-          <p>Excel используется для расчетов. PPTX фиксируется как шаблон презентации для итогового материала.</p>
+          <p>После выбора файла карточка сразу покажет результат проверки.</p>
         </div>
         <div id="readyBadge" class="source-counter">0 / 2</div>
       </div>
@@ -59,23 +59,25 @@
           <div class="drop-card-top"><span class="file-index">01</span><span class="file-type">EXCEL</span></div>
           <strong>План продаж</strong>
           <small>Вертикали, клиенты, объемы по периодам, статусы</small>
-          <span class="file-name" id="salesName">Выберите файл</span>
+          <span id="salesStatus" class="upload-status status-empty">Не загружен</span>
+          <span class="file-name" id="salesName">Файл не выбран</span>
         </label>
 
         <label class="drop-card" id="templateCard">
-          <input id="templateFile" type="file" accept=".pptx" />
+          <input id="templateFile" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" />
           <div class="drop-card-top"><span class="file-index">02</span><span class="file-type">PPTX</span></div>
           <strong>Шаблон презентации</strong>
           <small>Редактируемый PowerPoint, который задает стиль итогового материала</small>
-          <span class="file-name" id="templateName">Выберите файл</span>
+          <span id="templateStatus" class="upload-status status-empty">Не загружен</span>
+          <span class="file-name" id="templateName">Файл не выбран</span>
         </label>
       </div>
 
       <div class="source-actions">
-        <div class="hint"><b>Автопроверка:</b> агрегаты vs детализация, суммы по вертикалям, клиенты и изменения относительно предыдущего среза.</div>
+        <div class="hint"><b>Статус:</b> кнопка станет активной только когда оба файла отмечены как «Загружен».</div>
         <button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button>
       </div>
-      <div id="parseLog" class="parse-log" aria-live="polite"></div>
+      <div id="parseLog" class="parse-log" aria-live="polite">Ожидаю загрузку файлов.</div>
     </section>
 
     <section id="reportSection" class="report-shell hidden">
@@ -143,7 +145,7 @@
 
         <footer class="report-footer">
           <span id="templateInfo">Шаблон презентации: —</span>
-          <span>Версия v2.0.1 · 16.09.2026 19:35</span>
+          <span>Версия v2.0.2 · 16.09.2026 19:50</span>
           <span id="hitlInfo">Human in the Loop: требуется финальная проверка</span>
         </footer>
       </article>
@@ -154,6 +156,6 @@
     </section>
   </main>
 
-  <script src="./app.js?v=2.0.0"></script>
+  <script src="./app.js?v=2.0.2"></script>
 </body>
 </html>
