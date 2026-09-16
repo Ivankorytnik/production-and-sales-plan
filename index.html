@@ -18,14 +18,14 @@
         <a href="#quality">Контроль</a>
         <a href="#changes">Изменения</a>
       </nav>
-      <div class="user-nav"><span>Версия v2.2.4 stable</span><span class="divider"></span><span>Обновлено <span id="updatedAt">16.09.2026</span></span></div>
+      <div class="user-nav"><span>Версия v2.2.5 stable</span><span class="divider"></span><span>Обновлено <span id="updatedAt">16.09.2026</span></span></div>
     </div>
   </header>
 
   <main id="top" class="page">
     <section class="page-heading no-print">
-      <div><div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div><h1>План продаж</h1><p>Сборка штабного One Page из Excel-плана продаж с использованием загруженного шаблона презентации.</p></div>
-      <div class="heading-actions"><button id="resetBtn" class="btn secondary" type="button">Сбросить</button><button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PDF</button></div>
+      <div><div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div><h1>План продаж</h1><p>Сборка штабного One Page из Excel-плана продаж с выгрузкой в загруженный шаблон PowerPoint.</p></div>
+      <div class="heading-actions"><button id="resetBtn" class="btn secondary" type="button">Сбросить</button><button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button></div>
     </section>
 
     <section id="sources" class="source-block no-print">
@@ -41,18 +41,18 @@
         <label class="drop-card" id="templateCard">
           <input id="templateFile" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" />
           <div class="drop-card-top"><span class="file-index">02</span><span class="file-type">PPTX</span></div>
-          <strong>Шаблон презентации</strong><small>Редактируемый PowerPoint, который задает стиль итогового материала</small>
+          <strong>Шаблон презентации</strong><small>Исходный PowerPoint сохраняется, меняются только значения</small>
           <span id="templateStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="templateName">Файл не выбран</span><span class="replace-file-btn">Заменить файл</span>
         </label>
       </div>
-      <div class="source-actions"><div class="hint"><b>Статус:</b> кнопка станет активной после загрузки обоих файлов.</div><button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button></div>
+      <div class="source-actions"><div class="hint"><b>Статус:</b> после загрузки обоих файлов сформируйте One Page, проверьте данные и выгрузите PPTX.</div><button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button></div>
       <div id="parseLog" class="parse-log" aria-live="polite">Ожидаю загрузку файлов.</div>
     </section>
 
     <section id="reportSection" class="report-shell hidden">
       <div id="report" class="report-topline no-print">
         <div><div class="section-kicker">АНАЛИТИКА</div><h2>Штабной One Page</h2></div>
-        <div class="toolbar-actions"><button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу сравнения</button><button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать HTML</button></div>
+        <div class="toolbar-actions"><button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу сравнения</button><button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать PPTX</button></div>
       </div>
 
       <article id="onePage" class="one-page template-onepage">
@@ -64,7 +64,7 @@
         <div class="template-section-strip client-strip"><span>ЗАБРОНИРОВАНО КЛИЕНТАМИ</span><input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" /></div>
         <div class="template-table-block client-table-block"><div class="table-wrap compact"><table id="clientTable"></table></div></div>
         <div class="template-source-line"><span id="templateInfo">Шаблон презентации: —</span><span>Источники: <strong id="sourceCount">0/2</strong></span></div>
-        <footer class="report-footer template-footer"><span>Версия v2.2.4 stable · <span id="updatedAtFooter">16.09.2026</span></span><span id="hitlInfo">Human in the Loop: требуется финальная проверка</span></footer>
+        <footer class="report-footer template-footer"><span>Версия v2.2.5 stable · <span id="updatedAtFooter">16.09.2026</span></span><span id="hitlInfo">Human in the Loop: требуется финальная проверка</span></footer>
       </article>
 
       <section class="service-control no-print">
@@ -79,6 +79,7 @@
 
   <script src="./app.js?v=2.2.0"></script>
   <script src="./template-view.js?v=1.1.0"></script>
+  <script src="./pptx-template-export.js?v=1.1.0"></script>
   <script>
     (()=>{
       const d=new Date(document.lastModified);
