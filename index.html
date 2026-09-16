@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM Sales Plan One Page</title>
   <link rel="stylesheet" href="./styles.css?v=1.1.0" />
-  <link rel="stylesheet" href="./sales-only.css?v=1.1.0" />
+  <link rel="stylesheet" href="./sales-only.css?v=1.2.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -23,9 +23,9 @@
         <a href="#changes">Изменения</a>
       </nav>
       <div class="user-nav">
-        <span>Версия v2.0.2</span>
+        <span>Версия v2.0.3</span>
         <span class="divider"></span>
-        <span>Обновлено 16.09.2026 · 19:50</span>
+        <span>Обновлено <span id="updatedAt">16.09.2026</span></span>
       </div>
     </div>
   </header>
@@ -48,7 +48,7 @@
       <div class="source-title-row">
         <div>
           <h2>Загрузите 2 файла</h2>
-          <p>После выбора файла карточка сразу покажет результат проверки.</p>
+          <p>После выбора файла карточка сразу покажет результат проверки. Загруженный файл можно заменить в любой момент.</p>
         </div>
         <div id="readyBadge" class="source-counter">0 / 2</div>
       </div>
@@ -61,6 +61,7 @@
           <small>Вертикали, клиенты, объемы по периодам, статусы</small>
           <span id="salesStatus" class="upload-status status-empty">Не загружен</span>
           <span class="file-name" id="salesName">Файл не выбран</span>
+          <span class="replace-file-btn">Заменить файл</span>
         </label>
 
         <label class="drop-card" id="templateCard">
@@ -70,6 +71,7 @@
           <small>Редактируемый PowerPoint, который задает стиль итогового материала</small>
           <span id="templateStatus" class="upload-status status-empty">Не загружен</span>
           <span class="file-name" id="templateName">Файл не выбран</span>
+          <span class="replace-file-btn">Заменить файл</span>
         </label>
       </div>
 
@@ -145,7 +147,7 @@
 
         <footer class="report-footer">
           <span id="templateInfo">Шаблон презентации: —</span>
-          <span>Версия v2.0.2 · 16.09.2026 19:50</span>
+          <span>Версия v2.0.3 · <span id="updatedAtFooter">16.09.2026</span></span>
           <span id="hitlInfo">Human in the Loop: требуется финальная проверка</span>
         </footer>
       </article>
@@ -156,6 +158,16 @@
     </section>
   </main>
 
-  <script src="./app.js?v=2.0.2"></script>
+  <script src="./app.js?v=2.0.3"></script>
+  <script>
+    (()=>{
+      const d=new Date(document.lastModified);
+      if(!Number.isNaN(d.getTime())){
+        const text=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
+        const a=document.getElementById('updatedAt'),b=document.getElementById('updatedAtFooter');
+        if(a)a.textContent=text;if(b)b.textContent=text;
+      }
+    })();
+  </script>
 </body>
 </html>
