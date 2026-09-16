@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM Production & Sales Plan</title>
   <link rel="stylesheet" href="./styles.css?v=1.1.0" />
+  <link rel="stylesheet" href="./cmmt-plan.css?v=1.0.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 </head>
@@ -35,7 +36,7 @@
       <div>
         <div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
         <h1>План производства и продаж</h1>
-        <p>Автоматическая сборка штабного One Page из трех исходных файлов.</p>
+        <p>Автоматическая сборка штабного One Page из четырех исходных файлов.</p>
       </div>
       <div class="heading-actions">
         <button id="resetBtn" class="btn secondary" type="button">Сбросить</button>
@@ -47,10 +48,10 @@
       <div class="section-kicker">ИСТОЧНИКИ</div>
       <div class="source-title-row">
         <div>
-          <h2>Загрузите 3 файла</h2>
+          <h2>Загрузите 4 файла</h2>
           <p>Обработка выполняется локально в браузере. Файлы не публикуются в GitHub.</p>
         </div>
-        <div id="readyBadge" class="source-counter">0 / 3</div>
+        <div id="readyBadge" class="source-counter">0 / 4</div>
       </div>
 
       <div class="upload-grid">
@@ -70,9 +71,17 @@
           <span class="file-name" id="productionName">Выберите файл</span>
         </label>
 
+        <label class="drop-card" id="cmmtCard">
+          <input id="cmmtFile" type="file" accept=".xlsx,.xls,.xlsm" />
+          <div class="drop-card-top"><span class="file-index">03</span><span class="file-type">EXCEL</span></div>
+          <strong>План СММТ</strong>
+          <small>План проектов СММТ для сверки с коммерческим планом</small>
+          <span class="file-name" id="cmmtName">Выберите файл</span>
+        </label>
+
         <label class="drop-card" id="requirementsCard">
           <input id="requirementsFile" type="file" accept=".doc,.docx,.txt,.html,.htm" />
-          <div class="drop-card-top"><span class="file-index">03</span><span class="file-type">DOC</span></div>
+          <div class="drop-card-top"><span class="file-index">04</span><span class="file-type">DOC</span></div>
           <strong>Требования к One Page</strong>
           <small>Правила состава, контроля и финальной проверки</small>
           <span class="file-name" id="requirementsName">Выберите файл</span>
@@ -80,7 +89,7 @@
       </div>
 
       <div class="source-actions">
-        <div class="hint"><b>Автопроверка:</b> агрегаты vs клиенты, отсутствующие даты, неподтвержденные объемы и покрытие вертикалей.</div>
+        <div class="hint"><b>Автопроверка:</b> агрегаты vs клиенты, отсутствующие даты, неподтвержденные объемы, покрытие вертикалей и наличие плана СММТ.</div>
         <button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button>
       </div>
       <div id="parseLog" class="parse-log" aria-live="polite"></div>
@@ -106,7 +115,7 @@
           </div>
           <div class="report-meta">
             <div><span>Срез</span><strong id="reportDate">—</strong></div>
-            <div><span>Источники</span><strong id="sourceCount">0/3</strong></div>
+            <div><span>Источники</span><strong id="sourceCount">0/4</strong></div>
           </div>
         </div>
 
@@ -175,5 +184,6 @@
   </main>
 
   <script src="./app.js?v=1.0.0"></script>
+  <script src="./cmmt-plan.js?v=1.0.0"></script>
 </body>
 </html>
