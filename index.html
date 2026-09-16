@@ -8,164 +8,30 @@
   <link rel="stylesheet" href="./styles.css?v=1.1.0" />
   <link rel="stylesheet" href="./sales-only.css?v=1.3.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
-  <header class="appbar no-print">
-    <div class="appbar-inner">
-      <a class="brand" href="#top" aria-label="Sales Plan One Page">
-        <strong>PSP</strong>
-        <span>SALES PLAN ONE PAGE</span>
-      </a>
-      <nav class="main-nav" aria-label="Навигация">
-        <a href="#sources">Исходные данные</a>
-        <a href="#report" class="active">One Page</a>
-        <a href="#quality">Контроль</a>
-        <a href="#changes">Изменения</a>
-      </nav>
-      <div class="user-nav">
-        <span>Версия v2.2.0</span>
-        <span class="divider"></span>
-        <span>Обновлено <span id="updatedAt">16.09.2026</span></span>
-      </div>
-    </div>
-  </header>
-
+  <header class="appbar no-print"><div class="appbar-inner"><a class="brand" href="#top"><strong>PSP</strong><span>SALES PLAN ONE PAGE</span></a><nav class="main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">One Page</a><a href="#quality">Контроль</a><a href="#changes">Изменения</a></nav><div class="user-nav"><span>Версия v2.2.1</span><span class="divider"></span><span>Обновлено <span id="updatedAt">16.09.2026</span></span></div></div></header>
   <main id="top" class="page">
-    <section class="page-heading no-print">
-      <div>
-        <div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
-        <h1>План продаж</h1>
-        <p>Сборка штабного One Page из Excel-плана продаж с выгрузкой в PPTX-шаблон.</p>
-      </div>
-      <div class="heading-actions">
-        <button id="resetBtn" class="btn secondary" type="button">Сбросить</button>
-        <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button>
-      </div>
-    </section>
-
+    <section class="page-heading no-print"><div><div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div><h1>План продаж</h1><p>Сборка штабного One Page из Excel-плана продаж с выгрузкой в загруженный PPTX-шаблон.</p></div><div class="heading-actions"><button id="resetBtn" class="btn secondary" type="button">Сбросить</button><button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button></div></section>
     <section id="sources" class="source-block no-print">
-      <div class="section-kicker">ИСТОЧНИКИ</div>
-      <div class="source-title-row">
-        <div>
-          <h2>Загрузите 2 файла</h2>
-          <p>После выбора файла карточка сразу покажет результат проверки. Загруженный файл можно заменить в любой момент.</p>
-        </div>
-        <div id="readyBadge" class="source-counter">0 / 2</div>
-      </div>
-
+      <div class="section-kicker">ИСТОЧНИКИ</div><div class="source-title-row"><div><h2>Загрузите 2 файла</h2><p>Excel дает актуальные значения. PPTX остается исходным шаблоном выгрузки.</p></div><div id="readyBadge" class="source-counter">0 / 2</div></div>
       <div class="upload-grid">
-        <label class="drop-card" id="salesCard">
-          <input id="salesFile" type="file" accept=".xlsx,.xls,.xlsm" />
-          <div class="drop-card-top"><span class="file-index">01</span><span class="file-type">EXCEL</span></div>
-          <strong>План продаж</strong>
-          <small>Вертикали, клиенты, объемы по периодам, статусы</small>
-          <span id="salesStatus" class="upload-status status-empty">Не загружен</span>
-          <span class="file-name" id="salesName">Файл не выбран</span>
-          <span class="replace-file-btn">Заменить файл</span>
-        </label>
-
-        <label class="drop-card" id="templateCard">
-          <input id="templateFile" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" />
-          <div class="drop-card-top"><span class="file-index">02</span><span class="file-type">PPTX</span></div>
-          <strong>Шаблон презентации</strong>
-          <small>Редактируемый PowerPoint, который задает стиль итогового материала</small>
-          <span id="templateStatus" class="upload-status status-empty">Не загружен</span>
-          <span class="file-name" id="templateName">Файл не выбран</span>
-          <span class="replace-file-btn">Заменить файл</span>
-        </label>
+        <label class="drop-card" id="salesCard"><input id="salesFile" type="file" accept=".xlsx,.xls,.xlsm" /><div class="drop-card-top"><span class="file-index">01</span><span class="file-type">EXCEL</span></div><strong>План продаж</strong><small>Вертикали, клиенты, объемы по периодам, статусы</small><span id="salesStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="salesName">Файл не выбран</span><span class="replace-file-btn">Заменить файл</span></label>
+        <label class="drop-card" id="templateCard"><input id="templateFile" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" /><div class="drop-card-top"><span class="file-index">02</span><span class="file-type">PPTX</span></div><strong>Шаблон презентации</strong><small>Исходный PowerPoint сохраняется, меняются только значения</small><span id="templateStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="templateName">Файл не выбран</span><span class="replace-file-btn">Заменить файл</span></label>
       </div>
-
-      <div class="source-actions">
-        <div class="hint"><b>Статус:</b> кнопка станет активной только когда оба файла отмечены как «Загружен».</div>
-        <button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button>
-      </div>
-      <div id="parseLog" class="parse-log" aria-live="polite">Ожидаю загрузку файлов.</div>
+      <div class="source-actions"><div class="hint"><b>Статус:</b> сформируйте One Page, проверьте данные и выгрузите обновленный PPTX.</div><button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button></div><div id="parseLog" class="parse-log" aria-live="polite">Ожидаю загрузку файлов.</div>
     </section>
-
     <section id="reportSection" class="report-shell hidden">
-      <div id="report" class="report-topline no-print">
-        <div>
-          <div class="section-kicker">АНАЛИТИКА</div>
-          <h2>Штабной One Page</h2>
-        </div>
-        <div class="toolbar-actions">
-          <button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу сравнения</button>
-          <button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать PPTX</button>
-        </div>
-      </div>
-
-      <article id="onePage" class="one-page template-onepage">
-        <div class="template-report-head">
-          <div>
-            <h2>ПЛАН ПРОИЗВОДСТВА, ОТГРУЗОК И ВЫДАЧ АВТОМОБИЛЯ АТОМ</h2>
-            <div class="template-updated">Обновлено <strong id="reportDate">—</strong></div>
-          </div>
-          <div class="atom-wordmark">АТОМ</div>
-        </div>
-
-        <div class="template-kpi-caption">КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ</div>
-        <div id="kpiGrid" class="kpi-grid template-kpi-grid"></div>
-
-        <div class="template-section-strip">
-          <span>ПЛАН ПРОДАЖ ПО ВЕРТИКАЛЯМ</span>
-          <span id="periodBadge" class="template-periods">—</span>
-        </div>
-        <div class="template-table-block">
-          <div class="table-wrap"><table id="verticalTable"></table></div>
-        </div>
-
-        <div class="template-section-strip client-strip">
-          <span>ЗАБРОНИРОВАНО КЛИЕНТАМИ</span>
-          <input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" />
-        </div>
-        <div class="template-table-block client-table-block">
-          <div class="table-wrap compact"><table id="clientTable"></table></div>
-        </div>
-
-        <div class="template-source-line">
-          <span id="templateInfo">Шаблон презентации: —</span>
-          <span>Источники: <strong id="sourceCount">0/2</strong></span>
-        </div>
-
-        <footer class="report-footer template-footer">
-          <span>Версия v2.2.0 · <span id="updatedAtFooter">16.09.2026</span></span>
-          <span id="hitlInfo">Human in the Loop: требуется финальная проверка</span>
-        </footer>
-      </article>
-
-      <section class="service-control no-print">
-        <div id="quality" class="panel">
-          <div class="panel-head dark-head"><div><div class="panel-overline">КОНТРОЛЬ</div><h3>Качество данных</h3></div><div id="qualityBadge" class="period-badge">—</div></div>
-          <div id="qualityList" class="quality-list"></div>
-        </div>
-        <div id="changes" class="panel">
-          <div class="panel-head dark-head"><div><div class="panel-overline">ДИНАМИКА</div><h3>Что изменилось</h3></div></div>
-          <div id="changesList" class="changes-list"></div>
-        </div>
-        <div class="panel decision-panel">
-          <div class="decision-title"><div class="panel-overline">НА ШТАБ</div><h3>Расхождения и вопросы</h3></div>
-          <div id="decisionList" class="decision-list"></div>
-        </div>
-      </section>
-
-      <div class="approval no-print">
-        <label><input type="checkbox" id="approveCheck" /> Я проверил итоговый экран и подтверждаю данные перед отправкой руководству.</label>
-      </div>
+      <div id="report" class="report-topline no-print"><div><div class="section-kicker">АНАЛИТИКА</div><h2>Штабной One Page</h2></div><div class="toolbar-actions"><button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу сравнения</button><button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать PPTX</button></div></div>
+      <article id="onePage" class="one-page template-onepage"><div class="template-report-head"><div><h2>ПЛАН ПРОИЗВОДСТВА, ОТГРУЗОК И ВЫДАЧ АВТОМОБИЛЯ АТОМ</h2><div class="template-updated">Обновлено <strong id="reportDate">—</strong></div></div><div class="atom-wordmark">АТОМ</div></div><div class="template-kpi-caption">КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ</div><div id="kpiGrid" class="kpi-grid template-kpi-grid"></div><div class="template-section-strip"><span>ПЛАН ПРОДАЖ ПО ВЕРТИКАЛЯМ</span><span id="periodBadge" class="template-periods">—</span></div><div class="template-table-block"><div class="table-wrap"><table id="verticalTable"></table></div></div><div class="template-section-strip client-strip"><span>ЗАБРОНИРОВАНО КЛИЕНТАМИ</span><input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" /></div><div class="template-table-block client-table-block"><div class="table-wrap compact"><table id="clientTable"></table></div></div><div class="template-source-line"><span id="templateInfo">Шаблон презентации: —</span><span>Источники: <strong id="sourceCount">0/2</strong></span></div><footer class="report-footer template-footer"><span>Версия v2.2.1 · <span id="updatedAtFooter">16.09.2026</span></span><span id="hitlInfo">Human in the Loop: требуется финальная проверка</span></footer></article>
+      <section class="service-control no-print"><div id="quality" class="panel"><div class="panel-head dark-head"><div><div class="panel-overline">КОНТРОЛЬ</div><h3>Качество данных</h3></div><div id="qualityBadge" class="period-badge">—</div></div><div id="qualityList" class="quality-list"></div></div><div id="changes" class="panel"><div class="panel-head dark-head"><div><div class="panel-overline">ДИНАМИКА</div><h3>Что изменилось</h3></div></div><div id="changesList" class="changes-list"></div></div><div class="panel decision-panel"><div class="decision-title"><div class="panel-overline">НА ШТАБ</div><h3>Расхождения и вопросы</h3></div><div id="decisionList" class="decision-list"></div></div></section>
+      <div class="approval no-print"><label><input type="checkbox" id="approveCheck" /> Я проверил итоговый экран и подтверждаю данные перед отправкой руководству.</label></div>
     </section>
   </main>
-
   <script src="./app.js?v=2.2.0"></script>
   <script src="./template-view.js?v=1.0.0"></script>
-  <script>
-    (()=>{
-      const d=new Date(document.lastModified);
-      if(!Number.isNaN(d.getTime())){
-        const text=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-        const a=document.getElementById('updatedAt'),b=document.getElementById('updatedAtFooter');
-        if(a)a.textContent=text;if(b)b.textContent=text;
-      }
-    })();
-  </script>
+  <script src="./pptx-template-export.js?v=1.0.0"></script>
+  <script>(()=>{const d=new Date(document.lastModified);if(!Number.isNaN(d.getTime())){const t=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');document.getElementById('updatedAt').textContent=t;document.getElementById('updatedAtFooter').textContent=t}})();</script>
 </body>
 </html>
