@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM Sales Plan One Page</title>
   <link rel="stylesheet" href="./styles.css?v=1.1.0" />
-  <link rel="stylesheet" href="./sales-only.css?v=1.2.0" />
+  <link rel="stylesheet" href="./sales-only.css?v=1.3.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -23,7 +23,7 @@
         <a href="#changes">Изменения</a>
       </nav>
       <div class="user-nav">
-        <span>Версия v2.0.3</span>
+        <span>Версия v2.1.0</span>
         <span class="divider"></span>
         <span>Обновлено <span id="updatedAt">16.09.2026</span></span>
       </div>
@@ -94,63 +94,59 @@
         </div>
       </div>
 
-      <article id="onePage" class="one-page">
-        <div class="report-head">
+      <article id="onePage" class="one-page template-onepage">
+        <div class="template-report-head">
           <div>
-            <div class="breadcrumb">КОММЕРЧЕСКИЙ ШТАБ · ONE PAGE</div>
-            <h2>План продаж по вертикалям и клиентам</h2>
+            <h2>ПЛАН ПРОДАЖ АВТОМОБИЛЯ АТОМ</h2>
+            <div class="template-updated">Обновлено <strong id="reportDate">—</strong></div>
           </div>
-          <div class="report-meta">
-            <div><span>Срез</span><strong id="reportDate">—</strong></div>
-            <div><span>Источники</span><strong id="sourceCount">0/2</strong></div>
-          </div>
+          <div class="atom-wordmark">АТОМ</div>
         </div>
 
-        <div class="metric-caption">ПЛАН ПРОДАЖ</div>
-        <div id="kpiGrid" class="kpi-grid"></div>
+        <div class="template-kpi-caption">КЛЮЧЕВЫЕ ПОКАЗАТЕЛИ</div>
+        <div id="kpiGrid" class="kpi-grid template-kpi-grid"></div>
 
-        <div class="report-grid">
-          <section class="panel span-8">
-            <div class="panel-head dark-head">
-              <div><div class="panel-overline">ПЛАН ПО ВЕРТИКАЛЯМ</div><h3>Объем по периодам</h3></div>
-              <div id="periodBadge" class="period-badge">—</div>
-            </div>
-            <div class="table-wrap"><table id="verticalTable"></table></div>
-          </section>
-
-          <section id="quality" class="panel span-4">
-            <div class="panel-head dark-head">
-              <div><div class="panel-overline">КОНТРОЛЬ</div><h3>Качество данных</h3></div>
-              <div id="qualityBadge" class="period-badge">—</div>
-            </div>
-            <div id="qualityList" class="quality-list"></div>
-          </section>
-
-          <section class="panel span-8">
-            <div class="panel-head dark-head">
-              <div><div class="panel-overline">ДЕТАЛИЗАЦИЯ</div><h3>B2B / B2G / Carsharing</h3></div>
-              <input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" />
-            </div>
-            <div class="table-wrap compact"><table id="clientTable"></table></div>
-          </section>
-
-          <section id="changes" class="panel span-4">
-            <div class="panel-head dark-head"><div><div class="panel-overline">ДИНАМИКА</div><h3>Что изменилось</h3></div></div>
-            <div id="changesList" class="changes-list"></div>
-          </section>
-
-          <section class="panel span-12 decision-panel">
-            <div class="decision-title"><div class="panel-overline">НА ШТАБ</div><h3>Расхождения и вопросы, требующие внимания</h3></div>
-            <div id="decisionList" class="decision-list"></div>
-          </section>
+        <div class="template-section-strip">
+          <span>ПЛАН ПРОДАЖ ПО ВЕРТИКАЛЯМ</span>
+          <span id="periodBadge" class="template-periods">—</span>
+        </div>
+        <div class="template-table-block">
+          <div class="table-wrap"><table id="verticalTable"></table></div>
         </div>
 
-        <footer class="report-footer">
+        <div class="template-section-strip client-strip">
+          <span>ЗАБРОНИРОВАНО КЛИЕНТАМИ</span>
+          <input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" />
+        </div>
+        <div class="template-table-block client-table-block">
+          <div class="table-wrap compact"><table id="clientTable"></table></div>
+        </div>
+
+        <div class="template-source-line">
           <span id="templateInfo">Шаблон презентации: —</span>
-          <span>Версия v2.0.3 · <span id="updatedAtFooter">16.09.2026</span></span>
+          <span>Источники: <strong id="sourceCount">0/2</strong></span>
+        </div>
+
+        <footer class="report-footer template-footer">
+          <span>Версия v2.1.0 · <span id="updatedAtFooter">16.09.2026</span></span>
           <span id="hitlInfo">Human in the Loop: требуется финальная проверка</span>
         </footer>
       </article>
+
+      <section class="service-control no-print">
+        <div id="quality" class="panel">
+          <div class="panel-head dark-head"><div><div class="panel-overline">КОНТРОЛЬ</div><h3>Качество данных</h3></div><div id="qualityBadge" class="period-badge">—</div></div>
+          <div id="qualityList" class="quality-list"></div>
+        </div>
+        <div id="changes" class="panel">
+          <div class="panel-head dark-head"><div><div class="panel-overline">ДИНАМИКА</div><h3>Что изменилось</h3></div></div>
+          <div id="changesList" class="changes-list"></div>
+        </div>
+        <div class="panel decision-panel">
+          <div class="decision-title"><div class="panel-overline">НА ШТАБ</div><h3>Расхождения и вопросы</h3></div>
+          <div id="decisionList" class="decision-list"></div>
+        </div>
+      </section>
 
       <div class="approval no-print">
         <label><input type="checkbox" id="approveCheck" /> Я проверил итоговый экран и подтверждаю данные перед отправкой руководству.</label>
@@ -159,6 +155,7 @@
   </main>
 
   <script src="./app.js?v=2.0.3"></script>
+  <script src="./template-view.js?v=1.0.0"></script>
   <script>
     (()=>{
       const d=new Date(document.lastModified);
