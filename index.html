@@ -3,103 +3,161 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#111827" />
-  <title>ATOM Production & Sales Plan MVP</title>
-  <link rel="stylesheet" href="./styles.css?v=1.0.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>ATOM Production & Sales Plan</title>
+  <link rel="stylesheet" href="./styles.css?v=1.1.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 </head>
 <body>
-  <header class="topbar no-print">
-    <div>
-      <div class="eyebrow">MVP • штаб продаж</div>
-      <h1>ATOM Production & Sales Plan</h1>
-      <p>Загрузите 3 исходных файла. Данные обрабатываются локально в браузере и не отправляются на сервер.</p>
-    </div>
-    <div class="topbar-actions">
-      <button id="resetBtn" class="btn ghost" type="button">Сбросить</button>
-      <button id="printBtn" class="btn primary" type="button" disabled>Печать / PDF</button>
+  <header class="appbar no-print">
+    <div class="appbar-inner">
+      <a class="brand" href="#top" aria-label="Production & Sales Plan">
+        <strong>PSP</strong>
+        <span>PRODUCTION & SALES PLAN</span>
+      </a>
+      <nav class="main-nav" aria-label="Навигация">
+        <a href="#sources">Исходные данные</a>
+        <a href="#report" class="active">One Page</a>
+        <a href="#quality">Контроль</a>
+        <a href="#changes">Изменения</a>
+      </nav>
+      <div class="user-nav">
+        <span>Версия MVP</span>
+        <span class="divider"></span>
+        <strong>Ivan Korytnik</strong>
+      </div>
     </div>
   </header>
 
-  <main>
-    <section class="workspace no-print">
-      <div class="step-head">
-        <div><span class="step-num">01</span><h2>Исходные файлы</h2></div>
-        <div id="readyBadge" class="badge muted">0 / 3 загружено</div>
+  <main id="top" class="page">
+    <section class="page-heading no-print">
+      <div>
+        <div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
+        <h1>План производства и продаж</h1>
+        <p>Автоматическая сборка штабного One Page из трех исходных файлов.</p>
+      </div>
+      <div class="heading-actions">
+        <button id="resetBtn" class="btn secondary" type="button">Сбросить</button>
+        <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PDF</button>
+      </div>
+    </section>
+
+    <section id="sources" class="source-block no-print">
+      <div class="section-kicker">ИСТОЧНИКИ</div>
+      <div class="source-title-row">
+        <div>
+          <h2>Загрузите 3 файла</h2>
+          <p>Обработка выполняется локально в браузере. Файлы не публикуются в GitHub.</p>
+        </div>
+        <div id="readyBadge" class="source-counter">0 / 3</div>
       </div>
 
       <div class="upload-grid">
         <label class="drop-card" id="salesCard">
           <input id="salesFile" type="file" accept=".xlsx,.xls,.xlsm" />
-          <span class="file-index">1</span><strong>План продаж</strong>
-          <small>Excel • вертикали, клиенты, план по периодам</small>
+          <div class="drop-card-top"><span class="file-index">01</span><span class="file-type">EXCEL</span></div>
+          <strong>План продаж</strong>
+          <small>Вертикали, клиенты, план по периодам</small>
           <span class="file-name" id="salesName">Выберите файл</span>
         </label>
+
         <label class="drop-card" id="productionCard">
           <input id="productionFile" type="file" accept=".xlsx,.xls,.xlsm" />
-          <span class="file-index">2</span><strong>Производство / отгрузки</strong>
-          <small>Excel • даты, объемы, статусы, ЭПТС при наличии</small>
+          <div class="drop-card-top"><span class="file-index">02</span><span class="file-type">EXCEL</span></div>
+          <strong>Производство / отгрузки</strong>
+          <small>Даты, объемы, статусы, ЭПТС при наличии</small>
           <span class="file-name" id="productionName">Выберите файл</span>
         </label>
+
         <label class="drop-card" id="requirementsCard">
           <input id="requirementsFile" type="file" accept=".doc,.docx,.txt,.html,.htm" />
-          <span class="file-index">3</span><strong>Требования к One Page</strong>
-          <small>DOC/DOCX/TXT • правила состава и контроля</small>
+          <div class="drop-card-top"><span class="file-index">03</span><span class="file-type">DOC</span></div>
+          <strong>Требования к One Page</strong>
+          <small>Правила состава, контроля и финальной проверки</small>
           <span class="file-name" id="requirementsName">Выберите файл</span>
         </label>
       </div>
 
-      <div class="action-row">
+      <div class="source-actions">
         <div class="hint"><b>Автопроверка:</b> агрегаты vs клиенты, отсутствующие даты, неподтвержденные объемы и покрытие вертикалей.</div>
-        <button id="buildBtn" class="btn primary large" type="button" disabled>Сформировать One Page</button>
+        <button id="buildBtn" class="btn primary" type="button" disabled>Сформировать One Page</button>
       </div>
       <div id="parseLog" class="parse-log" aria-live="polite"></div>
     </section>
 
     <section id="reportSection" class="report-shell hidden">
-      <div class="report-toolbar no-print">
-        <div><span class="step-num">02</span><h2>Готовый штабной экран</h2></div>
+      <div id="report" class="report-topline no-print">
+        <div>
+          <div class="section-kicker">АНАЛИТИКА</div>
+          <h2>Штабной One Page</h2>
+        </div>
         <div class="toolbar-actions">
-          <button id="saveSnapshotBtn" class="btn ghost" type="button">Сохранить как базу сравнения</button>
-          <button id="downloadHtmlBtn" class="btn ghost" type="button">Скачать HTML</button>
+          <button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу сравнения</button>
+          <button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать HTML</button>
         </div>
       </div>
 
       <article id="onePage" class="one-page">
         <div class="report-head">
-          <div><div class="eyebrow">КОММЕРЧЕСКИЙ ШТАБ • ONE PAGE</div><h2>Производство, распределение и выдача</h2></div>
+          <div>
+            <div class="breadcrumb">КОММЕРЧЕСКИЙ ШТАБ · ONE PAGE</div>
+            <h2>Производство, распределение и выдача</h2>
+          </div>
           <div class="report-meta">
             <div><span>Срез</span><strong id="reportDate">—</strong></div>
             <div><span>Источники</span><strong id="sourceCount">0/3</strong></div>
           </div>
         </div>
-        <div id="flowLine" class="flow-line"></div>
+
+        <div class="metric-caption">СТАТУС СЕГОДНЯ</div>
         <div id="kpiGrid" class="kpi-grid"></div>
+
+        <section class="market-section">
+          <div class="dark-strip">ЦЕПОЧКА: ПРОИЗВОДСТВО → ОТГРУЗКА → РАСПРЕДЕЛЕНИЕ → ВЫДАЧА → СВОБОДНЫЙ СТОК</div>
+          <div id="flowLine" class="flow-line"></div>
+        </section>
 
         <div class="report-grid">
           <section class="panel span-8">
-            <div class="panel-head"><div><div class="eyebrow">ПЛАН ПО ВЕРТИКАЛЯМ</div><h3>Коммерческий объем</h3></div><div id="periodBadge" class="badge">—</div></div>
+            <div class="panel-head dark-head">
+              <div><div class="panel-overline">ПЛАН ПО ВЕРТИКАЛЯМ</div><h3>Коммерческий объем</h3></div>
+              <div id="periodBadge" class="period-badge">—</div>
+            </div>
             <div class="table-wrap"><table id="verticalTable"></table></div>
           </section>
-          <section class="panel span-4">
-            <div class="panel-head"><div><div class="eyebrow">КОНТРОЛЬ</div><h3>Качество данных</h3></div><div id="qualityBadge" class="badge">—</div></div>
+
+          <section id="quality" class="panel span-4">
+            <div class="panel-head dark-head">
+              <div><div class="panel-overline">КОНТРОЛЬ</div><h3>Качество данных</h3></div>
+              <div id="qualityBadge" class="period-badge">—</div>
+            </div>
             <div id="qualityList" class="quality-list"></div>
           </section>
+
           <section class="panel span-12">
-            <div class="panel-head"><div><div class="eyebrow">ГРАФИК</div><h3>Отгрузка и расчетная выдача</h3></div><div class="legend"><span>● подтверждено</span><span>○ требует внимания</span></div></div>
+            <div class="panel-head dark-head">
+              <div><div class="panel-overline">ГРАФИК</div><h3>Отгрузка и расчетная выдача</h3></div>
+              <div class="legend"><span class="legend-ok">▲ подтверждено</span><span class="legend-bad">▼ требует внимания</span></div>
+            </div>
             <div class="table-wrap"><table id="weeklyTable"></table></div>
           </section>
+
           <section class="panel span-8">
-            <div class="panel-head"><div><div class="eyebrow">ДЕТАЛИЗАЦИЯ</div><h3>B2B / B2G / Carsharing</h3></div><input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" /></div>
+            <div class="panel-head dark-head">
+              <div><div class="panel-overline">ДЕТАЛИЗАЦИЯ</div><h3>B2B / B2G / Carsharing</h3></div>
+              <input id="clientFilter" class="mini-search no-print" placeholder="Клиент / вертикаль" />
+            </div>
             <div class="table-wrap compact"><table id="clientTable"></table></div>
           </section>
-          <section class="panel span-4">
-            <div class="panel-head"><div><div class="eyebrow">ДИНАМИКА</div><h3>Что изменилось</h3></div></div>
+
+          <section id="changes" class="panel span-4">
+            <div class="panel-head dark-head"><div><div class="panel-overline">ДИНАМИКА</div><h3>Что изменилось</h3></div></div>
             <div id="changesList" class="changes-list"></div>
           </section>
+
           <section class="panel span-12 decision-panel">
-            <div><div class="eyebrow">НА ШТАБ</div><h3>Риски и вопросы, требующие решения руководства</h3></div>
+            <div class="decision-title"><div class="panel-overline">НА ШТАБ</div><h3>Риски и вопросы, требующие решения руководства</h3></div>
             <div id="decisionList" class="decision-list"></div>
           </section>
         </div>
@@ -109,9 +167,13 @@
           <span id="hitlInfo">Human in the Loop: требуется финальная проверка</span>
         </footer>
       </article>
-      <div class="approval no-print"><label><input type="checkbox" id="approveCheck" /> Я проверил итоговый экран и подтверждаю данные перед отправкой руководству.</label></div>
+
+      <div class="approval no-print">
+        <label><input type="checkbox" id="approveCheck" /> Я проверил итоговый экран и подтверждаю данные перед отправкой руководству.</label>
+      </div>
     </section>
   </main>
+
   <script src="./app.js?v=1.0.0"></script>
 </body>
 </html>
