@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="./styles.css?v=1.1.0" />
   <link rel="stylesheet" href="./sales-only.css?v=1.3.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 </head>
 <body>
   <header class="appbar no-print">
@@ -23,7 +24,7 @@
         <a href="#changes">Изменения</a>
       </nav>
       <div class="user-nav">
-        <span>Версия v2.1.0</span>
+        <span>Версия v2.2.0</span>
         <span class="divider"></span>
         <span>Обновлено <span id="updatedAt">16.09.2026</span></span>
       </div>
@@ -35,11 +36,11 @@
       <div>
         <div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
         <h1>План продаж</h1>
-        <p>Сборка штабного One Page из Excel-плана продаж с использованием загруженного шаблона презентации.</p>
+        <p>Сборка штабного One Page из Excel-плана продаж с выгрузкой в PPTX-шаблон.</p>
       </div>
       <div class="heading-actions">
         <button id="resetBtn" class="btn secondary" type="button">Сбросить</button>
-        <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PDF</button>
+        <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button>
       </div>
     </section>
 
@@ -90,14 +91,14 @@
         </div>
         <div class="toolbar-actions">
           <button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу сравнения</button>
-          <button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать HTML</button>
+          <button id="downloadHtmlBtn" class="btn secondary" type="button">Скачать PPTX</button>
         </div>
       </div>
 
       <article id="onePage" class="one-page template-onepage">
         <div class="template-report-head">
           <div>
-            <h2>ПЛАН ПРОДАЖ АВТОМОБИЛЯ АТОМ</h2>
+            <h2>ПЛАН ПРОИЗВОДСТВА, ОТГРУЗОК И ВЫДАЧ АВТОМОБИЛЯ АТОМ</h2>
             <div class="template-updated">Обновлено <strong id="reportDate">—</strong></div>
           </div>
           <div class="atom-wordmark">АТОМ</div>
@@ -128,7 +129,7 @@
         </div>
 
         <footer class="report-footer template-footer">
-          <span>Версия v2.1.0 · <span id="updatedAtFooter">16.09.2026</span></span>
+          <span>Версия v2.2.0 · <span id="updatedAtFooter">16.09.2026</span></span>
           <span id="hitlInfo">Human in the Loop: требуется финальная проверка</span>
         </footer>
       </article>
@@ -154,7 +155,7 @@
     </section>
   </main>
 
-  <script src="./app.js?v=2.0.3"></script>
+  <script src="./app.js?v=2.2.0"></script>
   <script src="./template-view.js?v=1.0.0"></script>
   <script>
     (()=>{
