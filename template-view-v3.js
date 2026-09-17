@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const PARSER_VERSION='3.0.0';
+const PARSER_VERSION='3.0.1';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
@@ -246,7 +246,7 @@ function renderModel(model,templateName=currentTemplateName){
   }
   distribution+=`<tr class="grand-total"><td class="layer-name"><strong>ВСЕГО</strong></td><td class="project-name"><strong>Забронировано клиентами</strong></td><td class="dash-total">${dot(metricTotal(metrics.booked))}</td>${months.map(m=>`<td class="dash-num">${dot(metrics.booked?.months?.[m]||0)}</td>`).join('')}</tr>`;
 
-  one.innerHTML=`<div class="analytics-head"><div><h2>Аналитика</h2><div class="analytics-subtitle">Производство, продажи и распределение</div></div><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
+  one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
 
   const d=$('reportDate');if(d)d.textContent=date;
   const t=$('templateInfo');if(t)t.textContent=`Шаблон презентации: ${currentTemplateName}`;
@@ -298,7 +298,7 @@ if(!document.getElementById('template-v3-style')){
   const style=document.createElement('style');
   style.id='template-v3-style';
   style.textContent=`
-    .period-control-group{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}
+    .analytics-head-date-only{display:flex!important;justify-content:flex-end!important;margin-bottom:18px!important}.period-control-group{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}
     .period-mode-tabs{display:flex;align-items:center;border:1px solid #d9dde5;border-radius:9px;overflow:hidden;background:#fff}
     .period-mode-btn{height:42px;padding:0 18px;border:0;border-right:1px solid #e4e7ec;background:#fff;color:#475467;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer;white-space:nowrap}
     .period-mode-btn:last-child{border-right:0}.period-mode-btn:hover{background:#f7f8fa}.period-mode-btn.active{background:#111318;color:#fff}
