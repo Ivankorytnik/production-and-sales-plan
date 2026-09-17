@@ -144,5 +144,66 @@ window.ATOMTemplateView={parseWorkbook,renderModel,renderFromFile};
   const version=document.querySelector('.user-nav > span:first-child');
   if(!version)return;
   const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-  version.textContent=`Версия v2.4.3 pdf-export · загрузка ${loadedAt}`;
+  version.textContent=`Версия v2.5.0 · загрузка ${loadedAt}`;
+})();
+
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const heading=document.querySelector('.page-heading');
+const helper=heading?.querySelector('p');
+if(helper)helper.remove();
+const duplicatePptx=$('downloadHtmlBtn');
+if(duplicatePptx)duplicatePptx.style.display='none';
+
+const titleRow=heading?.firstElementChild;
+if(titleRow)titleRow.classList.add('heading-title-row');
+
+const uploadGrid=document.querySelector('#sources .upload-grid');
+const sourceTitle=document.querySelector('#sources .source-title-row h2');
+const sourceText=document.querySelector('#sources .source-title-row p');
+const templateIndex=document.querySelector('#templateCard .file-index');
+if(sourceTitle)sourceTitle.textContent='Загрузите 3 файла';
+if(sourceText)sourceText.textContent='План продаж, СММТ и PPTX-шаблон. Файлы сохраняются в браузере.';
+if(templateIndex)templateIndex.textContent='03';
+
+if(uploadGrid&&!$('smmtCard')){
+  const card=document.createElement('label');
+  card.className='drop-card';
+  card.id='smmtCard';
+  card.innerHTML='<input id="smmtFile" type="file" accept=".xlsx,.xls,.xlsm" /><div class="drop-card-top"><span class="file-index">02</span><span class="file-type">EXCEL</span></div><strong>СММТ</strong><small>Вкладка «Все проекты»</small><span id="smmtStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="smmtName">Файл не выбран</span><span class="replace-file-btn">Заменить файл</span>';
+  const templateCard=$('templateCard');
+  if(templateCard)uploadGrid.insertBefore(card,templateCard);else uploadGrid.appendChild(card);
+}
+
+const smmtInput=$('smmtFile'),smmtCard=$('smmtCard'),smmtStatus=$('smmtStatus'),smmtName=$('smmtName'),readyBadge=$('readyBadge');
+const DB_NAME='atom-production-sales-plan',DB_STORE='files',DB_VERSION=1;
+window.ATOMCurrentFiles=window.ATOMCurrentFiles||{};
+
+function openDb(){return new Promise((resolve,reject)=>{if(!window.indexedDB){reject(new Error('IndexedDB недоступен'));return}const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE,{keyPath:'kind'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('DB error'))})}
+async function saveSmmt(file){const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put({kind:'smmt',name:file.name,type:file.type,lastModified:file.lastModified||Date.now(),blob:file.slice(0,file.size,file.type||'application/octet-stream')});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}
+async function loadSmmt(){try{const db=await openDb();const rec=await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const req=tx.objectStore(DB_STORE).get('smmt');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error)});db.close();if(!rec?.blob)return null;return new File([rec.blob],rec.name,{type:rec.type||rec.blob.type,lastModified:rec.lastModified||Date.now()})}catch(e){console.warn('SMMT restore failed',e);return null}}
+function mirror(file){if(!smmtInput||!file)return;try{const dt=new DataTransfer();dt.items.add(file);smmtInput.files=dt.files}catch{}}
+function setSmmt(file,restored=false){if(!file)return;window.ATOMCurrentFiles.smmt=file;if(smmtName)smmtName.textContent=file.name;if(smmtStatus){smmtStatus.className='upload-status status-loaded';smmtStatus.textContent=restored?'Сохранен':'Загружен'}smmtCard?.classList.add('loaded');mirror(file);updateCount()}
+function updateCount(){const loaded=[document.getElementById('salesCard'),document.getElementById('smmtCard'),document.getElementById('templateCard')].filter(card=>card?.classList.contains('loaded')).length;if(readyBadge){readyBadge.textContent=`${loaded} / 3`;readyBadge.classList.toggle('complete',loaded===3)}}
+
+smmtInput?.addEventListener('change',async()=>{const file=smmtInput.files?.[0]||null;if(!file)return;if(!/\.(xlsx|xls|xlsm)$/i.test(file.name)){if(smmtStatus){smmtStatus.className='upload-status status-error';smmtStatus.textContent='Неверный формат'}return}try{await saveSmmt(file);setSmmt(file,false);const log=$('parseLog');if(log)log.textContent=`СММТ сохранен: ${file.name}`;}catch(e){console.error(e)}});
+
+const observer=new MutationObserver(()=>setTimeout(updateCount,0));
+['salesCard','templateCard','smmtCard'].forEach(id=>{const el=$(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['class']})});
+setTimeout(updateCount,0);
+loadSmmt().then(file=>{if(file)setSmmt(file,true)});
+
+const style=document.createElement('style');
+style.id='header-smmt-v1';
+style.textContent=`
+  .page-heading{align-items:center!important;flex-wrap:nowrap!important;gap:18px!important}
+  .page-heading .heading-title-row{display:flex!important;align-items:center!important;gap:14px!important;min-width:0!important}
+  .page-heading .breadcrumb{margin:0!important;white-space:nowrap!important}
+  .page-heading h1{margin:0!important;white-space:nowrap!important}
+  .page-heading .heading-actions{margin-left:auto!important;flex-wrap:nowrap!important;white-space:nowrap!important}
+  #downloadHtmlBtn{display:none!important}
+  @media(max-width:900px){.page-heading{flex-wrap:wrap!important}.page-heading .heading-actions{width:auto!important}.page-heading .heading-title-row{flex-wrap:wrap!important}}
+`;
+document.head.appendChild(style);
 })();
