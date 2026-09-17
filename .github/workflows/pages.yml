@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -23,14 +23,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Prepare production build
+        with:
+          persist-credentials: true
+
+      - name: Build final production files
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
 
           NEW_LABEL = 'Доступно для отгрузки клиенту-план'
-          SITE_VERSION = 'v2.6.4'
+          SITE_VERSION = 'v2.6.5'
 
           index = Path('index.html')
           s = index.read_text(encoding='utf-8')
@@ -39,95 +42,80 @@ jobs:
           s = s.replace('0 / 3', '0 / 2')
           s = re.sub(r'\s*<label class="drop-card" id="smmtCard">.*?</label>\s*', '\n          ', s, count=1, flags=re.S)
           s = re.sub(r'(<label class="drop-card" id="templateCard">.*?<span class="file-index">)03(</span>)', r'\g<1>02\2', s, count=1, flags=re.S)
-          s = re.sub(r'template-view\.js\?v=[^"\']+', 'template-view.js?v=2.5.9', s)
-          s = re.sub(r'period-filter\.js\?v=[^"\']+', 'period-filter.js?v=1.6.0', s)
-          s = re.sub(r'pptx-template-export\.js\?v=[^"\']+', 'pptx-template-export.js?v=2.5.0', s)
+          s = re.sub(r'template-view\.js\?v=[^"\']+', 'template-view.js?v=2.6.0', s)
+          s = re.sub(r'period-filter\.js\?v=[^"\']+', 'period-filter.js?v=1.7.0', s)
+          s = re.sub(r'pptx-template-export\.js\?v=[^"\']+', 'pptx-template-export.js?v=2.6.0', s)
           s = re.sub(r'Версия v\d+\.\d+\.\d+', f'Версия {SITE_VERSION}', s)
           index.write_text(s, encoding='utf-8')
 
           view = Path('template-view.js')
           t = view.read_text(encoding='utf-8')
-          block_pattern = r"\(\(\)=>\{\n'use strict';\nconst \$=id=>document\.getElementById\(id\);\nconst heading=document\.querySelector\('\.page-heading'\);.*?style\.id='header-smmt-v1';.*?document\.head\.appendChild\(style\);\n\}\)\(\);"
-          block_replacement = """(()=>{
-          'use strict';
-          const $=id=>document.getElementById(id);
-          const heading=document.querySelector('.page-heading');
-          const helper=heading?.querySelector('p');
-          if(helper)helper.remove();
-          const duplicatePptx=$('downloadHtmlBtn');if(duplicatePptx)duplicatePptx.style.display='none';
-          const titleRow=heading?.firstElementChild;if(titleRow)titleRow.classList.add('heading-title-row');
-          const sourceTitle=document.querySelector('#sources .source-title-row h2');
-          const sourceText=document.querySelector('#sources .source-title-row p');
-          const templateIndex=document.querySelector('#templateCard .file-index');
-          if(sourceTitle)sourceTitle.textContent='Загрузите 2 файла';
-          if(sourceText)sourceText.textContent='План продаж и PPTX-шаблон. Файлы сохраняются в браузере.';
-          if(templateIndex)templateIndex.textContent='02';
-          try{
-            const req=indexedDB.open('atom-production-sales-plan',1);
-            req.onsuccess=()=>{
-              const db=req.result;
-              if(!db.objectStoreNames.contains('files')){db.close();return}
-              const tx=db.transaction('files','readwrite');
-              tx.objectStore('files').delete('smmt');
-              tx.oncomplete=()=>db.close();
-              tx.onerror=()=>db.close();
-            };
-          }catch{}
-          const style=document.createElement('style');style.id='header-layout-v2';style.textContent=`
-            .page-heading{align-items:center!important;flex-wrap:nowrap!important;gap:18px!important}
-            .page-heading .heading-title-row{display:flex!important;align-items:center!important;gap:14px!important;min-width:0!important}
-            .page-heading .breadcrumb{margin:0!important;white-space:nowrap!important}
-            .page-heading h1{margin:0!important;white-space:nowrap!important}
-            .page-heading .heading-actions{margin-left:auto!important;flex-wrap:nowrap!important;white-space:nowrap!important}
-            #downloadHtmlBtn{display:none!important}
-            @media(max-width:900px){.page-heading{flex-wrap:wrap!important}.page-heading .heading-actions{width:auto!important}.page-heading .heading-title-row{flex-wrap:wrap!important}}
-          `;document.head.appendChild(style);
-          })();"""
-          t, replaced = re.subn(block_pattern, block_replacement, t, count=1, flags=re.S)
-          if replaced != 1:
-            raise SystemExit('template-view SMMT block replacement failed')
-          t = re.sub(r'Версия v\d+\.\d+\.\d+', f'Версия {SITE_VERSION}', t)
+          if "header-smmt-v1" in t:
+              block_pattern = r"\(\(\)=>\{\n'use strict';\nconst \$=id=>document\.getElementById\(id\);\nconst heading=document\.querySelector\('\.page-heading'\);.*?style\.id='header-smmt-v1';.*?document\.head\.appendChild\(style\);\n\}\)\(\);"
+              block_replacement = """(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const heading=document.querySelector('.page-heading');
+const helper=heading?.querySelector('p');if(helper)helper.remove();
+const duplicatePptx=$('downloadHtmlBtn');if(duplicatePptx)duplicatePptx.style.display='none';
+const titleRow=heading?.firstElementChild;if(titleRow)titleRow.classList.add('heading-title-row');
+const sourceTitle=document.querySelector('#sources .source-title-row h2');
+const sourceText=document.querySelector('#sources .source-title-row p');
+const templateIndex=document.querySelector('#templateCard .file-index');
+if(sourceTitle)sourceTitle.textContent='Загрузите 2 файла';
+if(sourceText)sourceText.textContent='План продаж и PPTX-шаблон. Файлы сохраняются в браузере.';
+if(templateIndex)templateIndex.textContent='02';
+const removeSmmt=()=>{document.getElementById('smmtCard')?.remove();document.getElementById('smmtFile')?.remove();};
+removeSmmt();
+new MutationObserver(removeSmmt).observe(document.body,{childList:true,subtree:true});
+try{const req=indexedDB.open('atom-production-sales-plan',1);req.onsuccess=()=>{const db=req.result;if(!db.objectStoreNames.contains('files')){db.close();return}const tx=db.transaction('files','readwrite');tx.objectStore('files').delete('smmt');tx.oncomplete=()=>db.close();tx.onerror=()=>db.close()}}catch{}
+const style=document.createElement('style');style.id='header-layout-v3';style.textContent=`#smmtCard{display:none!important}.page-heading{align-items:center!important;flex-wrap:nowrap!important;gap:18px!important}.page-heading .heading-title-row{display:flex!important;align-items:center!important;gap:14px!important;min-width:0!important}.page-heading .breadcrumb{margin:0!important;white-space:nowrap!important}.page-heading h1{margin:0!important;white-space:nowrap!important}.page-heading .heading-actions{margin-left:auto!important;flex-wrap:nowrap!important;white-space:nowrap!important}#downloadHtmlBtn{display:none!important}@media(max-width:900px){.page-heading{flex-wrap:wrap!important}.page-heading .heading-actions{width:auto!important}.page-heading .heading-title-row{flex-wrap:wrap!important}}`;document.head.appendChild(style);
+})();"""
+              t, n = re.subn(block_pattern, block_replacement, t, count=1, flags=re.S)
+              if n != 1:
+                  raise SystemExit('Could not remove legacy SMMT block')
+          else:
+              t = t.replace("const duplicatePptx=$('downloadHtmlBtn');if(duplicatePptx)duplicatePptx.style.display='none';", "const duplicatePptx=$('downloadHtmlBtn');if(duplicatePptx)duplicatePptx.style.display='none';const removeSmmt=()=>document.getElementById('smmtCard')?.remove();removeSmmt();new MutationObserver(removeSmmt).observe(document.body,{childList:true,subtree:true});")
           old_apply = "function applyState(row,collapsed){const details=detailRows(row);if(!details.length)return;row.classList.toggle('layer-collapsed',collapsed);row.setAttribute('aria-expanded',collapsed?'false':'true');details.forEach(r=>{r.style.display=collapsed?'none':''})}"
           new_apply = "function applyState(row,collapsed){const details=detailRows(row);if(!details.length)return;row.classList.toggle('layer-collapsed',collapsed);row.setAttribute('aria-expanded',collapsed?'false':'true');details.forEach(r=>{r.style.display=collapsed?'none':''});const small=row.querySelector('.layer-name small');if(small){const base=small.textContent.replace(/\\s·\\s(?:Показать \/ скрыть|Показать|Скрыть)$/,'');small.textContent=base+' · '+(collapsed?'Показать':'Скрыть')}}"
-          t = t.replace(old_apply, new_apply)
+          t = t.replace(old_apply,new_apply)
           old_bind = "const key=layerKey(row);applyState(row,Boolean(saved[key]));const toggle=()=>{const collapsed=!row.classList.contains('layer-collapsed');saved[key]=collapsed;applyState(row,collapsed);saveState()}"
           new_bind = "const key=layerKey(row);const initial=saved[key]===undefined?(key==='B2C'):Boolean(saved[key]);applyState(row,initial);const toggle=()=>{const collapsed=!row.classList.contains('layer-collapsed');saved[key]=collapsed;applyState(row,collapsed);saveState()}"
-          t = t.replace(old_bind, new_bind)
+          t = t.replace(old_bind,new_bind)
           view.write_text(t, encoding='utf-8')
 
           period = Path('period-filter.js')
-          f = period.read_text(encoding='utf-8')
-          f = f.replace('Отгрузка клиенту ПЛАН', NEW_LABEL)
+          f = period.read_text(encoding='utf-8').replace('Отгрузка клиенту ПЛАН',NEW_LABEL)
           old_summary = "return `<tr class=\"layer-summary\"><td class=\"layer-name\"><strong>${esc(layer)}</strong><small>${count?`${count} ${projectWord(count)}`:'итого'}</small></td>"
           new_summary = "return `<tr class=\"layer-summary\"><td class=\"layer-name\"><strong>${esc(layer)}</strong><small>${count?`${count} ${projectWord(count)} · Показать / скрыть`:'итого'}</small></td>"
-          f = f.replace(old_summary, new_summary)
-          period.write_text(f, encoding='utf-8')
+          f = f.replace(old_summary,new_summary)
+          period.write_text(f,encoding='utf-8')
 
           pptx = Path('pptx-template-export.js')
-          p = pptx.read_text(encoding='utf-8')
-          p = p.replace('Отгрузка клиенту ПЛАН', NEW_LABEL)
-          p = p.replace('    free:normalizeMetric(model.metrics?.free),\n', '    free:null,\n')
-          p = p.replace('  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;\n', '  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;\n')
-          p = p.replace("    ['Забронировано клиентами',m.booked,/забронировано/],\n    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]\n", "    ['Забронировано клиентами',m.booked,/забронировано/]\n")
-          p = p.replace("  changed+=setKpiNearLabel(doc,/^свободный сток$/,m.free);\n", '')
+          p = pptx.read_text(encoding='utf-8').replace('Отгрузка клиенту ПЛАН',NEW_LABEL)
+          p = p.replace('    free:normalizeMetric(model.metrics?.free),\n','    free:null,\n')
+          p = p.replace('  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;\n','  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;\n')
+          p = p.replace("    ['Забронировано клиентами',m.booked,/забронировано/],\n    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]\n","    ['Забронировано клиентами',m.booked,/забронировано/]\n")
+          p = p.replace("  changed+=setKpiNearLabel(doc,/^свободный сток$/,m.free);\n",'')
           needle = "function updateSlide(doc,m,salesName){\n  let changed=0;"
           insert = """function updateSlide(doc,m,salesName){
-            let changed=0;
-            const shapes=[...doc.getElementsByTagNameNS('*','sp')];
-            for(let i=0;i<shapes.length;i++){
-              const txt=k(elementText(shapes[i]));
-              if(!(/свободн.*сток/.test(txt)||(txt.startsWith('доступно')&&txt.includes('конец месяца'))))continue;
-              if(setTextIn(shapes[i],''))changed++;
-              for(let j=i+1;j<Math.min(i+8,shapes.length);j++){
-                const tx=n(elementText(shapes[j]));
-                if(/^[-+]?\\d[\\s\\d,.]*$/.test(tx)||tx==='·'||tx==='—'||tx==='-'){if(setTextIn(shapes[j],''))changed++;break}
-              }
-            }"""
+  let changed=0;
+  const shapes=[...doc.getElementsByTagNameNS('*','sp')];
+  for(let i=0;i<shapes.length;i++){
+    const txt=k(elementText(shapes[i]));
+    if(!(/свободн.*сток/.test(txt)||(txt.startsWith('доступно')&&txt.includes('конец месяца'))))continue;
+    if(setTextIn(shapes[i],''))changed++;
+    for(let j=i+1;j<Math.min(i+8,shapes.length);j++){
+      const tx=n(elementText(shapes[j]));
+      if(/^[-+]?\\d[\\s\\d,.]*$/.test(tx)||tx==='·'||tx==='—'||tx==='-'){if(setTextIn(shapes[j],''))changed++;break}
+    }
+  }"""
           if insert not in p:
-            p = p.replace(needle, insert)
-          p = re.sub(r"\+'_v2\.\d+\.pptx'", "+'_v2.5.pptx'", p)
-          pptx.write_text(p, encoding='utf-8')
+              p = p.replace(needle,insert)
+          p = re.sub(r"\+'_v2\.\d+\.pptx'", "+'_v2.6.pptx'", p)
+          pptx.write_text(p,encoding='utf-8')
           PY
+
       - name: Validate JavaScript
         run: |
           node --check template-view.js
@@ -135,6 +123,22 @@ jobs:
           node --check period-filter.js
           node --check app.js
           node --check pptx-template-export.js
+
+      - name: Sync final production files to main
+        run: |
+          if git diff --quiet -- index.html template-view.js period-filter.js pptx-template-export.js; then
+            echo "Production files already synced"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html template-view.js period-filter.js pptx-template-export.js
+            git commit -m "Sync production files v2.6.5"
+            git push origin HEAD:main
+          fi
+
+      - name: Wait for legacy Pages build
+        run: sleep 20
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
