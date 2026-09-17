@@ -139,3 +139,10 @@ function renderModel(model,templateName){
 async function renderFromFile(file,templateName){const buf=await file.arrayBuffer();const model=parseWorkbook(buf);renderModel(model,templateName);return model}
 window.ATOMTemplateView={parseWorkbook,renderModel,renderFromFile};
 })();
+
+(()=>{
+  const version=document.querySelector('.user-nav > span:first-child');
+  if(!version)return;
+  const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
+  version.textContent=`Версия v2.4.3 pdf-export · загрузка ${loadedAt}`;
+})();
