@@ -19,3 +19,60 @@ E.saveSnapshotBtn?.addEventListener('click',()=>{if(!S.model)return;localStorage
 E.resetBtn?.addEventListener('click',()=>{S.salesFile=S.templateFile=S.model=null;if(E.salesFile)E.salesFile.value='';if(E.templateFile)E.templateFile.value='';if(E.salesName)E.salesName.textContent='Файл не выбран';if(E.templateName)E.templateName.textContent='Файл не выбран';setStatus('sales','empty','Не загружен');setStatus('template','empty','Не загружен');E.reportSection?.classList.add('hidden');if(E.parseLog)E.parseLog.textContent='Ожидаю загрузку файлов.';if(E.printBtn)E.printBtn.disabled=true;updateReady()});
 setStatus('sales','empty','Не загружен');setStatus('template','empty','Не загружен');updateReady();
 })();
+
+(()=>{
+  const style=document.createElement('style');
+  style.id='analytics-readability-v1';
+  style.textContent=`
+    .report-shell{width:min(1800px,calc(100vw - 24px))!important}
+    .analytics-onepage{padding:34px 36px 28px!important}
+    .analytics-head{margin-bottom:22px!important}
+    .analytics-head h2{font-size:36px!important;line-height:1.05!important}
+    .analytics-subtitle{font-size:16px!important;line-height:1.4!important;margin-top:9px!important;color:#667085!important}
+    .analytics-data-date{font-size:13px!important;color:#667085!important}
+    .analytics-filterbar{margin-bottom:20px!important}
+    .analytics-filter-label{font-size:11px!important}
+    .period-chip,.source-pill{height:38px!important;padding:0 15px!important;font-size:14px!important}
+    .period-range{font-size:13px!important;color:#667085!important}
+    .analytics-kpi-grid{gap:14px!important;margin-bottom:22px!important}
+    .analytics-kpi{min-height:132px!important;padding:18px 18px!important;border-radius:12px!important}
+    .analytics-kpi-label{font-size:12px!important;line-height:1.35!important;min-height:32px!important;color:#667085!important;font-weight:700!important}
+    .analytics-kpi-value{font-size:36px!important;margin-top:10px!important}
+    .analytics-kpi-note{font-size:12px!important;margin-top:11px!important;color:#667085!important;line-height:1.35!important}
+    .analytics-section{margin-top:16px!important}
+    .analytics-section-title{height:54px!important;padding:0 18px!important;font-size:15px!important;letter-spacing:.15px!important}
+    .analytics-table{font-size:13px!important;min-width:1180px!important}
+    .analytics-table th{height:52px!important;padding:0 12px!important;font-size:13px!important;color:#475467!important;font-weight:700!important}
+    .analytics-table td{height:50px!important;padding:0 12px!important;font-size:13px!important;color:#344054!important}
+    .analytics-table .dash-label{font-size:14px!important;font-weight:600!important;color:#101828!important}
+    .analytics-table .dash-num,.analytics-table .dash-total{font-size:14px!important}
+    .analytics-table .dash-total{font-weight:700!important}
+    .distribution-table{min-width:1280px!important}
+    .distribution-table th:nth-child(1),.distribution-table td:nth-child(1){width:13%!important}
+    .distribution-table th:nth-child(2),.distribution-table td:nth-child(2){width:31%!important}
+    .distribution-table th:nth-child(3),.distribution-table td:nth-child(3){width:11%!important}
+    .layer-summary td{height:54px!important}
+    .layer-name strong{font-size:14px!important;color:#101828!important}
+    .project-name strong{font-size:13px!important;line-height:1.3!important;color:#101828!important}
+    .layer-name small,.project-name small{font-size:11px!important;line-height:1.3!important;margin-top:4px!important;color:#667085!important}
+    .client-detail td{height:48px!important}
+    .client-detail .project-name{padding-left:18px!important}
+    .grand-total td{height:56px!important}
+    .analytics-footnote{font-size:11px!important;padding-top:13px!important;color:#667085!important}
+    @media(max-width:1200px){
+      .analytics-onepage{padding:26px 22px 22px!important}
+      .analytics-head h2{font-size:32px!important}
+      .analytics-subtitle{font-size:15px!important}
+      .analytics-kpi-grid{grid-template-columns:repeat(3,1fr)!important}
+      .analytics-kpi-label{font-size:12px!important}
+      .analytics-kpi-value{font-size:32px!important}
+      .analytics-table{font-size:13px!important;min-width:1180px!important}
+    }
+    @media(max-width:850px){
+      .analytics-kpi-grid{grid-template-columns:repeat(2,1fr)!important}
+      .analytics-head h2{font-size:30px!important}
+      .analytics-table-wrap{overflow-x:auto!important}
+    }
+  `;
+  document.head.appendChild(style);
+})();
