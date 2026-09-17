@@ -4,7 +4,7 @@ const API=window.ATOMTemplateView;
 if(!API)return;
 
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
-const MIGRATION_KEY='atom-b2c-details-migration-v1';
+const MIGRATION_KEY='atom-b2c-details-migration-v2';
 try{
   if(!localStorage.getItem(MIGRATION_KEY)){
     localStorage.removeItem(MODEL_KEY);
@@ -51,13 +51,20 @@ function groupLabel(s){
   if(/^каршеринг$|^carsharing$/.test(s))return'Carsharing';
   return null;
 }
+function hasVerticalToken(s,v){
+  return new RegExp(`(^|[^a-z0-9])${v.toLowerCase()}([^a-z0-9]|$)`,'i').test(s);
+}
 function aggregateVertical(s){
   const clean=s.replace(/\s+/g,' ');
   for(const v of ['B2C','B2B','B2G']){
     const low=v.toLowerCase();
-    if(new RegExp(`^(контракты\\s*${low}|итого\\s*${low}|${low})(\\s+всего)?$`).test(clean))return v;
+    if(clean===low||clean===`итого ${low}`)return v;
+    if(hasVerticalToken(clean,v)&&(clean.includes('контракт')||clean.includes('забронирован')||clean.startsWith('итого ')))return v;
   }
   return null;
+}
+function isStopRow(s){
+  return s==='выдачи'||(s.includes('забронировано')&&s.includes('всего'))||s.startsWith('доступно')||s.includes('свободный сток');
 }
 function extractB2C(buf){
   if(!window.XLSX)return[];
@@ -74,8 +81,11 @@ function extractB2C(buf){
   const rowLabel=row=>{const p=(row||[]).slice(0,first).map(n).filter(Boolean);return p.length?p[p.length-1]:''};
   const rowMetric=row=>{
     const months={};monthCols.forEach(c=>months[c.m]=num(row[c.ci]));
-    const yearFound=totalCol>=0&&n(row[totalCol])!=='';
-    return{found:true,months,year:yearFound?num(row[totalCol]):null,yearFound};
+    const totalRaw=totalCol>=0?n(row[totalCol]):'';
+    const hasMonthValue=monthCols.some(c=>n(row[c.ci])!=='');
+    const yearFound=totalRaw!==''||hasMonthValue;
+    const fallbackTotal=Object.values(months).reduce((a,v)=>a+Number(v||0),0);
+    return{found:true,months,year:yearFound?(totalRaw!==''?num(row[totalCol]):fallbackTotal):null,yearFound};
   };
   const hasPeriodData=row=>monthCols.some(c=>n(row[c.ci])!=='')||(totalCol>=0&&n(row[totalCol])!=='');
   const out={},order=[];
@@ -86,7 +96,7 @@ function extractB2C(buf){
     if(!label)continue;
     const v=aggregateVertical(s);
     if(v){current=v;product=null;continue}
-    if(/^выдачи$|^доступно$|^свободный сток$/.test(s)){current=null;product=null;continue}
+    if(isStopRow(s)){current=null;product=null;continue}
     const g=groupLabel(s);
     if(g){product=g;continue}
     if(current!=='B2C')continue;
@@ -123,6 +133,7 @@ function injectB2C(model){
   const summaries=[...table.querySelectorAll('tr.layer-summary')];
   const summary=summaries.find(row=>(row.querySelector('.layer-name strong')?.textContent||'').trim().toUpperCase()==='B2C');
   if(!summary)return;
+  summary.classList.add('b2c-summary');
   table.querySelectorAll('tr.b2c-detail').forEach(row=>row.remove());
   const small=summary.querySelector('.layer-name small');
   if(small)small.textContent=rows.length?`${rows.length} ${projectWord(rows.length)}`:'итого';
@@ -142,6 +153,7 @@ API.renderFromFile=async(file,templateName)=>{
   const model=API.parseWorkbook(buf);
   const b2c=extractB2C(buf);
   model.clients=[...(model.clients||[]).filter(x=>x.vertical!=='B2C'),...b2c];
+  model.b2cSource='S&OP09 plan';
   API.renderModel(model,templateName);
   return model;
 };
