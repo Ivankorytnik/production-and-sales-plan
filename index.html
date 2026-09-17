@@ -29,14 +29,14 @@
       <div class="appbar-inner">
         <a class="brand" href="#top"><strong>PSP</strong><span>SALES PLAN ONE PAGE</span></a>
         <nav class="main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">One Page</a></nav>
-        <div class="user-nav"><span>Версия v2.4.2 auth-fix</span><span class="divider"></span><span>Обновлено <span id="updatedAt">17.09.2026</span></span><span class="divider"></span><span id="authUserBox" class="auth-user"></span></div>
+        <div class="user-nav"><span>Версия v2.4.3 pdf-export</span><span class="divider"></span><span>Обновлено <span id="updatedAt">17.09.2026</span></span><span class="divider"></span><span id="authUserBox" class="auth-user"></span></div>
       </div>
     </header>
 
     <main id="top" class="page">
       <section class="page-heading no-print">
         <div><div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div><h1>План продаж</h1><p>Excel → экран в стиле PPTX-шаблона → редактируемый PowerPoint.</p></div>
-        <div class="heading-actions"><button id="resetBtn" class="btn secondary" type="button">Сбросить</button><button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button></div>
+        <div class="heading-actions"><button id="resetBtn" class="btn secondary" type="button">Сбросить</button><button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button><button id="pdfBtn" class="btn secondary" type="button" disabled>↓ Выгрузить PDF</button></div>
       </section>
 
       <section id="sources" class="source-block no-print">
@@ -61,6 +61,17 @@
   <script src="./template-view.js?v=2.0.0"></script>
   <script src="./app.js?v=3.0.0"></script>
   <script src="./pptx-template-export.js?v=1.4.0"></script>
+  <script>
+  (()=>{
+    const pdfBtn=document.getElementById('pdfBtn');
+    const pptxBtn=document.getElementById('printBtn');
+    if(!pdfBtn||!pptxBtn)return;
+    const sync=()=>{pdfBtn.disabled=pptxBtn.disabled};
+    new MutationObserver(sync).observe(pptxBtn,{attributes:true,attributeFilter:['disabled']});
+    pdfBtn.addEventListener('click',()=>{if(!pdfBtn.disabled)window.print()});
+    sync();
+  })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
   (()=>{
