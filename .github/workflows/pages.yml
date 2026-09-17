@@ -24,7 +24,7 @@ jobs:
           from pathlib import Path
           import re
 
-          site_version = 'v2.6.5'
+          site_version = 'v2.6.6'
           new_label = 'Доступно для отгрузки клиенту-план'
 
           p = Path('index.html')
@@ -34,6 +34,7 @@ jobs:
           s = s.replace('0 / 3', '0 / 2')
           s = re.sub(r'\s*<label class="drop-card" id="smmtCard">.*?</label>\s*', '\n          ', s, count=1, flags=re.S)
           s = re.sub(r'(<label class="drop-card" id="templateCard">.*?<span class="file-index">)03(</span>)', r'\g<1>02\2', s, count=1, flags=re.S)
+          s = s.replace('<div class="heading-title-row"><div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div><h1>Производство и продажи</h1></div>', '<div class="heading-title-row"><h1>S&amp;OP09 plan</h1></div>')
           s = re.sub(r'template-view\.js\?v=[^"\']+', 'template-view.js?v=2.6.0', s)
           s = re.sub(r'period-filter\.js\?v=[^"\']+', 'period-filter.js?v=1.7.0', s)
           s = re.sub(r'pptx-template-export\.js\?v=[^"\']+', 'pptx-template-export.js?v=2.6.0', s)
@@ -105,5 +106,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html template-view.js period-filter.js pptx-template-export.js
-          git commit -m "Sync production files v2.6.5"
+          git commit -m "Sync production files v2.6.6"
           git push origin HEAD:main
