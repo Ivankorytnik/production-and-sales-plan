@@ -5,11 +5,7 @@ if(!API)return;
 
 const MONTHS=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const PERIODS={
-  all:{label:'Весь период',months:MONTHS},
-  Q1:{label:'1 квартал · Янв - Мар',months:['Янв','Фев','Мар']},
-  Q2:{label:'2 квартал · Апр - Июн',months:['Апр','Май','Июн']},
-  Q3:{label:'3 квартал · Июл - Сен',months:['Июл','Авг','Сен']},
-  Q4:{label:'4 квартал · Окт - Дек',months:['Окт','Ноя','Дек']},
+  all:{label:'Весь 2026 год',months:MONTHS},
   H1:{label:'1 полугодие · Янв - Июн',months:['Янв','Фев','Мар','Апр','Май','Июн']},
   H2:{label:'2 полугодие · Июл - Дек',months:['Июл','Авг','Сен','Окт','Ноя','Дек']}
 };
@@ -21,61 +17,42 @@ const projectWord=v=>{const n=Math.abs(Number(v||0))%100;if(n>=11&&n<=14)return'
 
 function defaultState(){
   const now=new Date();
-  const currentMonth=MONTHS[now.getMonth()]||'Сен';
-  return{mode:'half',key:now.getMonth()<6?'H1':'H2',month:currentMonth,quarter:`Q${Math.floor(now.getMonth()/3)+1}`};
+  return{mode:'half',key:now.getMonth()<6?'H1':'H2'};
 }
 function loadState(){
   const d=defaultState();
-  try{return{...d,...JSON.parse(localStorage.getItem(MODE_KEY)||'{}')}}catch{return d}
+  try{
+    const saved={...d,...JSON.parse(localStorage.getItem(MODE_KEY)||'{}')};
+    if(saved.mode!=='all'&&saved.mode!=='half')saved.mode='half';
+    if(saved.key!=='H1'&&saved.key!=='H2')saved.key=d.key;
+    return saved;
+  }catch{return d}
 }
 let state=loadState();
 let currentModel=null;
-let currentTemplate='';
 
 function saveState(){try{localStorage.setItem(MODE_KEY,JSON.stringify(state))}catch{}}
-function selectedMonths(){
-  if(state.mode==='all')return MONTHS;
-  if(state.mode==='month')return MONTHS.includes(state.month)?[state.month]:[defaultState().month];
-  if(state.mode==='quarter')return PERIODS[state.quarter]?.months||PERIODS.Q3.months;
-  return PERIODS[state.key]?.months||PERIODS.H2.months;
-}
-function periodLabel(){
-  if(state.mode==='all')return'Весь 2026 год';
-  if(state.mode==='month')return state.month||defaultState().month;
-  if(state.mode==='quarter')return PERIODS[state.quarter]?.label||PERIODS.Q3.label;
-  return PERIODS[state.key]?.label||PERIODS.H2.label;
-}
-function periodShort(){
-  if(state.mode==='all')return'2026';
-  if(state.mode==='month')return state.month||defaultState().month;
-  if(state.mode==='quarter')return state.quarter||'Q3';
-  return state.key==='H1'?'1 полугодие':'2 полугодие';
-}
+function selectedMonths(){return state.mode==='all'?MONTHS:(PERIODS[state.key]?.months||PERIODS.H2.months)}
+function periodLabel(){return state.mode==='all'?PERIODS.all.label:(PERIODS[state.key]?.label||PERIODS.H2.label)}
+function periodShort(){return state.mode==='all'?'2026':(state.key==='H1'?'1 полугодие':'2 полугодие')}
 function metricTotal(metric){
   if(!metric)return 0;
   if(state.mode==='all'&&metric.yearFound)return Number(metric.year||0);
   return selectedMonths().reduce((sum,m)=>sum+Number(metric?.months?.[m]||0),0);
 }
-function periodOptions(){
-  if(state.mode==='all')return'';
-  if(state.mode==='month')return MONTHS.map(m=>`<option value="${m}"${m===state.month?' selected':''}>${m} 2026</option>`).join('');
-  if(state.mode==='quarter')return ['Q1','Q2','Q3','Q4'].map(q=>`<option value="${q}"${q===state.quarter?' selected':''}>${PERIODS[q].label}</option>`).join('');
-  return ['H1','H2'].map(h=>`<option value="${h}"${h===state.key?' selected':''}>${PERIODS[h].label}</option>`).join('');
-}
 function renderControls(){
   const bar=document.querySelector('.analytics-filterbar');
   if(!bar)return;
   const source=currentModel?.sheetName||'S&OP09 plan';
+  const halfOptions=['H1','H2'].map(h=>`<option value="${h}"${h===state.key?' selected':''}>${PERIODS[h].label}</option>`).join('');
   bar.innerHTML=`
     <div class="analytics-filter-group period-control-group">
       <span class="analytics-filter-label">ПЕРИОД</span>
       <div class="period-mode-tabs" role="group" aria-label="Выбор периода">
         <button type="button" data-period-mode="all" class="period-mode-btn${state.mode==='all'?' active':''}">Весь период</button>
-        <button type="button" data-period-mode="month" class="period-mode-btn${state.mode==='month'?' active':''}">По месяцам</button>
-        <button type="button" data-period-mode="quarter" class="period-mode-btn${state.mode==='quarter'?' active':''}">Квартально</button>
         <button type="button" data-period-mode="half" class="period-mode-btn${state.mode==='half'?' active':''}">6 месяцев</button>
       </div>
-      ${state.mode==='all'?'':`<select id="periodDetailSelect" class="period-detail-select" aria-label="Детализация периода">${periodOptions()}</select>`}
+      ${state.mode==='half'?`<select id="periodDetailSelect" class="period-detail-select" aria-label="Выбор полугодия">${halfOptions}</select>`:''}
     </div>
     <div class="analytics-filter-group source"><span class="analytics-filter-label">ИСТОЧНИК</span><span class="source-pill">${esc(source)}</span></div>`;
 }
@@ -102,10 +79,9 @@ function updateKpis(model){
 function rebuildTables(model){
   const months=selectedMonths();
   const totalHeader=state.mode==='all'?'Итого 2026':'Итого периода';
-  const head=`<tr><th>Показатель</th><th>${totalHeader}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr>`;
   const balance=document.querySelector('.balance-table');
   if(balance){
-    balance.querySelector('thead').innerHTML=head;
+    balance.querySelector('thead').innerHTML=`<tr><th>Показатель</th><th>${totalHeader}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr>`;
     balance.querySelector('tbody').innerHTML=[
       metricRow('План производства',model.metrics?.production,months),
       metricRow('План отгрузки с завода',model.metrics?.shipPlan,months),
@@ -118,9 +94,8 @@ function rebuildTables(model){
   const dist=document.querySelector('.distribution-table');
   if(dist){
     dist.querySelector('thead').innerHTML=`<tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${totalHeader}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr>`;
-    const groups=['B2C','B2B','B2G'];
     let body='';
-    for(const layer of groups){
+    for(const layer of ['B2C','B2B','B2G']){
       const items=(model.clients||[]).filter(x=>x.vertical===layer);
       const metric=model.verticals?.[layer];
       if(layer==='B2G'&&!metric?.found&&!items.length)continue;
@@ -140,41 +115,23 @@ function applyPeriod(model){
   document.querySelectorAll('.analytics-section-title').forEach((el,i)=>{
     el.textContent=(i===0?'БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ':'КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ')+` · ${periodShort().toUpperCase()}`;
   });
-  const range=document.querySelector('.period-range');
-  if(range)range.textContent=periodLabel();
-  document.documentElement.style.setProperty('--analytics-period-columns',String(selectedMonths().length+3));
 }
 
 const originalRenderModel=API.renderModel.bind(API);
 const originalRenderFromFile=API.renderFromFile.bind(API);
-API.renderModel=(model,templateName)=>{
-  currentTemplate=templateName||currentTemplate;
-  originalRenderModel(model,templateName);
-  applyPeriod(model);
-};
-API.renderFromFile=async(file,templateName)=>{
-  currentTemplate=templateName||currentTemplate;
-  const model=await originalRenderFromFile(file,templateName);
-  applyPeriod(model);
-  return model;
-};
+API.renderModel=(model,templateName)=>{originalRenderModel(model,templateName);applyPeriod(model)};
+API.renderFromFile=async(file,templateName)=>{const model=await originalRenderFromFile(file,templateName);applyPeriod(model);return model};
 
 document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-period-mode]');
   if(!btn)return;
-  state.mode=btn.dataset.periodMode;
-  const d=defaultState();
-  if(state.mode==='month'&&!MONTHS.includes(state.month))state.month=d.month;
-  if(state.mode==='quarter'&&!PERIODS[state.quarter])state.quarter=d.quarter;
-  if(state.mode==='half'&&!PERIODS[state.key])state.key=d.key;
+  state.mode=btn.dataset.periodMode==='all'?'all':'half';
   saveState();
   applyPeriod(currentModel);
 });
 document.addEventListener('change',e=>{
   if(e.target.id!=='periodDetailSelect')return;
-  if(state.mode==='month')state.month=e.target.value;
-  else if(state.mode==='quarter')state.quarter=e.target.value;
-  else if(state.mode==='half')state.key=e.target.value;
+  state.key=e.target.value==='H1'?'H1':'H2';
   saveState();
   applyPeriod(currentModel);
 });
@@ -184,16 +141,16 @@ style.id='period-filter-style';
 style.textContent=`
   .period-control-group{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}
   .period-mode-tabs{display:flex;align-items:center;border:1px solid #d9dde5;border-radius:9px;overflow:hidden;background:#fff}
-  .period-mode-btn{height:42px;padding:0 15px;border:0;border-right:1px solid #e4e7ec;background:#fff;color:#475467;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer;white-space:nowrap}
+  .period-mode-btn{height:42px;padding:0 18px;border:0;border-right:1px solid #e4e7ec;background:#fff;color:#475467;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer;white-space:nowrap}
   .period-mode-btn:last-child{border-right:0}
   .period-mode-btn:hover{background:#f7f8fa}
   .period-mode-btn.active{background:#111318;color:#fff}
-  .period-detail-select{height:42px;min-width:190px;padding:0 34px 0 12px;border:1px solid #d9dde5;border-radius:9px;background:#fff;color:#101828;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer}
+  .period-detail-select{height:42px;min-width:225px;padding:0 34px 0 12px;border:1px solid #d9dde5;border-radius:9px;background:#fff;color:#101828;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer}
   .analytics-filterbar{align-items:center!important;gap:16px!important;flex-wrap:wrap!important}
   .analytics-filter-group.source{margin-left:auto!important}
   .analytics-table th,.analytics-table td{white-space:nowrap}
   .analytics-table .project-name{white-space:normal!important}
-  @media(max-width:1100px){.period-mode-tabs{width:100%;overflow-x:auto}.period-mode-btn{flex:0 0 auto}.period-detail-select{min-width:230px}.analytics-filter-group.source{margin-left:0!important}}
+  @media(max-width:1100px){.period-mode-tabs{width:auto}.analytics-filter-group.source{margin-left:0!important}}
 `;
 document.head.appendChild(style);
 })();
