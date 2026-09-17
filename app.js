@@ -14,6 +14,7 @@ const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const S={salesFile:null,templateFile:null,model:null};
 const E={salesFile:$('salesFile'),templateFile:$('templateFile'),salesName:$('salesName'),templateName:$('templateName'),salesStatus:$('salesStatus'),templateStatus:$('templateStatus'),salesCard:$('salesCard'),templateCard:$('templateCard'),readyBadge:$('readyBadge'),buildBtn:$('buildBtn'),resetBtn:$('resetBtn'),printBtn:$('printBtn'),parseLog:$('parseLog'),reportSection:$('reportSection'),approveCheck:$('approveCheck'),saveSnapshotBtn:$('saveSnapshotBtn')};
 window.ATOMCurrentFiles={sales:null,template:null};
+window.ATOMCurrentModel=null;
 
 function openDb(){
   return new Promise((resolve,reject)=>{
@@ -92,6 +93,7 @@ async function buildReport({scroll=false,reason='manual'}={}){
   try{
     await ensureXLSX();
     S.model=await window.ATOMTemplateView.renderFromFile(S.salesFile,S.templateFile.name);
+    window.ATOMCurrentModel=S.model;
     saveModel();
     setStatus('sales','loaded','Сохранен');
     setStatus('template','loaded','Сохранен');
@@ -135,6 +137,7 @@ async function boot(){
   if(cached?.model&&window.ATOMTemplateView){
     try{
       S.model=cached.model;
+      window.ATOMCurrentModel=S.model;
       window.ATOMTemplateView.renderModel(S.model,cached.templateName||'PPTX-шаблон');
       E.reportSection?.classList.remove('hidden');
       if(E.parseLog)E.parseLog.textContent='Показываю сохраненную таблицу. Восстанавливаю файлы...';

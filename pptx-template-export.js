@@ -319,9 +319,10 @@ async function exportPptx(){
   if(!sales||!template){if(log)log.textContent='Для выгрузки нужны актуальный Excel и PPTX-шаблон.';return}
   try{
     if(log)log.textContent='Читаю текущий S&OP09 plan и пересобираю PPTX...';
-    await ensureXLSX();await ensureJSZip();
-    const [salesBuf,tplBuf]=await Promise.all([sales.arrayBuffer(),template.arrayBuffer()]);
-    const model=parseCurrentModel(salesBuf);
+    await ensureJSZip();
+    const tplBuf=await template.arrayBuffer();
+    let model=window.ATOMCurrentModel||null;
+    if(!model){await ensureXLSX();const salesBuf=await sales.arrayBuffer();model=parseCurrentModel(salesBuf);}
     const m=toExportModel(model);
     const zip=await JSZip.loadAsync(tplBuf);
     const slidePaths=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
@@ -337,7 +338,7 @@ async function exportPptx(){
     const out=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(out);
-    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.6.pptx';
+    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.7.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, план отгрузки клиенту ${disp(annual(m.clientShipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
   }catch(e){
