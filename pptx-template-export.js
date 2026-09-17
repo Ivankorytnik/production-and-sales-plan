@@ -6,10 +6,6 @@ const n=v=>String(v??'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
 const k=v=>n(v).toLowerCase().replace(/ё/g,'е');
 const disp=v=>{const x=Number(v||0);return x===0?'·':String(Math.round(x))};
 const MONTHS=[['янв','jan','Янв'],['фев','feb','Фев'],['мар','mar','Мар'],['апр','apr','Апр'],['май','may','Май'],['июн','jun','Июн'],['июл','jul','Июл'],['авг','aug','Авг'],['сен','sep','Сен'],['окт','oct','Окт'],['ноя','nov','Ноя'],['дек','dec','Дек']];
-const CLIENT_ALIASES={
-  'ассоциация учреждений уимо':'ассоциация учреждений по управлению имуществом и материального обеспечения',
-  'ассоциация учреждений по управлению имуществом и материального обеспечения':'ассоциация учреждений по управлению имуществом и материального обеспечения'
-};
 
 function monthLabel(v){
   const s=k(v);if(!s)return null;
@@ -49,37 +45,19 @@ function currentFiles(){
     template:window.ATOMCurrentFiles?.template||$('templateFile')?.files?.[0]||null
   };
 }
-function getCachedCurrentModel(salesName){
-  try{
-    const raw=localStorage.getItem('atom-production-sales-plan-current-model-v1');
-    if(!raw)return null;
-    const data=JSON.parse(raw);
-    if(data?.salesName===salesName&&data?.model)return data.model;
-  }catch{}
-  return null;
-}
-function parseCurrentModel(buf,salesName){
+function parseCurrentModel(buf){
   const api=window.ATOMTemplateView;
   if(!api?.parseWorkbook)throw new Error('Парсер аналитики не загружен. Обновите страницу.');
-  const parsed=api.parseWorkbook(buf);
-  const cached=getCachedCurrentModel(salesName);
-  if(cached?.sheetName===parsed.sheetName){
-    parsed.clients=cached.clients||parsed.clients||[];
-    parsed.verticals={...(parsed.verticals||{}),...(cached.verticals||{})};
-  }
-  return parsed;
+  return api.parseWorkbook(buf);
 }
 function toExportModel(model){
-  const clients={};
-  for(const x of model.clients||[]){
-    const nameKey=k(x.name||x.displayName);
-    const displayKey=k(x.displayName||x.name);
-    const metric=normalizeMetric(x);
-    clients[nameKey]=metric;
-    clients[displayKey]=metric;
-    if(nameKey==='гринтех энерджи'&&x.product==='Taxi')clients['гринтех энерджи - такси']=metric;
-    if(nameKey==='гринтех энерджи'&&x.product==='Carsharing')clients['гринтех энерджи - каршеринг']=metric;
-  }
+  const clientRows=(model.clients||[]).map(x=>({
+    ...normalizeMetric(x),
+    name:x.name||x.displayName||'',
+    displayName:x.displayName||x.name||'',
+    product:x.product||'',
+    vertical:x.vertical||''
+  }));
   return{
     production:normalizeMetric(model.metrics?.production),
     shipPlan:normalizeMetric(model.metrics?.shipPlan),
@@ -92,7 +70,9 @@ function toExportModel(model){
       B2C:normalizeMetric(model.verticals?.B2C),
       B2G:normalizeMetric(model.verticals?.B2G)
     },
-    clients
+    clientRows,
+    sourceDate:model.sourceDate||'',
+    sheetName:model.sheetName||'S&OP09 plan'
   };
 }
 function textNodes(el){return [...el.getElementsByTagNameNS('*','t')]}
@@ -103,10 +83,21 @@ function setTextIn(el,value){
   for(let i=1;i<ts.length;i++)ts[i].textContent='';
   return true;
 }
-function setDate(doc){
+function setDate(doc,sourceDate){
+  let changed=0;
+  const date=sourceDate||new Date().toLocaleDateString('ru-RU');
+  for(const sp of [...doc.getElementsByTagNameNS('*','sp')]){
+    if(/^обновлено\b/i.test(n(elementText(sp)))){if(setTextIn(sp,'Обновлено '+date))changed++}
+  }
+  return changed;
+}
+function setSourceNote(doc,salesName,sheetName){
   let changed=0;
   for(const sp of [...doc.getElementsByTagNameNS('*','sp')]){
-    if(/обновлено/i.test(elementText(sp))){if(setTextIn(sp,'Обновлено '+new Date().toLocaleDateString('ru-RU')))changed++}
+    const txt=n(elementText(sp));
+    if(/^источник\s*:/i.test(txt)){
+      if(setTextIn(sp,`Источник: ${salesName}, лист ${sheetName}.`))changed++;
+    }
   }
   return changed;
 }
@@ -115,8 +106,9 @@ function setKpiNearLabel(doc,re,metric){
   const shapes=[...doc.getElementsByTagNameNS('*','sp')];
   let changed=0;
   for(let i=0;i<shapes.length;i++){
-    if(!re.test(k(elementText(shapes[i]))))continue;
-    for(let j=i+1;j<Math.min(i+8,shapes.length);j++){
+    const label=k(elementText(shapes[i]));
+    if(!re.test(label))continue;
+    for(let j=i+1;j<Math.min(i+10,shapes.length);j++){
       const tx=n(elementText(shapes[j]));
       if(/^[-+]?\d[\s\d,.]*$/.test(tx)||tx==='·'||tx==='—'||tx==='-'){
         if(setTextIn(shapes[j],disp(annual(metric))))changed++;
@@ -126,7 +118,8 @@ function setKpiNearLabel(doc,re,metric){
   }
   return changed;
 }
-function tableCells(table){return [...table.getElementsByTagNameNS('*','tr')].map(tr=>[...tr.getElementsByTagNameNS('*','tc')])}
+function tableRows(table){return [...table.getElementsByTagNameNS('*','tr')]}
+function tableCells(table){return tableRows(table).map(tr=>[...tr.getElementsByTagNameNS('*','tc')])}
 function headerMap(cells){
   const out={};
   cells.forEach((c,i)=>{const p=canonicalPeriod(elementText(c));if(p&&out[p]===undefined)out[p]=i});
@@ -151,18 +144,89 @@ function metricForLabel(label,m){
   if(/план отгрузк.*завод|отгрузк.*завод.*план/.test(s))return m.shipPlan;
   if(/отгружено.*автомоб|отгрузка.*завод.*факт|отгружено.*авто/.test(s))return m.shippedActual;
   if(/передано.*корп|корпоративн.*парк/.test(s))return m.corp;
-  if((/забронировано.*клиент/.test(s)||/забронировано.*всего/.test(s)||/всего.*забронировано/.test(s))&&!/\bb2[bcg]\b/.test(s))return m.booked;
+  if((/забронировано/.test(s)&&(/клиент|автомоб|атом|erp|ерп|всего/.test(s)))&&!/\bb2[bcg]\b/.test(s))return m.booked;
+  if(/^забронировано$/.test(s))return m.booked;
   if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;
   if(/итого\s*b2b|контракты.*забронировано.*b2b|^b2b$/.test(s))return m.verticals.B2B;
   if(/итого\s*b2c|контракты.*забронировано.*b2c|^b2c$/.test(s))return m.verticals.B2C;
   if(/итого\s*b2g|контракты.*забронировано.*b2g|^b2g$/.test(s))return m.verticals.B2G;
   if(/^всего$/.test(s))return m.booked;
-  const direct=CLIENT_ALIASES[s]||s;
-  return m.clients[direct]||null;
+  return null;
+}
+function distributionInfo(tbl){
+  const rows=tableCells(tbl);
+  for(let ri=0;ri<Math.min(4,rows.length);ri++){
+    const headers=rows[ri].map(c=>k(elementText(c)));
+    const layerCol=headers.findIndex(h=>h==='слой'||h.includes('бизнес-слой'));
+    const nameCol=headers.findIndex(h=>h.includes('компания')||h.includes('клиент'));
+    const periods=headerMap(rows[ri]);
+    if(layerCol>=0&&nameCol>=0&&Object.keys(periods).length>=2)return{headerRow:ri,layerCol,nameCol,periods};
+  }
+  return null;
+}
+function fillDistributionRow(tr,info,layer,name,metric){
+  const cells=[...tr.getElementsByTagNameNS('*','tc')];
+  cells.forEach(c=>setTextIn(c,''));
+  if(cells[info.layerCol])setTextIn(cells[info.layerCol],layer||'');
+  if(cells[info.nameCol])setTextIn(cells[info.nameCol],name||'');
+  updateMetricRow(cells,info.periods,metric);
+  return Object.keys(info.periods).length+2;
+}
+function rebuildDistributionTable(tbl,m){
+  const info=distributionInfo(tbl);if(!info)return 0;
+  const trs=tableRows(tbl),rows=tableCells(tbl);
+  let b2bIdx=-1,b2cIdx=-1,b2gIdx=-1,totalIdx=-1;
+  for(let i=info.headerRow+1;i<rows.length;i++){
+    const layer=k(elementText(rows[i][info.layerCol]||rows[i][0]));
+    const name=k(elementText(rows[i][info.nameCol]||rows[i][1]));
+    if(b2bIdx<0&&(layer==='b2b'||/итого\s*b2b/.test(name)))b2bIdx=i;
+    if(b2cIdx<0&&(layer==='b2c'||/итого\s*b2c/.test(name)))b2cIdx=i;
+    if(b2gIdx<0&&(layer==='b2g'||/итого\s*b2g/.test(name)))b2gIdx=i;
+    if(totalIdx<0&&/всего\s+забронировано/.test(name))totalIdx=i;
+  }
+  if(b2bIdx<0)return 0;
+  const summaryTemplate=trs[b2bIdx];
+  const nextSummary=[b2cIdx,b2gIdx,totalIdx,trs.length].filter(x=>x>b2bIdx).sort((a,b)=>a-b)[0];
+  const detailTemplates=trs.slice(b2bIdx+1,nextSummary).filter(Boolean);
+  const b2cTemplate=b2cIdx>=0?trs[b2cIdx]:summaryTemplate;
+  const b2gTemplate=b2gIdx>=0?trs[b2gIdx]:summaryTemplate;
+  const totalTemplate=totalIdx>=0?trs[totalIdx]:(b2cTemplate||summaryTemplate);
+  const parent=summaryTemplate.parentNode;
+  for(let i=trs.length-1;i>info.headerRow;i--)parent.removeChild(trs[i]);
+
+  let changed=0;
+  const append=(template,layer,name,metric)=>{
+    const tr=template.cloneNode(true);
+    changed+=fillDistributionRow(tr,info,layer,name,metric);
+    parent.appendChild(tr);
+  };
+  append(summaryTemplate,'B2B','Итого B2B',m.verticals.B2B);
+  const b2b=(m.clientRows||[])
+    .filter(x=>x.vertical==='B2B'&&annual(x)>0)
+    .slice()
+    .sort((a,b)=>annual(b)-annual(a)||String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),'ru'));
+  b2b.forEach((x,i)=>{
+    const template=detailTemplates.length?detailTemplates[i%detailTemplates.length]:summaryTemplate;
+    append(template,'',x.displayName||x.name,x);
+  });
+
+  if(m.verticals.B2G?.found&&annual(m.verticals.B2G)>0){
+    append(b2gTemplate,'B2G','Итого B2G',m.verticals.B2G);
+    const b2g=(m.clientRows||[]).filter(x=>x.vertical==='B2G'&&annual(x)>0).slice().sort((a,b)=>annual(b)-annual(a)||String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),'ru'));
+    b2g.forEach((x,i)=>{const template=detailTemplates.length?detailTemplates[i%detailTemplates.length]:summaryTemplate;append(template,'',x.displayName||x.name,x)});
+  }
+
+  append(b2cTemplate,'B2C','Итого B2C',m.verticals.B2C);
+  append(totalTemplate,'','Всего забронировано',m.booked);
+  return changed;
 }
 function updateTables(doc,m){
   let changed=0;
   for(const tbl of [...doc.getElementsByTagNameNS('*','tbl')]){
+    if(distributionInfo(tbl)){
+      changed+=rebuildDistributionTable(tbl,m);
+      continue;
+    }
     const rows=tableCells(tbl);if(rows.length<2)continue;
     let periodRow=-1,periods={};
     for(let ri=0;ri<Math.min(4,rows.length);ri++){
@@ -176,20 +240,21 @@ function updateTables(doc,m){
       if(!labels.length)continue;
       let metric=null;
       for(const label of labels){metric=metricForLabel(label,m);if(metric)break}
-      if(!metric){metric=metricForLabel(labels.join(' '),m)}
+      if(!metric)metric=metricForLabel(labels.join(' '),m);
       if(metric)changed+=updateMetricRow(row,periods,metric);
     }
   }
   return changed;
 }
-function updateSlide(doc,m){
+function updateSlide(doc,m,salesName){
   let changed=0;
-  changed+=setDate(doc);
-  changed+=setKpiNearLabel(doc,/план производства/,m.production);
-  changed+=setKpiNearLabel(doc,/план.*отгрузк/,m.shipPlan);
-  changed+=setKpiNearLabel(doc,/отгружено.*авто|отгрузка.*факт/,m.shippedActual);
-  changed+=setKpiNearLabel(doc,/забронировано.*клиент|забронировано.*авто|забронировано.*всего/,m.booked);
-  changed+=setKpiNearLabel(doc,/свободн.*сток|доступно/,m.free);
+  changed+=setDate(doc,m.sourceDate);
+  changed+=setSourceNote(doc,salesName,m.sheetName);
+  changed+=setKpiNearLabel(doc,/^план производства$/,m.production);
+  changed+=setKpiNearLabel(doc,/^план отгрузки(?: с завода)?$/,m.shipPlan);
+  changed+=setKpiNearLabel(doc,/^отгружено авто(?:мобилей)?$/,m.shippedActual);
+  changed+=setKpiNearLabel(doc,/^забронировано(?: атом| авто(?:мобилей)?(?: клиентами)?| клиентами)?$/,m.booked);
+  changed+=setKpiNearLabel(doc,/^свободный сток$/,m.free);
   changed+=updateTables(doc,m);
   return changed;
 }
@@ -197,10 +262,10 @@ async function exportPptx(){
   const {sales,template}=currentFiles();
   if(!sales||!template){if(log)log.textContent='Для выгрузки нужны актуальный Excel и PPTX-шаблон.';return}
   try{
-    if(log)log.textContent='Читаю текущий S&OP09 plan и готовлю PPTX...';
+    if(log)log.textContent='Читаю текущий S&OP09 plan и пересобираю PPTX...';
     await ensureXLSX();await ensureJSZip();
     const [salesBuf,tplBuf]=await Promise.all([sales.arrayBuffer(),template.arrayBuffer()]);
-    const model=parseCurrentModel(salesBuf,sales.name);
+    const model=parseCurrentModel(salesBuf);
     const m=toExportModel(model);
     const zip=await JSZip.loadAsync(tplBuf);
     const slidePaths=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
@@ -209,23 +274,22 @@ async function exportPptx(){
     for(const slidePath of slidePaths){
       const xml=await zip.file(slidePath).async('string');
       const doc=new DOMParser().parseFromString(xml,'application/xml');
-      const count=updateSlide(doc,m);
+      const count=updateSlide(doc,m,sales.name);
       if(count){zip.file(slidePath,new XMLSerializer().serializeToString(doc));changed+=count}
     }
     if(changed===0)throw new Error('В PPTX-шаблоне не найдены поля для обновления. Проверьте структуру шаблона.');
     const out=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(out);
-    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'.pptx';
+    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.1.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-    if(log)log.textContent=`PPTX обновлен из S&OP09 plan. Изменено полей: ${changed}. B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего забронировано ${disp(annual(m.booked))}.`;
+    if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, отгрузка ${disp(annual(m.shipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
   }catch(e){
     console.error(e);
     if(log)log.textContent='Не удалось сформировать PPTX: '+(e.message||e);
   }
 }
 
-// Capture phase intentionally overrides legacy click handlers while keeping the same button/state logic.
 document.addEventListener('click',e=>{
   const btn=e.target.closest?.('#printBtn,#downloadHtmlBtn');
   if(!btn||btn.disabled)return;
