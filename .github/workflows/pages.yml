@@ -24,7 +24,7 @@ jobs:
           from pathlib import Path
           import re
 
-          site_version = 'v2.7.0'
+          site_version = 'v2.7.1'
           new_label = 'Доступно для отгрузки клиенту-план'
 
           # index.html: keep only one analytics parser/renderer.
@@ -40,12 +40,27 @@ jobs:
           s = re.sub(r'\s*<script src="\./b2c-details\.js\?v=[^"]+"></script>\s*', '\n  ', s)
           s = re.sub(r'\s*<script src="\./period-filter\.js\?v=[^"]+"></script>\s*', '\n  ', s)
           if 'template-view-v3.js' not in s:
-              s = s.replace('<script src="./app.js?v=3.1.1"></script>', '<script src="./template-view-v3.js?v=3.0.0"></script>\n  <script src="./app.js?v=3.2.0"></script>')
+              s = s.replace('<script src="./app.js?v=3.1.1"></script>', '<script src="./template-view-v3.js?v=3.0.1"></script>\n  <script src="./app.js?v=3.2.0"></script>')
           else:
-              s = re.sub(r'template-view-v3\.js\?v=[^"\']+', 'template-view-v3.js?v=3.0.0', s)
+              s = re.sub(r'template-view-v3\.js\?v=[^"\']+', 'template-view-v3.js?v=3.0.1', s)
               s = re.sub(r'app\.js\?v=[^"\']+', 'app.js?v=3.2.0', s)
           s = re.sub(r'pptx-template-export\.js\?v=[^"\']+', 'pptx-template-export.js?v=2.7.0', s)
           s = re.sub(r'Версия v\d+\.\d+\.\d+', f'Версия {site_version}', s)
+          p.write_text(s, encoding='utf-8')
+
+          # Main analytics renderer: remove redundant title/subtitle block.
+          p = Path('template-view-v3.js')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace("const PARSER_VERSION='3.0.0';", "const PARSER_VERSION='3.0.1';")
+          s = s.replace(
+              "<div class=\"analytics-head\"><div><h2>Аналитика</h2><div class=\"analytics-subtitle\">Производство, продажи и распределение</div></div><div class=\"analytics-data-date\">Данные на ${esc(date)}</div></div>",
+              "<div class=\"analytics-head analytics-head-date-only\"><div class=\"analytics-data-date\">Данные на ${esc(date)}</div></div>"
+          )
+          if '.analytics-head-date-only' not in s:
+              s = s.replace(
+                  '.period-control-group{display:flex!important;',
+                  '.analytics-head-date-only{display:flex!important;justify-content:flex-end!important;margin-bottom:18px!important}.period-control-group{display:flex!important;'
+              )
           p.write_text(s, encoding='utf-8')
 
           # app.js: expose current parsed model to PPTX export, preventing a second XLSX parse.
@@ -84,22 +99,24 @@ jobs:
 
       - name: Validate production wiring
         run: |
-          grep -q 'template-view-v3.js?v=3.0.0' index.html
+          grep -q 'template-view-v3.js?v=3.0.1' index.html
           ! grep -q 'b2c-details.js' index.html
           ! grep -q 'period-filter.js' index.html
           ! grep -q 'template-view.js?v=' index.html
-          grep -q 'Версия v2.7.0' index.html
+          grep -q 'Версия v2.7.1' index.html
           grep -q 'S&amp;OP09 plan' index.html
           grep -q 'window.ATOMCurrentModel' app.js
+          ! grep -q '<h2>Аналитика</h2>' template-view-v3.js
+          ! grep -q 'Производство, продажи и распределение' template-view-v3.js
 
       - name: Commit production files
         run: |
-          if git diff --quiet -- index.html app.js pptx-template-export.js; then
+          if git diff --quiet -- index.html template-view-v3.js app.js pptx-template-export.js; then
             echo "Nothing to update"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html app.js pptx-template-export.js
-          git commit -m "Optimize production frontend v2.7.0"
+          git add index.html template-view-v3.js app.js pptx-template-export.js
+          git commit -m "Remove redundant analytics heading v2.7.1"
           git push origin HEAD:main
