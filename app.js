@@ -1,5 +1,10 @@
 (()=>{
 'use strict';
+const faviconSvg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#071217"/><circle cx="32" cy="32" r="21" fill="none" stroke="#19d6e1" stroke-width="4"/><path d="M22 43 30 20h4l8 23h-5l-2-6H29l-2 6h-5Zm8-10h4l-2-7-2 7Z" fill="#fff"/><circle cx="48" cy="16" r="4" fill="#19d6e1"/></svg>';
+let favicon=document.querySelector('link[rel="icon"]');
+if(!favicon){favicon=document.createElement('link');favicon.rel='icon';document.head.appendChild(favicon)}
+favicon.type='image/svg+xml';
+favicon.href='data:image/svg+xml,'+encodeURIComponent(faviconSvg);
 const $=id=>document.getElementById(id);
 const S={salesFile:null,templateFile:null,model:null};
 const E={salesFile:$('salesFile'),templateFile:$('templateFile'),salesName:$('salesName'),templateName:$('templateName'),salesStatus:$('salesStatus'),templateStatus:$('templateStatus'),salesCard:$('salesCard'),templateCard:$('templateCard'),readyBadge:$('readyBadge'),buildBtn:$('buildBtn'),resetBtn:$('resetBtn'),printBtn:$('printBtn'),parseLog:$('parseLog'),reportSection:$('reportSection'),approveCheck:$('approveCheck'),saveSnapshotBtn:$('saveSnapshotBtn')};
