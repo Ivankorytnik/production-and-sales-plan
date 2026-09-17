@@ -56,47 +56,85 @@ function parseWorkbook(buf){
   const sourceDate=(()=>{for(const row of rows.slice(0,8)){for(const v of row||[]){const m=n(v).match(/обновлено\s*(\d{2}\.\d{2}\.\d{4})/i);if(m)return m[1]}}return null})();
   return{sheetName,metrics,verticals,clients:clientRows,sourceDate};
 }
-function metricYear(m){return m?.yearFound?m.year:0}
-function rowCells(metric,months=VIEW_MONTHS){return months.map(m=>`<td class="num">${dot(metric?.months?.[m]||0)}</td>`).join('')+`<td class="num total">${dot(metricYear(metric))}</td>`}
-function chainRow(label,metric,cls=''){return `<tr class="${cls}"><td>${esc(label)}</td>${rowCells(metric)}</tr>`}
-function clientRow(layer,name,metric,cls=''){const cells=VIEW_MONTHS.map(m=>{const value=metric?.months?.[m]||0;const hi=/псб каршеринг/i.test(name)&&value?' hot':'';return `<td class="num${hi}">${dot(value)}</td>`}).join('');return `<tr class="${cls}"><td class="layer">${esc(layer||'')}</td><td>${esc(name)}</td>${cells}<td class="num total">${dot(metricYear(metric))}</td></tr>`}
+function metricYear(m){return m?.yearFound?Number(m.year||0):0}
+function monthCells(metric){return VIEW_MONTHS.map(m=>`<td class="dash-num">${dot(metric?.months?.[m]||0)}</td>`).join('')}
+function metricRow(label,metric,cls=''){
+  const missing=!metric?.found?' is-missing':'';
+  return `<tr class="${cls}${missing}"><td class="dash-label">${esc(label)}</td><td class="dash-total">${metric?.found?dot(metricYear(metric)):'·'}</td>${monthCells(metric)}</tr>`;
+}
+function projectWord(v){const n=Math.abs(Number(v||0))%100;if(n>=11&&n<=14)return'проектов';const d=n%10;return d===1?'проект':d>=2&&d<=4?'проекта':'проектов'}
+function clientSummaryRow(layer,metric,count){
+  return `<tr class="layer-summary"><td class="layer-name"><strong>${esc(layer)}</strong><small>${count?`${count} ${projectWord(count)}`:'итого'}</small></td><td class="project-name"><strong>Итого ${esc(layer)}</strong></td><td class="dash-total">${dot(metricYear(metric))}</td>${monthCells(metric)}</tr>`;
+}
+function clientDetailRow(x){
+  const product=x.product?`<small>${esc(x.product)}</small>`:'';
+  return `<tr class="client-detail"><td></td><td class="project-name"><strong>${esc(x.displayName)}</strong>${product}</td><td class="dash-total">${dot(metricYear(x))}</td>${monthCells(x)}</tr>`;
+}
+function kpiCard(label,metric,note,tone=''){
+  return `<div class="analytics-kpi ${tone}"><div class="analytics-kpi-label">${esc(label)}</div><div class="analytics-kpi-value">${metric?.found?fmt(metricYear(metric)):'·'}</div><div class="analytics-kpi-note">${esc(note)}</div></div>`;
+}
 function renderModel(model,templateName){
   const one=$('onePage');if(!one)return;
   const {metrics,verticals}=model;
   const b2b=model.clients.filter(x=>x.vertical==='B2B');
   const b2g=model.clients.filter(x=>x.vertical==='B2G');
-  const kpis=[
-    ['cyan','ПЛАН ПРОИЗВОДСТВА',metricYear(metrics.production),'2026, S&OP09'],
-    ['green','ПЛАН ОТГРУЗКИ',metricYear(metrics.shipPlan),'с завода'],
-    ['red','ОТГРУЖЕНО АВТО',metricYear(metrics.shipped),'на дату файла'],
-    ['yellow','ЗАБРОНИРОВАНО АТОМ',metricYear(metrics.booked),'подтверждено в ЕРП']
-  ];
-  const kpiHtml=kpis.map(([c,l,v,s])=>`<div class="atom-kpi ${c}"><div class="atom-kpi-label">${l}</div><div class="atom-kpi-bottom"><strong>${fmt(v)}</strong><small>${s}</small></div></div>`).join('');
-  const chain=[chainRow('План производства',metrics.production),chainRow('План отгрузки с завода',metrics.shipPlan,'alt'),chainRow('Отгружено автомобилей',metrics.shipped),chainRow('Передано в корп. парк',metrics.corp,'alt'),chainRow('Забронировано клиентами',metrics.booked,'booked')].join('');
-  let clientsHtml=clientRow('B2B','Итого B2B',verticals.B2B,'summary');
-  clientsHtml+=b2b.map(x=>clientRow('',x.displayName,x)).join('');
-  if(verticals.B2G&&metricYear(verticals.B2G)!==0){clientsHtml+=clientRow('B2G','Итого B2G',verticals.B2G,'summary')+b2g.map(x=>clientRow('',x.displayName,x)).join('')}
-  clientsHtml+=clientRow('B2C','Итого B2C',verticals.B2C,'summary');
-  clientsHtml+=clientRow('','Всего забронировано',metrics.booked,'summary grand');
-  const date=new Date().toLocaleDateString('ru-RU');
+  const date=model.sourceDate||new Date().toLocaleDateString('ru-RU');
+  one.className='one-page analytics-onepage';
+  const kpiHtml=[
+    kpiCard('План производства',metrics.production,'2026, S&OP09'),
+    kpiCard('План отгрузки',metrics.shipPlan,'с завода'),
+    kpiCard('Отгружено автомобилей',metrics.shipped,'факт на дату файла','accent-red'),
+    kpiCard('Забронировано клиентами',metrics.booked,'все коммерческие слои','accent-green'),
+    kpiCard('Свободный сток',metrics.free,'доступно к распределению','accent-green')
+  ].join('');
+  const balance=[
+    metricRow('План производства',metrics.production),
+    metricRow('План отгрузки с завода',metrics.shipPlan),
+    metricRow('Отгружено автомобилей',metrics.shipped),
+    metricRow('Передано в корпоративный парк',metrics.corp),
+    metricRow('Забронировано клиентами',metrics.booked,'row-accent'),
+    metricRow('Свободный сток / доступно',metrics.free)
+  ].join('');
+  let distribution='';
+  distribution+=clientSummaryRow('B2C',verticals.B2C,0);
+  distribution+=clientSummaryRow('B2B',verticals.B2B,b2b.length)+b2b.map(clientDetailRow).join('');
+  if(verticals.B2G?.found||b2g.length)distribution+=clientSummaryRow('B2G',verticals.B2G,b2g.length)+b2g.map(clientDetailRow).join('');
+  distribution+=`<tr class="grand-total"><td class="layer-name"><strong>ВСЕГО</strong></td><td class="project-name"><strong>Забронировано клиентами</strong></td><td class="dash-total">${dot(metricYear(metrics.booked))}</td>${monthCells(metrics.booked)}</tr>`;
   one.innerHTML=`
-    <div class="atom-slide-head">
-      <h2>План производства, отгрузки и коммерческого распределения АТОМ</h2>
-      <div class="atom-logo"><span class="atom-logo-mark">⌃</span><b>ATOM</b><small>Обновлено ${date}</small></div>
+    <div class="analytics-head">
+      <div>
+        <h2>Аналитика</h2>
+        <div class="analytics-subtitle">Производство, отгрузка и коммерческое распределение АТОМ</div>
+      </div>
+      <div class="analytics-data-date">Данные на ${esc(date)}</div>
     </div>
-    <div class="atom-kpi-row">${kpiHtml}</div>
-    <div class="atom-main-grid">
-      <section class="atom-panel">
-        <h3>Баланс производства, отгрузки и распределения автомобилей</h3>
-        <table class="atom-table chain-table"><thead><tr><th>Показатель</th>${VIEW_MONTHS.map(m=>`<th>${m==='Июл'?'Июль':m}</th>`).join('')}<th>2026</th></tr></thead><tbody>${chain}</tbody></table>
-      </section>
-      <section class="atom-panel">
-        <h3>Забронировано клиентами по коммерческим вертикалям</h3>
-        <table class="atom-table clients-table"><thead><tr><th>Слой</th><th>Компания / проект</th>${VIEW_MONTHS.map(m=>`<th>${m}</th>`).join('')}<th>2026</th></tr></thead><tbody>${clientsHtml}</tbody></table>
-      </section>
+    <div class="analytics-filterbar">
+      <div class="analytics-filter-group"><span class="analytics-filter-label">ПЕРИОД</span><span class="period-chip active">6 мес</span><span class="period-range">Июль - декабрь 2026</span></div>
+      <div class="analytics-filter-group source"><span class="analytics-filter-label">ИСТОЧНИК</span><span class="source-pill">${esc(model.sheetName||'S&OP09 plan')}</span></div>
     </div>
-    <div class="atom-slide-foot"><span>${esc(templateName||'PPTX-шаблон')}</span><span>S&OP09 plan</span><span class="page-no">1</span></div>`;
-  const d=$('reportDate');if(d)d.textContent=date;const t=$('templateInfo');if(t)t.textContent=`Шаблон презентации: ${templateName||'—'}`;const sc=$('sourceCount');if(sc)sc.textContent='2/2';
+    <div class="analytics-kpi-grid">${kpiHtml}</div>
+    <section class="analytics-section">
+      <div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · 6 МЕС</div>
+      <div class="analytics-table-wrap">
+        <table class="analytics-table balance-table">
+          <thead><tr><th>Показатель</th><th>Итого 2026</th>${VIEW_MONTHS.map(m=>`<th>${m}</th>`).join('')}</tr></thead>
+          <tbody>${balance}</tbody>
+        </table>
+      </div>
+    </section>
+    <section class="analytics-section distribution-section">
+      <div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · 6 МЕС</div>
+      <div class="analytics-table-wrap">
+        <table class="analytics-table distribution-table">
+          <thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>Итого 2026</th>${VIEW_MONTHS.map(m=>`<th>${m}</th>`).join('')}</tr></thead>
+          <tbody>${distribution}</tbody>
+        </table>
+      </div>
+    </section>
+    <div class="analytics-footnote"><span>В таблицах показаны все поля, используемые в текущей презентации.</span><span>${esc(templateName||'PPTX-шаблон')} · ${esc(model.sheetName||'S&OP09 plan')}</span></div>`;
+  const d=$('reportDate');if(d)d.textContent=date;
+  const t=$('templateInfo');if(t)t.textContent=`Шаблон презентации: ${templateName||'—'}`;
+  const sc=$('sourceCount');if(sc)sc.textContent='2/2';
 }
 async function renderFromFile(file,templateName){const buf=await file.arrayBuffer();const model=parseWorkbook(buf);renderModel(model,templateName);return model}
 window.ATOMTemplateView={parseWorkbook,renderModel,renderFromFile};
