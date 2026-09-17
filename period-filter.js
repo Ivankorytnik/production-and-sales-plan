@@ -40,9 +40,13 @@ function periodTotalHeader(){
   return state.key==='H1'?'Итого Янв - Июн':'Итого Июл - Дек';
 }
 function sumMonths(metric,months){return months.reduce((sum,m)=>sum+Number(metric?.months?.[m]||0),0)}
+function annualTotal(metric){
+  if(!metric)return 0;
+  return metric.yearFound?Number(metric.year||0):sumMonths(metric,MONTHS);
+}
 function metricTotal(metric){
   if(!metric)return 0;
-  if(state.mode==='all')return metric.yearFound?Number(metric.year||0):sumMonths(metric,MONTHS);
+  if(state.mode==='all')return annualTotal(metric);
   return sumMonths(metric,selectedMonths());
 }
 function renderControls(){
@@ -101,7 +105,14 @@ function rebuildTables(model){
     dist.querySelector('thead').innerHTML=`<tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${totalHeader}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr>`;
     let body='';
     for(const layer of ['B2C','B2B','B2G']){
-      const items=(model.clients||[]).filter(x=>x.vertical===layer);
+      const items=(model.clients||[])
+        .filter(x=>x.vertical===layer)
+        .slice()
+        .sort((a,b)=>{
+          const diff=annualTotal(b)-annualTotal(a);
+          if(diff!==0)return diff;
+          return String(a.displayName||a.name||'').localeCompare(String(b.displayName||b.name||''),'ru');
+        });
       const metric=model.verticals?.[layer];
       if(layer==='B2G'&&!metric?.found&&!items.length)continue;
       body+=clientSummaryRow(layer,metric,items.length,months);
