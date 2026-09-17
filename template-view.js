@@ -8,7 +8,7 @@ const k=v=>n(v).toLowerCase().replace(/ё/g,'е');
 const num=v=>{if(typeof v==='number'&&Number.isFinite(v))return v;const s=n(v);if(!s||s==='·'||s==='-'||s==='—'||s==='`')return 0;const x=Number(s.replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));return Number.isFinite(x)?x:0};
 const fmt=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Number(v||0));
 const dot=v=>Number(v||0)===0?'·':fmt(v);
-const esc=s=>n(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>n(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 function monthLabel(v){if(v instanceof Date&&!isNaN(v))return MONTHS[v.getMonth()][2];const s=k(v);if(!s)return null;for(const [ru,en,label] of MONTHS){if(new RegExp(`(^|[^а-яa-z])(${ru}[а-я]*|${en}[a-z]*)([^а-яa-z]|$)`,'i').test(s))return label}return null}
 function findHeader(rows){let best=null;rows.slice(0,120).forEach((r,ri)=>{const cols=[];(r||[]).forEach((v,ci)=>{const m=monthLabel(v);if(m)cols.push({ci,m})});const uniq=[...new Set(cols.map(x=>x.m))];if(uniq.length>=6&&(!best||uniq.length>best.count))best={ri,cols,count:uniq.length,row:r}});return best}
 function addMetric(target,src){if(!target)return{...src,months:{...src.months}};for(const [m,v] of Object.entries(src.months||{}))target.months[m]=(target.months[m]||0)+v;if(src.yearFound){target.year=(target.year||0)+(src.year||0);target.yearFound=true}target.found=true;return target}
@@ -104,7 +104,7 @@ function renderModel(model,templateName){
     <div class="analytics-head">
       <div>
         <h2>Аналитика</h2>
-        <div class="analytics-subtitle">Производство, отгрузка и коммерческое распределение АТОМ</div>
+        <div class="analytics-subtitle">Производство, продажи и распределение</div>
       </div>
       <div class="analytics-data-date">Данные на ${esc(date)}</div>
     </div>
@@ -144,7 +144,7 @@ window.ATOMTemplateView={parseWorkbook,renderModel,renderFromFile};
   const version=document.querySelector('.user-nav > span:first-child');
   if(!version)return;
   const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-  version.textContent=`Версия v2.5.0 · загрузка ${loadedAt}`;
+  version.textContent=`Версия v2.5.7 · загрузка ${loadedAt}`;
 })();
 
 (()=>{
@@ -268,6 +268,6 @@ bindLayers();
 const version=document.querySelector('.user-nav > span:first-child');
 if(version){
   const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-  version.textContent=`Версия v2.5.1 · загрузка ${loadedAt}`;
+  version.textContent=`Версия v2.5.7 · загрузка ${loadedAt}`;
 }
 })();
