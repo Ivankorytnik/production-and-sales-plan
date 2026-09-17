@@ -35,10 +35,15 @@ function saveState(){try{localStorage.setItem(MODE_KEY,JSON.stringify(state))}ca
 function selectedMonths(){return state.mode==='all'?MONTHS:(PERIODS[state.key]?.months||PERIODS.H2.months)}
 function periodLabel(){return state.mode==='all'?PERIODS.all.label:(PERIODS[state.key]?.label||PERIODS.H2.label)}
 function periodShort(){return state.mode==='all'?'2026':(state.key==='H1'?'1 полугодие':'2 полугодие')}
+function periodTotalHeader(){
+  if(state.mode==='all')return'Итого 2026';
+  return state.key==='H1'?'Итого Янв - Июн':'Итого Июл - Дек';
+}
+function sumMonths(metric,months){return months.reduce((sum,m)=>sum+Number(metric?.months?.[m]||0),0)}
 function metricTotal(metric){
   if(!metric)return 0;
-  if(state.mode==='all'&&metric.yearFound)return Number(metric.year||0);
-  return selectedMonths().reduce((sum,m)=>sum+Number(metric?.months?.[m]||0),0);
+  if(state.mode==='all')return metric.yearFound?Number(metric.year||0):sumMonths(metric,MONTHS);
+  return sumMonths(metric,selectedMonths());
 }
 function renderControls(){
   const bar=document.querySelector('.analytics-filterbar');
@@ -78,7 +83,7 @@ function updateKpis(model){
 }
 function rebuildTables(model){
   const months=selectedMonths();
-  const totalHeader=state.mode==='all'?'Итого 2026':'Итого периода';
+  const totalHeader=periodTotalHeader();
   const balance=document.querySelector('.balance-table');
   if(balance){
     balance.querySelector('thead').innerHTML=`<tr><th>Показатель</th><th>${totalHeader}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr>`;
