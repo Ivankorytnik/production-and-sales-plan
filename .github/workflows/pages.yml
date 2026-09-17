@@ -24,9 +24,10 @@ jobs:
           from pathlib import Path
           import re
 
-          site_version = 'v2.6.6'
+          site_version = 'v2.7.0'
           new_label = 'Доступно для отгрузки клиенту-план'
 
+          # index.html: keep only one analytics parser/renderer.
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
           s = s.replace('Загрузите 3 файла', 'Загрузите 2 файла')
@@ -35,49 +36,28 @@ jobs:
           s = re.sub(r'\s*<label class="drop-card" id="smmtCard">.*?</label>\s*', '\n          ', s, count=1, flags=re.S)
           s = re.sub(r'(<label class="drop-card" id="templateCard">.*?<span class="file-index">)03(</span>)', r'\g<1>02\2', s, count=1, flags=re.S)
           s = s.replace('<div class="heading-title-row"><div class="breadcrumb">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div><h1>Производство и продажи</h1></div>', '<div class="heading-title-row"><h1>S&amp;OP09 plan</h1></div>')
-          s = re.sub(r'template-view\.js\?v=[^"\']+', 'template-view.js?v=2.6.0', s)
-          s = re.sub(r'period-filter\.js\?v=[^"\']+', 'period-filter.js?v=1.7.0', s)
-          s = re.sub(r'pptx-template-export\.js\?v=[^"\']+', 'pptx-template-export.js?v=2.6.0', s)
+          s = re.sub(r'\s*<script src="\./template-view\.js\?v=[^"]+"></script>\s*', '\n  ', s)
+          s = re.sub(r'\s*<script src="\./b2c-details\.js\?v=[^"]+"></script>\s*', '\n  ', s)
+          s = re.sub(r'\s*<script src="\./period-filter\.js\?v=[^"]+"></script>\s*', '\n  ', s)
+          if 'template-view-v3.js' not in s:
+              s = s.replace('<script src="./app.js?v=3.1.1"></script>', '<script src="./template-view-v3.js?v=3.0.0"></script>\n  <script src="./app.js?v=3.2.0"></script>')
+          else:
+              s = re.sub(r'template-view-v3\.js\?v=[^"\']+', 'template-view-v3.js?v=3.0.0', s)
+              s = re.sub(r'app\.js\?v=[^"\']+', 'app.js?v=3.2.0', s)
+          s = re.sub(r'pptx-template-export\.js\?v=[^"\']+', 'pptx-template-export.js?v=2.7.0', s)
           s = re.sub(r'Версия v\d+\.\d+\.\d+', f'Версия {site_version}', s)
           p.write_text(s, encoding='utf-8')
 
-          p = Path('template-view.js')
+          # app.js: expose current parsed model to PPTX export, preventing a second XLSX parse.
+          p = Path('app.js')
           s = p.read_text(encoding='utf-8')
-          guard = """
-          ;(()=>{
-            const removeSmmt=()=>document.getElementById('smmtCard')?.remove();
-            removeSmmt();
-            new MutationObserver(removeSmmt).observe(document.body,{childList:true,subtree:true});
-            const title=document.querySelector('#sources .source-title-row h2');
-            const text=document.querySelector('#sources .source-title-row p');
-            const index=document.querySelector('#templateCard .file-index');
-            const counter=document.getElementById('readyBadge');
-            if(title)title.textContent='Загрузите 2 файла';
-            if(text)text.textContent='План продаж и PPTX-шаблон. Файлы сохраняются в браузере.';
-            if(index)index.textContent='02';
-            if(counter&&/3/.test(counter.textContent))counter.textContent=counter.textContent.replace('/ 3','/ 2');
-            try{
-              const req=indexedDB.open('atom-production-sales-plan',1);
-              req.onsuccess=()=>{
-                const db=req.result;
-                if(!db.objectStoreNames.contains('files')){db.close();return}
-                const tx=db.transaction('files','readwrite');
-                tx.objectStore('files').delete('smmt');
-                tx.oncomplete=()=>db.close();
-                tx.onerror=()=>db.close();
-              };
-            }catch{}
-          })();
-          """
-          if "const removeSmmt=()=>document.getElementById('smmtCard')?.remove();" not in s:
-              s += guard
+          if 'window.ATOMCurrentModel=' not in s:
+              s = s.replace('window.ATOMCurrentFiles={sales:null,template:null};', 'window.ATOMCurrentFiles={sales:null,template:null};\nwindow.ATOMCurrentModel=null;')
+          s = s.replace('S.model=await window.ATOMTemplateView.renderFromFile(S.salesFile,S.templateFile.name);\n    saveModel();', 'S.model=await window.ATOMTemplateView.renderFromFile(S.salesFile,S.templateFile.name);\n    window.ATOMCurrentModel=S.model;\n    saveModel();')
+          s = s.replace('S.model=cached.model;\n      window.ATOMTemplateView.renderModel', 'S.model=cached.model;\n      window.ATOMCurrentModel=S.model;\n      window.ATOMTemplateView.renderModel')
           p.write_text(s, encoding='utf-8')
 
-          p = Path('period-filter.js')
-          s = p.read_text(encoding='utf-8')
-          s = s.replace('Отгрузка клиенту ПЛАН', new_label)
-          p.write_text(s, encoding='utf-8')
-
+          # PPTX export: use current model first; parse Excel only as fallback.
           p = Path('pptx-template-export.js')
           s = p.read_text(encoding='utf-8')
           s = s.replace('Отгрузка клиенту ПЛАН', new_label)
@@ -85,26 +65,41 @@ jobs:
           s = s.replace('  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;\n', '  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;\n')
           s = s.replace("    ['Забронировано клиентами',m.booked,/забронировано/],\n    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]\n", "    ['Забронировано клиентами',m.booked,/забронировано/]\n")
           s = s.replace("  changed+=setKpiNearLabel(doc,/^свободный сток$/,m.free);\n", '')
-          s = re.sub(r"\+'_v2\.\d+\.pptx'", "+'_v2.6.pptx'", s)
+          s = re.sub(r"\+'_v2\.\d+\.pptx'", "+'_v2.7.pptx'", s)
+          s = s.replace('    await ensureXLSX();await ensureJSZip();', '    await ensureJSZip();')
+          s = re.sub(
+              r"const \[salesBuf,tplBuf\]=await Promise\.all\(\[sales\.arrayBuffer\(\),template\.arrayBuffer\(\)\]\);\s*const model=parseCurrentModel\(salesBuf\);",
+              "const tplBuf=await template.arrayBuffer();\n    let model=window.ATOMCurrentModel||null;\n    if(!model){await ensureXLSX();const salesBuf=await sales.arrayBuffer();model=parseCurrentModel(salesBuf);}",
+              s,
+              count=1
+          )
           p.write_text(s, encoding='utf-8')
           PY
 
       - name: Validate JavaScript
         run: |
-          node --check template-view.js
-          node --check period-filter.js
+          node --check template-view-v3.js
           node --check pptx-template-export.js
           node --check app.js
-          node --check b2c-details.js
+
+      - name: Validate production wiring
+        run: |
+          grep -q 'template-view-v3.js?v=3.0.0' index.html
+          ! grep -q 'b2c-details.js' index.html
+          ! grep -q 'period-filter.js' index.html
+          ! grep -q 'template-view.js?v=' index.html
+          grep -q 'Версия v2.7.0' index.html
+          grep -q 'S&amp;OP09 plan' index.html
+          grep -q 'window.ATOMCurrentModel' app.js
 
       - name: Commit production files
         run: |
-          if git diff --quiet -- index.html template-view.js period-filter.js pptx-template-export.js; then
+          if git diff --quiet -- index.html app.js pptx-template-export.js; then
             echo "Nothing to update"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html template-view.js period-filter.js pptx-template-export.js
-          git commit -m "Sync production files v2.6.6"
+          git add index.html app.js pptx-template-export.js
+          git commit -m "Optimize production frontend v2.7.0"
           git push origin HEAD:main
