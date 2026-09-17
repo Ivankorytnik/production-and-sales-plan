@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const PARSER_VERSION='3.0.1';
+const PARSER_VERSION='3.0.2';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
@@ -130,7 +130,7 @@ function parseWorkbook(buf){
     const g=groupLabel(s);if(g){product=g;continue}
     if(!currentVertical)continue;
     if(/^план |^выпуск |^отгрузка |^передано |^контракты |^итого /.test(s))continue;
-    if(!hasPeriodData(row))continue;
+    if(!hasPeriodData(row)&&currentVertical!=='B2G')continue;
     const m=rowMetric(row);
     const clientKey=`${currentVertical}|${s}|${product||''}`;
     if(!clients[clientKey]){
@@ -260,7 +260,7 @@ function renderModel(model,templateName=currentTemplateName){
   for(const layer of ['B2C','B2B','B2G']){
     const metric=verticals?.[layer];
     const items=(model.clients||[])
-      .filter(x=>x.vertical===layer&&annualTotal(x)>0)
+      .filter(x=>x.vertical===layer&&(layer==='B2G'||annualTotal(x)>0))
       .slice()
       .sort((a,b)=>annualTotal(b)-annualTotal(a)||String(a.displayName||a.name||'').localeCompare(String(b.displayName||b.name||''),'ru'));
     if(layer==='B2G'&&!metric?.found&&!items.length)continue;
