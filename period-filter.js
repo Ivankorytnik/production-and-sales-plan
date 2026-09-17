@@ -36,7 +36,7 @@ function excelMonthLabel(v){
   return null;
 }
 function extractClientShipPlan(buf){
-  if(!window.XLSX)return{found:false,months:{},year:null,yearFound:false,label:'Отгрузка клиенту ПЛАН'};
+  if(!window.XLSX)return{found:false,months:{},year:null,yearFound:false,label:'Доступно для отгрузки клиенту-план'};
   const wb=XLSX.read(buf,{type:'array',cellDates:true});
   const sheetName=wb.SheetNames.find(x=>key(x).replace(/\s/g,'').includes('s&op09plan'))||wb.SheetNames.find(x=>key(x).includes('s&op09'))||wb.SheetNames[0];
   const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:null,raw:true});
@@ -46,7 +46,7 @@ function extractClientShipPlan(buf){
     const uniq=[...new Set(cols.map(x=>x.m))];
     if(uniq.length>=6&&(!header||uniq.length>header.count))header={ri,cols,count:uniq.length,row:r};
   });
-  if(!header)return{found:false,months:{},year:null,yearFound:false,label:'Отгрузка клиенту ПЛАН'};
+  if(!header)return{found:false,months:{},year:null,yearFound:false,label:'Доступно для отгрузки клиенту-план'};
   const monthCols=[],seen=new Set();
   header.cols.forEach(x=>{if(!seen.has(x.m)){seen.add(x.m);monthCols.push(x)}});
   monthCols.sort((a,b)=>a.ci-b.ci);
@@ -63,7 +63,7 @@ function extractClientShipPlan(buf){
     const fallback=Object.values(months).reduce((a,v)=>a+Number(v||0),0);
     return{found:true,label,months,year:totalRaw!==''?num(row[totalCol]):fallback,yearFound:totalRaw!==''||hasMonth};
   }
-  return{found:false,months:{},year:null,yearFound:false,label:'Отгрузка клиенту ПЛАН'};
+  return{found:false,months:{},year:null,yearFound:false,label:'Доступно для отгрузки клиенту-план'};
 }
 
 const originalParseWorkbook=API.parseWorkbook.bind(API);
@@ -154,7 +154,7 @@ function rebuildTables(model){
       metricRow('План производства',model.metrics?.production,months),
       metricRow('План отгрузки с завода',model.metrics?.shipPlan,months),
       metricRow('Отгружено автомобилей',model.metrics?.shipped,months),
-      metricRow('Отгрузка клиенту ПЛАН',model.metrics?.clientShipPlan,months,'row-client-ship-plan'),
+      metricRow('Доступно для отгрузки клиенту-план',model.metrics?.clientShipPlan,months,'row-client-ship-plan'),
       metricRow('Передано в корпоративный парк',model.metrics?.corp,months),
       metricRow('Забронировано клиентами',model.metrics?.booked,months,'row-accent'),
       metricRow('Свободный сток / доступно',model.metrics?.free,months)

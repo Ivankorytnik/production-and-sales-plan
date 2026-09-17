@@ -65,7 +65,7 @@ function toExportModel(model){
     clientShipPlan:normalizeMetric(model.metrics?.clientShipPlan),
     corp:normalizeMetric(model.metrics?.corp),
     booked:normalizeMetric(model.metrics?.booked),
-    free:normalizeMetric(model.metrics?.free),
+    free:null,
     verticals:{
       B2B:normalizeMetric(model.verticals?.B2B),
       B2C:normalizeMetric(model.verticals?.B2C),
@@ -148,7 +148,7 @@ function metricForLabel(label,m){
   if(/передано.*корп|корпоративн.*парк/.test(s))return m.corp;
   if((/забронировано/.test(s)&&(/клиент|автомоб|атом|erp|ерп|всего/.test(s)))&&!/\bb2[bcg]\b/.test(s))return m.booked;
   if(/^забронировано$/.test(s))return m.booked;
-  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;
+  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;
   if(/итого\s*b2b|контракты.*забронировано.*b2b|^b2b$/.test(s))return m.verticals.B2B;
   if(/итого\s*b2c|контракты.*забронировано.*b2c|^b2c$/.test(s))return m.verticals.B2C;
   if(/итого\s*b2g|контракты.*забронировано.*b2g|^b2g$/.test(s))return m.verticals.B2G;
@@ -185,10 +185,9 @@ function rebuildBalanceTable(tbl,m){
     ['План производства',m.production,/план производства/],
     ['План отгрузки с завода',m.shipPlan,/план отгрузк.*завод|отгрузк.*завод.*план/],
     ['Отгружено автомобилей',m.shippedActual,/отгружено.*автомоб|отгрузка.*завод.*факт|отгружено.*авто/],
-    ['Отгрузка клиенту ПЛАН',m.clientShipPlan,/отгрузка\s+клиенту\s+план|план\s+отгрузки\s+клиенту/],
+    ['Доступно для отгрузки клиенту-план',m.clientShipPlan,/отгрузка\s+клиенту\s+план|план\s+отгрузки\s+клиенту/],
     ['Передано в корпоративный парк',m.corp,/передано.*корп|корпоративн.*парк/],
-    ['Забронировано клиентами',m.booked,/забронировано/],
-    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]
+    ['Забронировано клиентами',m.booked,/забронировано/]
   ];
   const findTemplate=re=>{
     for(const [label,tr] of Object.entries(existing)){if(re.test(label))return tr}
@@ -200,7 +199,7 @@ function rebuildBalanceTable(tbl,m){
   let changed=0;
   desired.forEach(([label,metric,re])=>{
     if(!metric?.found)return;
-    const template=findTemplate(re)||(label==='Отгрузка клиенту ПЛАН'?shipTemplate:anyTemplate);
+    const template=findTemplate(re)||(label==='Доступно для отгрузки клиенту-план'?shipTemplate:anyTemplate);
     const tr=template.cloneNode(true);
     changed+=fillBalanceRow(tr,info,label,metric);
     parent.appendChild(tr);
@@ -312,7 +311,6 @@ function updateSlide(doc,m,salesName){
   changed+=setKpiNearLabel(doc,/^план отгрузки(?: с завода)?$/,m.shipPlan);
   changed+=setKpiNearLabel(doc,/^отгружено авто(?:мобилей)?$/,m.shippedActual);
   changed+=setKpiNearLabel(doc,/^забронировано(?: атом| авто(?:мобилей)?(?: клиентами)?| клиентами)?$/,m.booked);
-  changed+=setKpiNearLabel(doc,/^свободный сток$/,m.free);
   changed+=updateTables(doc,m);
   return changed;
 }
@@ -339,7 +337,7 @@ async function exportPptx(){
     const out=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(out);
-    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.2.pptx';
+    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.6.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, план отгрузки клиенту ${disp(annual(m.clientShipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
   }catch(e){

@@ -179,3 +179,28 @@ const style=document.createElement('style');style.id='business-layer-toggle-styl
 const root=document.getElementById('onePage');if(root)new MutationObserver(()=>bindLayers()).observe(root,{childList:true,subtree:true});bindLayers();
 const version=document.querySelector('.user-nav > span:first-child');if(version){const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');version.textContent=`Версия v2.5.8 · загрузка ${loadedAt}`}
 })();
+
+;(()=>{
+  const removeSmmt=()=>document.getElementById('smmtCard')?.remove();
+  removeSmmt();
+  new MutationObserver(removeSmmt).observe(document.body,{childList:true,subtree:true});
+  const title=document.querySelector('#sources .source-title-row h2');
+  const text=document.querySelector('#sources .source-title-row p');
+  const index=document.querySelector('#templateCard .file-index');
+  const counter=document.getElementById('readyBadge');
+  if(title)title.textContent='Загрузите 2 файла';
+  if(text)text.textContent='План продаж и PPTX-шаблон. Файлы сохраняются в браузере.';
+  if(index)index.textContent='02';
+  if(counter&&/3/.test(counter.textContent))counter.textContent=counter.textContent.replace('/ 3','/ 2');
+  try{
+    const req=indexedDB.open('atom-production-sales-plan',1);
+    req.onsuccess=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains('files')){db.close();return}
+      const tx=db.transaction('files','readwrite');
+      tx.objectStore('files').delete('smmt');
+      tx.oncomplete=()=>db.close();
+      tx.onerror=()=>db.close();
+    };
+  }catch{}
+})();
