@@ -62,6 +62,7 @@ function toExportModel(model){
     production:normalizeMetric(model.metrics?.production),
     shipPlan:normalizeMetric(model.metrics?.shipPlan),
     shippedActual:normalizeMetric(model.metrics?.shipped),
+    clientShipPlan:normalizeMetric(model.metrics?.clientShipPlan),
     corp:normalizeMetric(model.metrics?.corp),
     booked:normalizeMetric(model.metrics?.booked),
     free:normalizeMetric(model.metrics?.free),
@@ -141,6 +142,7 @@ function updateMetricRow(row,periodMap,metric){
 function metricForLabel(label,m){
   const s=k(label);
   if(/план производства/.test(s))return m.production;
+  if(/отгрузка\s+клиенту\s+план|план\s+отгрузки\s+клиенту/.test(s))return m.clientShipPlan;
   if(/план отгрузк.*завод|отгрузк.*завод.*план/.test(s))return m.shipPlan;
   if(/отгружено.*автомоб|отгрузка.*завод.*факт|отгружено.*авто/.test(s))return m.shippedActual;
   if(/передано.*корп|корпоративн.*парк/.test(s))return m.corp;
@@ -152,6 +154,58 @@ function metricForLabel(label,m){
   if(/итого\s*b2g|контракты.*забронировано.*b2g|^b2g$/.test(s))return m.verticals.B2G;
   if(/^всего$/.test(s))return m.booked;
   return null;
+}
+function balanceInfo(tbl){
+  const rows=tableCells(tbl);
+  for(let ri=0;ri<Math.min(4,rows.length);ri++){
+    const headers=rows[ri].map(c=>k(elementText(c)));
+    const labelCol=headers.findIndex(h=>h.includes('показатель'));
+    const periods=headerMap(rows[ri]);
+    if(labelCol>=0&&Object.keys(periods).length>=2)return{headerRow:ri,labelCol,periods};
+  }
+  return null;
+}
+function fillBalanceRow(tr,info,label,metric){
+  const cells=[...tr.getElementsByTagNameNS('*','tc')];
+  if(cells[info.labelCol])setTextIn(cells[info.labelCol],label);
+  updateMetricRow(cells,info.periods,metric);
+  return Object.keys(info.periods).length+1;
+}
+function rebuildBalanceTable(tbl,m){
+  const info=balanceInfo(tbl);if(!info)return 0;
+  const trs=tableRows(tbl),rows=tableCells(tbl);
+  const existing={};
+  for(let i=info.headerRow+1;i<rows.length;i++){
+    const label=k(elementText(rows[i][info.labelCol]||rows[i][0]));
+    if(label)existing[label]=trs[i];
+  }
+  const anyTemplate=trs[info.headerRow+1];
+  if(!anyTemplate)return 0;
+  const desired=[
+    ['План производства',m.production,/план производства/],
+    ['План отгрузки с завода',m.shipPlan,/план отгрузк.*завод|отгрузк.*завод.*план/],
+    ['Отгружено автомобилей',m.shippedActual,/отгружено.*автомоб|отгрузка.*завод.*факт|отгружено.*авто/],
+    ['Отгрузка клиенту ПЛАН',m.clientShipPlan,/отгрузка\s+клиенту\s+план|план\s+отгрузки\s+клиенту/],
+    ['Передано в корпоративный парк',m.corp,/передано.*корп|корпоративн.*парк/],
+    ['Забронировано клиентами',m.booked,/забронировано/],
+    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]
+  ];
+  const findTemplate=re=>{
+    for(const [label,tr] of Object.entries(existing)){if(re.test(label))return tr}
+    return null;
+  };
+  const shipTemplate=findTemplate(/план отгрузк.*завод|отгрузк.*завод.*план/)||anyTemplate;
+  const parent=anyTemplate.parentNode;
+  for(let i=trs.length-1;i>info.headerRow;i--)parent.removeChild(trs[i]);
+  let changed=0;
+  desired.forEach(([label,metric,re])=>{
+    if(!metric?.found)return;
+    const template=findTemplate(re)||(label==='Отгрузка клиенту ПЛАН'?shipTemplate:anyTemplate);
+    const tr=template.cloneNode(true);
+    changed+=fillBalanceRow(tr,info,label,metric);
+    parent.appendChild(tr);
+  });
+  return changed;
 }
 function distributionInfo(tbl){
   const rows=tableCells(tbl);
@@ -227,6 +281,10 @@ function updateTables(doc,m){
       changed+=rebuildDistributionTable(tbl,m);
       continue;
     }
+    if(balanceInfo(tbl)){
+      changed+=rebuildBalanceTable(tbl,m);
+      continue;
+    }
     const rows=tableCells(tbl);if(rows.length<2)continue;
     let periodRow=-1,periods={};
     for(let ri=0;ri<Math.min(4,rows.length);ri++){
@@ -281,9 +339,9 @@ async function exportPptx(){
     const out=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(out);
-    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.1.pptx';
+    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.2.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
-    if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, отгрузка ${disp(annual(m.shipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
+    if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, план отгрузки клиенту ${disp(annual(m.clientShipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
   }catch(e){
     console.error(e);
     if(log)log.textContent='Не удалось сформировать PPTX: '+(e.message||e);
