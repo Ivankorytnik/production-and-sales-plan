@@ -23,20 +23,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Stamp frontend versions and PPTX rules
+      - name: Prepare production build
         run: |
-          sed -i 's/period-filter.js?v=1.3.0/period-filter.js?v=1.4.0/g' index.html
-          sed -i 's/pptx-template-export.js?v=2.1.0/pptx-template-export.js?v=2.3.0/g' index.html
-          sed -i 's/Версия v2.5.9/Версия v2.6.1/g' index.html
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('pptx-template-export.js')
-          s = p.read_text(encoding='utf-8')
-          s = s.replace('    free:normalizeMetric(model.metrics?.free),\n', '    free:null,\n')
-          s = s.replace('  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;\n', '  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;\n')
-          s = s.replace("    ['Забронировано клиентами',m.booked,/забронировано/],\n    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]\n", "    ['Забронировано клиентами',m.booked,/забронировано/]\n")
-          s = s.replace("+'_v2.2.pptx'", "+'_v2.3.pptx'")
-          p.write_text(s, encoding='utf-8')
+          import re
+
+          index = Path('index.html')
+          s = index.read_text(encoding='utf-8')
+          s = s.replace('Загрузите 3 файла', 'Загрузите 2 файла')
+          s = s.replace('План продаж, СММТ и PPTX-шаблон. Файлы сохраняются в браузере.', 'План продаж и PPTX-шаблон. Файлы сохраняются в браузере.')
+          s = s.replace('0 / 3', '0 / 2')
+          s = re.sub(r'\s*<label class="drop-card" id="smmtCard">.*?</label>\s*', '\n          ', s, count=1, flags=re.S)
+          s = re.sub(r'(<label class="drop-card" id="templateCard">.*?<span class="file-index">)03(</span>)', r'\g<1>02\2', s, count=1, flags=re.S)
+          s = s.replace('period-filter.js?v=1.3.0', 'period-filter.js?v=1.4.0')
+          s = s.replace('pptx-template-export.js?v=2.1.0', 'pptx-template-export.js?v=2.3.0')
+          s = s.replace('Версия v2.5.9', 'Версия v2.6.2')
+          index.write_text(s, encoding='utf-8')
+
+          view = Path('template-view.js')
+          t = view.read_text(encoding='utf-8')
+          t = t.replace("if(sourceTitle)sourceTitle.textContent='Загрузите 3 файла';", "if(sourceTitle)sourceTitle.textContent='Загрузите 2 файла';")
+          t = t.replace("if(sourceText)sourceText.textContent='План продаж, СММТ и PPTX-шаблон. Файлы сохраняются в браузере.';", "if(sourceText)sourceText.textContent='План продаж и PPTX-шаблон. Файлы сохраняются в браузере.';")
+          t = t.replace("if(templateIndex)templateIndex.textContent='03';", "if(templateIndex)templateIndex.textContent='02';")
+          t = t.replace("if(uploadGrid&&!$('smmtCard')){", "if(false){")
+          t = t.replace('`${loaded} / 3`', '`${loaded} / 2`')
+          t = t.replace('loaded===3', 'loaded===2')
+          view.write_text(t, encoding='utf-8')
+
+          pptx = Path('pptx-template-export.js')
+          p = pptx.read_text(encoding='utf-8')
+          p = p.replace('    free:normalizeMetric(model.metrics?.free),\n', '    free:null,\n')
+          p = p.replace('  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;\n', '  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;\n')
+          p = p.replace("    ['Забронировано клиентами',m.booked,/забронировано/],\n    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]\n", "    ['Забронировано клиентами',m.booked,/забронировано/]\n")
+          p = p.replace("+'_v2.2.pptx'", "+'_v2.3.pptx'")
+          pptx.write_text(p, encoding='utf-8')
           PY
       - name: Setup Pages
         uses: actions/configure-pages@v5
