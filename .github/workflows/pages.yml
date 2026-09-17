@@ -23,11 +23,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Stamp frontend versions
+      - name: Stamp frontend versions and PPTX rules
         run: |
           sed -i 's/period-filter.js?v=1.3.0/period-filter.js?v=1.4.0/g' index.html
-          sed -i 's/pptx-template-export.js?v=2.1.0/pptx-template-export.js?v=2.2.0/g' index.html
-          sed -i 's/Версия v2.5.9/Версия v2.6.0/g' index.html
+          sed -i 's/pptx-template-export.js?v=2.1.0/pptx-template-export.js?v=2.3.0/g' index.html
+          sed -i 's/Версия v2.5.9/Версия v2.6.1/g' index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('pptx-template-export.js')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('    free:normalizeMetric(model.metrics?.free),\n', '    free:null,\n')
+          s = s.replace('  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;\n', '  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;\n')
+          s = s.replace("    ['Забронировано клиентами',m.booked,/забронировано/],\n    ['Свободный сток / доступно',m.free,/свободн.*сток|доступно/]\n", "    ['Забронировано клиентами',m.booked,/забронировано/]\n")
+          s = s.replace("+'_v2.2.pptx'", "+'_v2.3.pptx'")
+          p.write_text(s, encoding='utf-8')
+          PY
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
