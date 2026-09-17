@@ -4,16 +4,75 @@ const API=window.ATOMTemplateView;
 if(!API)return;
 
 const MONTHS=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+const MONTH_ALIASES=[['янв','jan','Янв'],['фев','feb','Фев'],['мар','mar','Мар'],['апр','apr','Апр'],['май','may','Май'],['июн','jun','Июн'],['июл','jul','Июл'],['авг','aug','Авг'],['сен','sep','Сен'],['окт','oct','Окт'],['ноя','nov','Ноя'],['дек','dec','Дек']];
 const PERIODS={
   all:{label:'Весь 2026 год',months:MONTHS},
   H1:{label:'1 полугодие · Янв - Июн',months:['Янв','Фев','Мар','Апр','Май','Июн']},
   H2:{label:'2 полугодие · Июл - Дек',months:['Июл','Авг','Сен','Окт','Ноя','Дек']}
 };
 const MODE_KEY='atom-period-filter-v1';
+const CLIENT_SHIP_PATCH='atom-client-ship-plan-v1';
+const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const fmt=v=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0}).format(Number(v||0));
 const dot=v=>Number(v||0)===0?'·':fmt(v);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const projectWord=v=>{const n=Math.abs(Number(v||0))%100;if(n>=11&&n<=14)return'проектов';const d=n%10;return d===1?'проект':d>=2&&d<=4?'проекта':'проектов'};
+const norm=v=>String(v??'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+const key=v=>norm(v).toLowerCase().replace(/ё/g,'е');
+const num=v=>{if(typeof v==='number'&&Number.isFinite(v))return v;const s=norm(v);if(!s||s==='·'||s==='-'||s==='—'||s==='`')return 0;const x=Number(s.replace(/\s/g,'').replace(',','.').replace(/[^0-9.\-]/g,''));return Number.isFinite(x)?x:0};
+
+try{
+  if(localStorage.getItem(CLIENT_SHIP_PATCH)!=='1'){
+    localStorage.removeItem(MODEL_KEY);
+    localStorage.setItem(CLIENT_SHIP_PATCH,'1');
+  }
+}catch{}
+
+function excelMonthLabel(v){
+  const s=key(v);if(!s)return null;
+  for(const [ru,en,label] of MONTH_ALIASES){
+    if(new RegExp(`(^|[^а-яa-z])(${ru}[а-я]*|${en}[a-z]*)([^а-яa-z]|$)`,'i').test(s))return label;
+  }
+  return null;
+}
+function extractClientShipPlan(buf){
+  if(!window.XLSX)return{found:false,months:{},year:null,yearFound:false,label:'Отгрузка клиенту ПЛАН'};
+  const wb=XLSX.read(buf,{type:'array',cellDates:true});
+  const sheetName=wb.SheetNames.find(x=>key(x).replace(/\s/g,'').includes('s&op09plan'))||wb.SheetNames.find(x=>key(x).includes('s&op09'))||wb.SheetNames[0];
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:null,raw:true});
+  let header=null;
+  rows.slice(0,120).forEach((r,ri)=>{
+    const cols=[];(r||[]).forEach((v,ci)=>{const m=excelMonthLabel(v);if(m)cols.push({ci,m})});
+    const uniq=[...new Set(cols.map(x=>x.m))];
+    if(uniq.length>=6&&(!header||uniq.length>header.count))header={ri,cols,count:uniq.length,row:r};
+  });
+  if(!header)return{found:false,months:{},year:null,yearFound:false,label:'Отгрузка клиенту ПЛАН'};
+  const monthCols=[],seen=new Set();
+  header.cols.forEach(x=>{if(!seen.has(x.m)){seen.add(x.m);monthCols.push(x)}});
+  monthCols.sort((a,b)=>a.ci-b.ci);
+  const first=Math.min(...monthCols.map(x=>x.ci));
+  let totalCol=-1;
+  (header.row||[]).forEach((v,ci)=>{if(/^(total|2026|итого\s*2026)$/i.test(norm(v)))totalCol=ci});
+  const rowLabel=row=>{const parts=(row||[]).slice(0,first).map(norm).filter(Boolean);return parts.length?parts[parts.length-1]:''};
+  for(const row of rows.slice(header.ri+1)){
+    const label=rowLabel(row),s=key(label);
+    if(!/^отгрузка\s+клиенту\s+план$/.test(s)&&!/^план\s+отгрузки\s+клиенту$/.test(s))continue;
+    const months={};monthCols.forEach(c=>months[c.m]=num(row[c.ci]));
+    const totalRaw=totalCol>=0?norm(row[totalCol]):'';
+    const hasMonth=monthCols.some(c=>norm(row[c.ci])!=='');
+    const fallback=Object.values(months).reduce((a,v)=>a+Number(v||0),0);
+    return{found:true,label,months,year:totalRaw!==''?num(row[totalCol]):fallback,yearFound:totalRaw!==''||hasMonth};
+  }
+  return{found:false,months:{},year:null,yearFound:false,label:'Отгрузка клиенту ПЛАН'};
+}
+
+const originalParseWorkbook=API.parseWorkbook.bind(API);
+API.parseWorkbook=buf=>{
+  const model=originalParseWorkbook(buf);
+  model.metrics=model.metrics||{};
+  model.metrics.clientShipPlan=extractClientShipPlan(buf);
+  return model;
+};
 
 function defaultState(){
   const now=new Date();
@@ -95,6 +154,7 @@ function rebuildTables(model){
       metricRow('План производства',model.metrics?.production,months),
       metricRow('План отгрузки с завода',model.metrics?.shipPlan,months),
       metricRow('Отгружено автомобилей',model.metrics?.shipped,months),
+      metricRow('Отгрузка клиенту ПЛАН',model.metrics?.clientShipPlan,months,'row-client-ship-plan'),
       metricRow('Передано в корпоративный парк',model.metrics?.corp,months),
       metricRow('Забронировано клиентами',model.metrics?.booked,months,'row-accent'),
       metricRow('Свободный сток / доступно',model.metrics?.free,months)
