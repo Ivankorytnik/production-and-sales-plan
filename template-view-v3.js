@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const PARSER_VERSION='3.0.2';
+const PARSER_VERSION='3.0.3';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
@@ -130,7 +130,7 @@ function parseWorkbook(buf){
     const g=groupLabel(s);if(g){product=g;continue}
     if(!currentVertical)continue;
     if(/^план |^выпуск |^отгрузка |^передано |^контракты |^итого /.test(s))continue;
-    if(!hasPeriodData(row)&&currentVertical!=='B2G')continue;
+    if(!hasPeriodData(row)&&currentVertical==='B2C')continue;
     const m=rowMetric(row);
     const clientKey=`${currentVertical}|${s}|${product||''}`;
     if(!clients[clientKey]){
@@ -215,7 +215,9 @@ function metricRow(label,metric,months,cls=''){
 }
 function clientDetailRow(x,months){
   const product=x.product?`<small>${esc(x.product)}</small>`:'';
-  return `<tr class="client-detail"><td></td><td class="project-name"><strong>${esc(x.displayName||x.name)}</strong>${product}</td><td class="dash-total">${dot(metricTotal(x))}</td>${months.map(m=>`<td class="dash-num">${dot(x?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  const noPlannedDeliveries=!x.yearFound;
+  const hint=noPlannedDeliveries?`<span class="no-deliveries-hint" tabindex="0" role="note" aria-label="Нет запланированных выдач" title="Нет запланированных выдач">!</span>`:'';
+  return `<tr class="client-detail${noPlannedDeliveries?' no-planned-deliveries':''}"${noPlannedDeliveries?' title="Нет запланированных выдач"':''}><td></td><td class="project-name"><strong>${esc(x.displayName||x.name)}</strong>${hint}${product}</td><td class="dash-total">${dot(metricTotal(x))}</td>${months.map(m=>`<td class="dash-num">${dot(x?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function clientSummaryRow(layer,metric,count,months,collapsed){
   const staticRow=count===0;
@@ -260,7 +262,7 @@ function renderModel(model,templateName=currentTemplateName){
   for(const layer of ['B2C','B2B','B2G']){
     const metric=verticals?.[layer];
     const items=(model.clients||[])
-      .filter(x=>x.vertical===layer&&(layer==='B2G'||annualTotal(x)>0))
+      .filter(x=>x.vertical===layer&&(layer==='B2B'||layer==='B2G'||annualTotal(x)>0))
       .slice()
       .sort((a,b)=>annualTotal(b)-annualTotal(a)||String(a.displayName||a.name||'').localeCompare(String(b.displayName||b.name||''),'ru'));
     if(layer==='B2G'&&!metric?.found&&!items.length)continue;
@@ -342,6 +344,7 @@ if(!document.getElementById('template-v3-style')){
     .distribution-table .layer-toggle-row{cursor:pointer;user-select:none;transition:background .15s ease}.distribution-table .layer-toggle-row:hover td{background:#eef3f6!important}
     .distribution-table .layer-toggle-row .layer-name{position:relative;padding-left:40px!important}.distribution-table .layer-toggle-row .layer-name:before{content:'▾';position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;line-height:1;color:#667085;font-weight:700}
     .distribution-table .layer-toggle-row.layer-collapsed .layer-name:before{content:'▸'}.distribution-table .layer-toggle-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}.distribution-table .layer-static .layer-name{padding-left:14px!important}
+    .distribution-table .no-planned-deliveries td{background:#fff8e8!important}.distribution-table .no-planned-deliveries .project-name strong{color:#8a4b00}.no-deliveries-hint{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;margin-left:7px;border-radius:50%;background:#b54708;color:#fff;font:700 11px Arial,Helvetica,sans-serif;cursor:help;vertical-align:1px}.no-deliveries-hint:focus{outline:2px solid #f79009;outline-offset:2px}
     .sidebar-main-nav .sidebar-stock-toggle{display:flex;align-items:center;width:100%;min-height:38px;padding:0 11px;border:1px solid #d9dde5;border-radius:8px;background:#fff;color:#475467;text-align:left;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer}.sidebar-main-nav .sidebar-stock-toggle:hover{background:#f4f6f8;color:#101828}.sidebar-main-nav .sidebar-stock-toggle[aria-pressed="false"]{border-style:dashed;color:#667085}
     @media(max-width:1100px){.analytics-filter-group.source{margin-left:0!important}}
   `;
