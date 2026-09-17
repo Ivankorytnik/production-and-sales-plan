@@ -136,7 +136,7 @@ function injectB2C(model){
   summary.classList.add('b2c-summary');
   table.querySelectorAll('tr.b2c-detail').forEach(row=>row.remove());
   const small=summary.querySelector('.layer-name small');
-  if(small)small.textContent=rows.length?`${rows.length} ${projectWord(rows.length)}`:'итого';
+  if(small)small.textContent=rows.length?`${rows.length} ${projectWord(rows.length)} · Показать / скрыть`:'итого';
   if(!rows.length){summary.classList.add('layer-static');summary.classList.remove('layer-toggle-row');return}
   summary.classList.remove('layer-static');
   let anchor=summary;
