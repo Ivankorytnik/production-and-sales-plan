@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#ffffff" />
   <title>АТОМ Коммерческий штаб</title>
-  <link rel="stylesheet" href="./styles.css?v=2.5.7" />
+  <link rel="stylesheet" href="./styles.css?v=2.5.8" />
   <link rel="stylesheet" href="./sales-only.css?v=2.0.0" />
   <style>
     .auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f5f7;padding:24px;font-family:Arial,Helvetica,sans-serif}.auth-card{width:min(440px,100%);background:#fff;border:1px solid #d7dae0;border-radius:12px;padding:28px;box-shadow:0 12px 36px rgba(16,24,40,.08)}.auth-brand{font-size:12px;font-weight:700;letter-spacing:1.4px;color:#5d6472;text-transform:uppercase}.auth-card h1{margin:10px 0 6px;font-size:26px;color:#111318}.auth-card p{margin:0 0 22px;color:#737b8a;line-height:1.5}.auth-field{display:flex;flex-direction:column;gap:6px;margin-top:14px}.auth-field label{font-size:11px;font-weight:700;color:#4b5260}.auth-field input{height:42px;border:1px solid #cfd4dc;border-radius:7px;padding:0 12px;font:inherit;outline:none}.auth-field input:focus{border-color:#111318}.auth-actions{margin-top:18px}.auth-btn{width:100%;height:42px;border-radius:7px;border:1px solid #111318;background:#111318;color:#fff;font-weight:700;cursor:pointer}.auth-btn:disabled{opacity:.45;cursor:not-allowed}.auth-status{min-height:38px;margin-top:14px;padding:10px 12px;border-radius:7px;background:#f7f8fa;color:#596170;font-size:12px;line-height:1.45;overflow-wrap:anywhere}.auth-status.ok{background:#ecfdf3;color:#067647}.auth-status.bad{background:#fef3f2;color:#b42318}.auth-note{margin-top:18px;padding-top:14px;border-top:1px solid #eceef2;font-size:11px;color:#8b92a0;line-height:1.45}.auth-user{display:inline-flex;align-items:center;gap:8px}.auth-user-email{font-size:11px;color:#5f6674}.auth-logout{height:30px;padding:0 10px;border:1px solid #d5d9e0;border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer}.app-hidden{display:none!important}
@@ -29,7 +29,7 @@
       <div class="appbar-inner">
         <a class="brand" href="#top"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
         <nav class="main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">Аналитика</a></nav>
-        <div class="user-nav"><span>Версия v2.5.7</span><span class="divider"></span><span>Обновлено <span id="updatedAt">17.09.2026</span></span><span class="divider"></span><span id="authUserBox" class="auth-user"></span></div>
+        <div class="user-nav"><span>Версия v2.5.8</span><span class="divider"></span><span>Обновлено <span id="updatedAt">17.09.2026</span></span><span class="divider"></span><span id="authUserBox" class="auth-user"></span></div>
       </div>
     </header>
 
@@ -63,17 +63,17 @@
     </main>
   </div>
 
-  <script src="./template-view.js?v=2.5.7"></script>
-  <script src="./b2c-details.js?v=1.0.0"></script>
-  <script src="./period-filter.js?v=1.2.0"></script>
-  <script src="./app.js?v=3.1.0"></script>
-  <script src="./pptx-template-export.js?v=1.4.1"></script>
+  <script src="./template-view.js?v=2.5.8"></script>
+  <script src="./b2c-details.js?v=1.1.0"></script>
+  <script src="./period-filter.js?v=1.3.0"></script>
+  <script src="./app.js?v=3.1.1"></script>
+  <script src="./pptx-template-export.js?v=2.0.0"></script>
   <script>
   (()=>{
     const version=document.querySelector('.user-nav > span:first-child');
     if(version){
       const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-      version.textContent=`Версия v2.5.7 · загрузка ${loadedAt}`;
+      version.textContent=`Версия v2.5.8 · загрузка ${loadedAt}`;
     }
     const pdfBtn=document.getElementById('pdfBtn');
     const pptxBtn=document.getElementById('printBtn');
