@@ -243,8 +243,8 @@ function loadStockVisibility(){
 let periodState=loadPeriodState();
 let layerState=loadLayerState();
 let stockVisible=loadStockVisibility();
-let smmtVisible=true;
-try{const saved=localStorage.getItem(SMMT_VISIBILITY_KEY);smmtVisible=saved===null?true:saved!=='false'}catch{}
+let smmtVisible=false;
+try{const saved=localStorage.getItem(SMMT_VISIBILITY_KEY);smmtVisible=saved===null?false:saved!=='false'}catch{}
 let currentModel=null;
 let currentTemplateName='PPTX-шаблон';
 function savePeriodState(){try{localStorage.setItem(PERIOD_KEY,JSON.stringify(periodState))}catch{}}
