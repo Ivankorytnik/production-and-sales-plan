@@ -48,6 +48,7 @@
         <div class="heading-actions">
           <button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу</button>
           <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button>
+          <button id="excelBtn" class="btn secondary" type="button" disabled>↓ Выгрузить Excel</button>
           <button id="pdfBtn" class="btn secondary" type="button" disabled>↓ Выгрузить PDF</button>
         </div>
       </section>
@@ -56,7 +57,7 @@
         <div class="sidebar-shell-nav">
           <a class="sidebar-brand" href="#top"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
           <nav class="sidebar-main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">Аналитика</a></nav>
-          <div class="user-nav sidebar-user-nav"><span>Версия v2.8.4</span><span>Обновлено <span id="updatedAt">18.09.2026</span></span><span id="authUserBox" class="auth-user"></span></div>
+          <div class="user-nav sidebar-user-nav"><span>Версия v2.8.5</span><span>Обновлено <span id="updatedAt">18.09.2026</span></span><span id="authUserBox" class="auth-user"></span></div>
         </div>
 
         <div class="section-kicker">ИСТОЧНИКИ</div>
@@ -79,14 +80,14 @@
   </div>
 
   <script src="./template-view-v3.js?v=3.1.5"></script>
-  <script src="./app.js?v=3.4.0"></script>
+  <script src="./app.js?v=3.4.1"></script>
   <script src="./pptx-template-export.js?v=2.7.0"></script>
   <script>
   (()=>{
     const version=document.querySelector('.user-nav > span:first-child');
     if(version){
       const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-      version.textContent=`Версия v2.8.4 · загрузка ${loadedAt}`;
+      version.textContent=`Версия v2.8.5 · загрузка ${loadedAt}`;
     }
     const pdfBtn=document.getElementById('pdfBtn');
     const pptxBtn=document.getElementById('printBtn');
