@@ -16,6 +16,124 @@ const E={salesFile:$('salesFile'),smmtFile:$('smmtFile'),templateFile:$('templat
 window.ATOMCurrentFiles={sales:null,smmt:null,template:null};
 window.ATOMCurrentModel=null;
 
+const CLOUD_BUCKET='plan-source-files';
+let cloudClient=null;
+let cloudUser=null;
+let cloudReady=false;
+let cloudSyncing=false;
+
+function cloudPrefix(kind){return kind+'__'}
+function cloudStamp(name,kind){
+  const m=String(name||'').match(new RegExp('^'+kind+'__(\\d+)__'));
+  return m?Number(m[1]):0;
+}
+function cloudOriginalName(name,kind){
+  return String(name||'').replace(new RegExp('^'+kind+'__\\d+__'),'')||kind;
+}
+function cloudSafeName(name){
+  return String(name||'file').replace(/[\\/]+/g,'_').replace(/[\u0000-\u001f\u007f]/g,'_').slice(0,160);
+}
+async function cloudList(){
+  if(!cloudReady||!cloudClient||!cloudUser)return [];
+  const {data,error}=await cloudClient.storage.from(CLOUD_BUCKET).list(cloudUser.id,{limit:100,sortBy:{column:'updated_at',order:'desc'}});
+  if(error)throw error;
+  return data||[];
+}
+async function cloudUpload(kind,file){
+  if(!cloudReady||!cloudClient||!cloudUser||!file)return;
+  const list=await cloudList();
+  const prefix=cloudPrefix(kind);
+  const old=(list||[]).filter(x=>String(x.name||'').startsWith(prefix)).map(x=>cloudUser.id+'/'+x.name);
+  if(old.length){
+    const {error}=await cloudClient.storage.from(CLOUD_BUCKET).remove(old);
+    if(error)throw error;
+  }
+  const stamp=Number(file.lastModified||Date.now());
+  const path=cloudUser.id+'/'+kind+'__'+stamp+'__'+cloudSafeName(file.name);
+  const {error}=await cloudClient.storage.from(CLOUD_BUCKET).upload(path,file,{
+    cacheControl:'3600',
+    upsert:false,
+    contentType:file.type||'application/octet-stream'
+  });
+  if(error)throw error;
+}
+async function cloudDelete(kind){
+  if(!cloudReady||!cloudClient||!cloudUser)return;
+  const list=await cloudList();
+  const prefix=cloudPrefix(kind);
+  const paths=(list||[]).filter(x=>String(x.name||'').startsWith(prefix)).map(x=>cloudUser.id+'/'+x.name);
+  if(paths.length){
+    const {error}=await cloudClient.storage.from(CLOUD_BUCKET).remove(paths);
+    if(error)throw error;
+  }
+}
+async function cloudDownload(kind,item){
+  const path=cloudUser.id+'/'+item.name;
+  const {data,error}=await cloudClient.storage.from(CLOUD_BUCKET).download(path);
+  if(error)throw error;
+  const stamp=cloudStamp(item.name,kind)||Date.now();
+  return new File([data],cloudOriginalName(item.name,kind),{type:data.type||'application/octet-stream',lastModified:stamp});
+}
+function assignCloudFile(kind,file){
+  if(kind==='sales')S.salesFile=file;
+  else if(kind==='smmt')S.smmtFile=file;
+  else S.templateFile=file;
+  showFile(kind,file,true);
+}
+async function syncCloudState(){
+  if(!cloudReady||cloudSyncing)return;
+  cloudSyncing=true;
+  try{
+    if(E.parseLog)E.parseLog.textContent='Синхронизирую файлы с облаком...';
+    let list=await cloudList();
+    let restored=false;
+    for(const kind of ['sales','smmt','template']){
+      const prefix=cloudPrefix(kind);
+      const remote=(list||[]).filter(x=>String(x.name||'').startsWith(prefix)).sort((x,y)=>cloudStamp(y.name,kind)-cloudStamp(x.name,kind))[0]||null;
+      const local=kind==='sales'?S.salesFile:kind==='smmt'?S.smmtFile:S.templateFile;
+      const remoteStamp=remote?cloudStamp(remote.name,kind):0;
+      const localStamp=local?Number(local.lastModified||0):0;
+      if(local&&(!remote||localStamp>remoteStamp)){
+        await cloudUpload(kind,local);
+        list=await cloudList();
+        continue;
+      }
+      if(remote&&(!local||remoteStamp>localStamp)){
+        const file=await cloudDownload(kind,remote);
+        assignCloudFile(kind,file);
+        await saveFile(kind,file);
+        restored=true;
+      }
+    }
+    syncCurrentFiles();
+    updateReady();
+    if(restored&&S.salesFile&&S.templateFile){
+      await buildReport({scroll:false,reason:'cloud'});
+    }
+    if(E.parseLog){
+      const names=[S.salesFile?.name,S.smmtFile?.name,S.templateFile?.name].filter(Boolean);
+      E.parseLog.textContent=names.length
+        ?'Облачная синхронизация включена. Файлы доступны после входа на другом компьютере.'
+        :'Облачная синхронизация включена. Загрузите исходные файлы.';
+    }
+  }catch(e){
+    console.error('Cloud sync failed',e);
+    if(E.parseLog)E.parseLog.textContent='Локальные данные доступны, но облачная синхронизация сейчас не выполнена: '+(e.message||String(e));
+  }finally{
+    cloudSyncing=false;
+  }
+}
+function connectCloud(client,user){
+  if(!client||!user?.id)return;
+  cloudClient=client;
+  cloudUser=user;
+  cloudReady=true;
+  syncCloudState();
+}
+document.addEventListener('atom-auth-ready',e=>connectCloud(e.detail?.client,e.detail?.user));
+if(window.ATOMSupabase&&window.ATOMAuthUser)connectCloud(window.ATOMSupabase,window.ATOMAuthUser);
+
+
 function openDb(){
   return new Promise((resolve,reject)=>{
     if(!window.indexedDB){reject(new Error('IndexedDB недоступен'));return}
@@ -211,6 +329,9 @@ async function replaceFile(kind,file){
   }else S.templateFile=file;
   showFile(kind,file,false);
   await saveFile(kind,file);
+  if(cloudReady){
+    try{await cloudUpload(kind,file)}catch(e){console.error('Cloud upload failed',e);if(E.parseLog)E.parseLog.textContent='Файл сохранен локально, но облачная синхронизация не выполнена: '+(e.message||String(e))}
+  }
   syncCurrentFiles();
   updateReady();
   if(E.parseLog)E.parseLog.textContent=`${kind==='smmt'?'Файл СММТ':'Файл'} заменен и сохранен: ${file.name}`;
@@ -223,6 +344,9 @@ async function resetFile(kind){
   const file=isSales?S.salesFile:isSmmt?S.smmtFile:S.templateFile;
   if(!file)return;
   await deleteStoredFile(kind);
+  if(cloudReady){
+    try{await cloudDelete(kind)}catch(e){console.error('Cloud delete failed',e)}
+  }
   if(isSales){
     S.salesFile=null;
     S.model=null;
@@ -309,7 +433,7 @@ async function boot(){
       await buildReport({scroll:false,reason:'restore'});
     }
   }else if(!cached?.model){
-    if(E.parseLog)E.parseLog.textContent='Выберите файлы. После первой загрузки они будут храниться в этом браузере и восстановятся после обновления страницы.';
+    if(E.parseLog)E.parseLog.textContent='Выберите файлы. После входа файлы сохраняются в облаке и локально, затем восстанавливаются на любом вашем компьютере.';
   }
 }
 
