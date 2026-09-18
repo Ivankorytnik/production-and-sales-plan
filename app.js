@@ -42,6 +42,13 @@ async function loadFile(kind){
     return new File([rec.blob],rec.name,{type:rec.type||rec.blob.type,lastModified:rec.lastModified||Date.now()});
   }catch(e){console.warn('File restore failed',e);return null}
 }
+async function deleteStoredFile(kind){
+  try{
+    const db=await openDb();
+    await new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).delete(kind);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+    db.close();
+  }catch(e){console.warn('File reset failed',e)}
+}
 function mirrorFileToInput(input,file){
   if(!input||!file)return;
   try{const dt=new DataTransfer();dt.items.add(file);input.files=dt.files}catch(e){console.debug('Input file mirror skipped',e)}
@@ -132,10 +139,50 @@ async function replaceFile(kind,file){
   if(S.salesFile&&S.templateFile)await buildReport({scroll:false,reason:'replace'});
 }
 
+async function resetFile(kind){
+  const isSales=kind==='sales';
+  const file=isSales?S.salesFile:S.templateFile;
+  if(!file)return;
+  await deleteStoredFile(kind);
+  if(isSales){
+    S.salesFile=null;
+    S.model=null;
+    window.ATOMCurrentModel=null;
+    E.reportSection?.classList.add('hidden');
+    const onePage=$('onePage');if(onePage)onePage.innerHTML='';
+  }else{
+    S.templateFile=null;
+  }
+  try{localStorage.removeItem(MODEL_KEY)}catch{}
+  const input=isSales?E.salesFile:E.templateFile;
+  const name=isSales?E.salesName:E.templateName;
+  try{if(input)input.value=''}catch{}
+  if(name)name.textContent='Файл не выбран';
+  setStatus(kind,'empty','Не загружен');
+  syncCurrentFiles();
+  updateReady();
+  if(E.parseLog)E.parseLog.textContent=`${isSales?'План продаж':'Шаблон презентации'} сброшен. Загрузите новый файл.`;
+}
+
 E.salesFile?.addEventListener('click',()=>{try{E.salesFile.value=''}catch{}});
 E.templateFile?.addEventListener('click',()=>{try{E.templateFile.value=''}catch{}});
 E.salesFile?.addEventListener('change',async()=>{const f=E.salesFile.files?.[0]||null;if(f)await replaceFile('sales',f)});
 E.templateFile?.addEventListener('change',async()=>{const f=E.templateFile.files?.[0]||null;if(f)await replaceFile('template',f)});
+document.addEventListener('click',async e=>{
+  const btn=e.target.closest?.('[data-reset-file]');
+  if(!btn)return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  await resetFile(btn.dataset.resetFile);
+},true);
+document.addEventListener('keydown',async e=>{
+  const btn=e.target.closest?.('[data-reset-file]');
+  if(!btn||!(e.key==='Enter'||e.key===' '))return;
+  e.preventDefault();
+  e.stopPropagation();
+  await resetFile(btn.dataset.resetFile);
+},true);
 E.buildBtn?.addEventListener('click',async()=>{await buildReport({scroll:true,reason:'manual'})});
 E.saveSnapshotBtn?.addEventListener('click',()=>{if(!S.model)return;localStorage.setItem('atom-onepage-baseline',JSON.stringify({savedAt:new Date().toISOString(),model:S.model}));E.saveSnapshotBtn.textContent='База сохранена'});
 
@@ -193,7 +240,12 @@ boot().catch(e=>{console.error(e);if(E.parseLog)E.parseLog.textContent='Не у�
     #sources .file-type{font-size:11px!important}
     #sources .upload-status{font-size:11px!important;padding:5px 9px!important}
     #sources .file-name{font-size:12px!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:anywhere!important;padding-top:10px!important}
-    #sources .replace-file-btn{font-size:12px!important;padding:8px 10px!important;margin-top:10px!important}
+    #sources .file-actions{position:relative!important;z-index:4!important;display:flex!important;align-items:center!important;gap:8px!important;margin-top:10px!important;flex-wrap:wrap!important}
+    #sources .replace-file-btn,#sources .reset-file-btn{position:relative!important;z-index:4!important;display:inline-flex!important;align-items:center!important;width:max-content!important;margin-top:0!important;padding:8px 10px!important;border:1px solid #d0d5dd!important;border-radius:6px!important;background:#fff!important;font-size:12px!important;font-weight:700!important;line-height:1!important}
+    #sources .replace-file-btn{color:#344054!important}
+    #sources .reset-file-btn{color:#b42318!important;border-color:#f1b8b5!important;cursor:pointer!important}
+    #sources .reset-file-btn:hover{background:#fef3f2!important}
+    #sources .drop-card:not(.loaded) .reset-file-btn{display:none!important}
     #sources .source-actions{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:12px!important;margin-top:16px!important}
     #sources .source-actions .hint{font-size:12px!important;line-height:1.45!important;color:#667085!important}
     #sources .source-actions .btn{width:100%!important;height:44px!important;font-size:13px!important}
