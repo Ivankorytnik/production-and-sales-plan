@@ -103,6 +103,10 @@ async function buildReport({scroll=false,reason='manual'}={}){
   try{
     await ensureXLSX();
     S.model=await window.ATOMTemplateView.renderFromFile(S.salesFile,S.templateFile.name);
+    if(S.smmtFile&&window.ATOMTemplateView?.parseSmmtFile){
+      try{S.model.smmt=await window.ATOMTemplateView.parseSmmtFile(S.smmtFile)}catch(e){console.warn('SMMT parse failed',e);S.model.smmt={found:false,months:{},year:null,yearFound:false,error:String(e?.message||e)}}
+      window.ATOMTemplateView.renderModel(S.model,S.templateFile.name);
+    }
     window.ATOMCurrentModel=S.model;
     saveModel();
     setStatus('sales','loaded','Сохранен');
@@ -137,7 +141,7 @@ async function replaceFile(kind,file){
   syncCurrentFiles();
   updateReady();
   if(E.parseLog)E.parseLog.textContent=`${kind==='smmt'?'Файл СММТ':'Файл'} заменен и сохранен: ${file.name}`;
-  if(kind!=='smmt'&&S.salesFile&&S.templateFile)await buildReport({scroll:false,reason:'replace'});
+  if(S.salesFile&&S.templateFile)await buildReport({scroll:false,reason:'replace'});
 }
 
 async function resetFile(kind){
@@ -155,6 +159,12 @@ async function resetFile(kind){
     try{localStorage.removeItem(MODEL_KEY)}catch{}
   }else if(isSmmt){
     S.smmtFile=null;
+    if(S.model){
+      delete S.model.smmt;
+      window.ATOMCurrentModel=S.model;
+      try{window.ATOMTemplateView?.renderModel(S.model,S.templateFile?.name||'PPTX-шаблон')}catch{}
+      saveModel();
+    }
   }else{
     S.templateFile=null;
     try{localStorage.removeItem(MODEL_KEY)}catch{}
