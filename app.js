@@ -11,9 +11,9 @@ const DB_NAME='atom-production-sales-plan';
 const DB_STORE='files';
 const DB_VERSION=1;
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
-const S={salesFile:null,templateFile:null,model:null};
-const E={salesFile:$('salesFile'),templateFile:$('templateFile'),salesName:$('salesName'),templateName:$('templateName'),salesStatus:$('salesStatus'),templateStatus:$('templateStatus'),salesCard:$('salesCard'),templateCard:$('templateCard'),readyBadge:$('readyBadge'),buildBtn:$('buildBtn'),resetBtn:$('resetBtn'),printBtn:$('printBtn'),parseLog:$('parseLog'),reportSection:$('reportSection'),approveCheck:$('approveCheck'),saveSnapshotBtn:$('saveSnapshotBtn')};
-window.ATOMCurrentFiles={sales:null,template:null};
+const S={salesFile:null,smmtFile:null,templateFile:null,model:null};
+const E={salesFile:$('salesFile'),smmtFile:$('smmtFile'),templateFile:$('templateFile'),salesName:$('salesName'),smmtName:$('smmtName'),templateName:$('templateName'),salesStatus:$('salesStatus'),smmtStatus:$('smmtStatus'),templateStatus:$('templateStatus'),salesCard:$('salesCard'),smmtCard:$('smmtCard'),templateCard:$('templateCard'),readyBadge:$('readyBadge'),buildBtn:$('buildBtn'),resetBtn:$('resetBtn'),printBtn:$('printBtn'),parseLog:$('parseLog'),reportSection:$('reportSection'),approveCheck:$('approveCheck'),saveSnapshotBtn:$('saveSnapshotBtn')};
+window.ATOMCurrentFiles={sales:null,smmt:null,template:null};
 window.ATOMCurrentModel=null;
 
 function openDb(){
@@ -55,8 +55,10 @@ function mirrorFileToInput(input,file){
 }
 function syncCurrentFiles(){
   window.ATOMCurrentFiles.sales=S.salesFile;
+  window.ATOMCurrentFiles.smmt=S.smmtFile;
   window.ATOMCurrentFiles.template=S.templateFile;
   mirrorFileToInput(E.salesFile,S.salesFile);
+  mirrorFileToInput(E.smmtFile,S.smmtFile);
   mirrorFileToInput(E.templateFile,S.templateFile);
 }
 function fileStamp(file){
@@ -71,28 +73,25 @@ function loadModel(){
   try{const raw=localStorage.getItem(MODEL_KEY);if(!raw)return null;const data=JSON.parse(raw);return data?.model?data:null}catch(e){return null}
 }
 function setStatus(kind,state,text){
-  const card=kind==='sales'?E.salesCard:E.templateCard;
-  const status=kind==='sales'?E.salesStatus:E.templateStatus;
+  const card=kind==='sales'?E.salesCard:kind==='smmt'?E.smmtCard:E.templateCard;
+  const status=kind==='sales'?E.salesStatus:kind==='smmt'?E.smmtStatus:E.templateStatus;
   card?.classList.remove('loaded','error');
   if(status){status.className='upload-status '+(state==='loaded'?'status-loaded':state==='error'?'status-error':'status-empty');status.textContent=text}
   if(state==='loaded')card?.classList.add('loaded');
   if(state==='error')card?.classList.add('error');
 }
 function updateReady(){
-  const c=[S.salesFile,S.templateFile].filter(Boolean).length;
-  if(E.readyBadge){E.readyBadge.textContent=`${c} / 2`;E.readyBadge.classList.toggle('complete',c===2)}
-  if(E.buildBtn)E.buildBtn.disabled=c!==2;
-  if(E.printBtn)E.printBtn.disabled=c!==2||!S.model;
+  const c=[S.salesFile,S.smmtFile,S.templateFile].filter(Boolean).length;
+  if(E.readyBadge){E.readyBadge.textContent=`${c} / 3`;E.readyBadge.classList.toggle('complete',c===3)}
+  const coreReady=Boolean(S.salesFile&&S.templateFile);
+  if(E.buildBtn)E.buildBtn.disabled=!coreReady;
+  if(E.printBtn)E.printBtn.disabled=!coreReady||!S.model;
 }
 function showFile(kind,file,restored=false){
   if(!file)return;
-  if(kind==='sales'){
-    if(E.salesName)E.salesName.textContent=file.name;
-    setStatus('sales','loaded',restored?'Сохранен':'Загружен');
-  }else{
-    if(E.templateName)E.templateName.textContent=file.name;
-    setStatus('template','loaded',restored?'Сохранен':'Загружен');
-  }
+  const nameEl=kind==='sales'?E.salesName:kind==='smmt'?E.smmtName:E.templateName;
+  if(nameEl)nameEl.textContent=file.name;
+  setStatus(kind,'loaded',restored?'Сохранен':'Загружен');
 }
 function loadScript(url,timeout=7000){return new Promise((resolve,reject)=>{const s=document.createElement('script');let done=false;const t=setTimeout(()=>{if(done)return;done=true;s.remove();reject(new Error('timeout'))},timeout);s.src=url;s.async=true;s.onload=()=>{if(done)return;done=true;clearTimeout(t);resolve()};s.onerror=()=>{if(done)return;done=true;clearTimeout(t);s.remove();reject(new Error('load error'))};document.head.appendChild(s)})}
 async function ensureXLSX(){if(window.XLSX)return true;for(const src of ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js']){try{await loadScript(src);if(window.XLSX)return true}catch(e){}}throw new Error('Модуль Excel не загрузился. Проверьте доступ к CDN и повторите.')}
@@ -123,25 +122,28 @@ async function buildReport({scroll=false,reason='manual'}={}){
 
 async function replaceFile(kind,file){
   if(!file)return;
-  const valid=kind==='sales'?/\.(xlsx|xls|xlsm)$/i.test(file.name):/\.pptx$/i.test(file.name);
+  const valid=kind==='template'?/\.pptx$/i.test(file.name):/\.(xlsx|xls|xlsm)$/i.test(file.name);
   if(!valid){setStatus(kind,'error','Неверный формат');if(E.parseLog)E.parseLog.textContent='Выбран файл неподдерживаемого формата. Сохраненный файл не заменен.';return}
   if(kind==='sales'){
     S.salesFile=file;
     S.model=null;
     window.ATOMCurrentModel=null;
     try{localStorage.removeItem(MODEL_KEY)}catch{}
+  }else if(kind==='smmt'){
+    S.smmtFile=file;
   }else S.templateFile=file;
   showFile(kind,file,false);
   await saveFile(kind,file);
   syncCurrentFiles();
   updateReady();
-  if(E.parseLog)E.parseLog.textContent=`Файл заменен и сохранен: ${file.name}`;
-  if(S.salesFile&&S.templateFile)await buildReport({scroll:false,reason:'replace'});
+  if(E.parseLog)E.parseLog.textContent=`${kind==='smmt'?'Файл СММТ':'Файл'} заменен и сохранен: ${file.name}`;
+  if(kind!=='smmt'&&S.salesFile&&S.templateFile)await buildReport({scroll:false,reason:'replace'});
 }
 
 async function resetFile(kind){
   const isSales=kind==='sales';
-  const file=isSales?S.salesFile:S.templateFile;
+  const isSmmt=kind==='smmt';
+  const file=isSales?S.salesFile:isSmmt?S.smmtFile:S.templateFile;
   if(!file)return;
   await deleteStoredFile(kind);
   if(isSales){
@@ -150,23 +152,29 @@ async function resetFile(kind){
     window.ATOMCurrentModel=null;
     E.reportSection?.classList.add('hidden');
     const onePage=$('onePage');if(onePage)onePage.innerHTML='';
+    try{localStorage.removeItem(MODEL_KEY)}catch{}
+  }else if(isSmmt){
+    S.smmtFile=null;
   }else{
     S.templateFile=null;
+    try{localStorage.removeItem(MODEL_KEY)}catch{}
   }
-  try{localStorage.removeItem(MODEL_KEY)}catch{}
-  const input=isSales?E.salesFile:E.templateFile;
-  const name=isSales?E.salesName:E.templateName;
+  const input=isSales?E.salesFile:isSmmt?E.smmtFile:E.templateFile;
+  const name=isSales?E.salesName:isSmmt?E.smmtName:E.templateName;
   try{if(input)input.value=''}catch{}
   if(name)name.textContent='Файл не выбран';
   setStatus(kind,'empty','Не загружен');
   syncCurrentFiles();
   updateReady();
-  if(E.parseLog)E.parseLog.textContent=`${isSales?'План продаж':'Шаблон презентации'} сброшен. Загрузите новый файл.`;
+  const label=isSales?'План продаж':isSmmt?'СММТ':'Шаблон презентации';
+  if(E.parseLog)E.parseLog.textContent=`${label} сброшен. Загрузите новый файл.`;
 }
 
 E.salesFile?.addEventListener('click',()=>{try{E.salesFile.value=''}catch{}});
+E.smmtFile?.addEventListener('click',()=>{try{E.smmtFile.value=''}catch{}});
 E.templateFile?.addEventListener('click',()=>{try{E.templateFile.value=''}catch{}});
 E.salesFile?.addEventListener('change',async()=>{const f=E.salesFile.files?.[0]||null;if(f)await replaceFile('sales',f)});
+E.smmtFile?.addEventListener('change',async()=>{const f=E.smmtFile.files?.[0]||null;if(f)await replaceFile('smmt',f)});
 E.templateFile?.addEventListener('change',async()=>{const f=E.templateFile.files?.[0]||null;if(f)await replaceFile('template',f)});
 document.addEventListener('click',async e=>{
   const btn=e.target.closest?.('[data-reset-file]');
@@ -190,6 +198,7 @@ if(E.resetBtn){E.resetBtn.style.display='none'}
 
 async function boot(){
   setStatus('sales','empty','Не загружен');
+  setStatus('smmt','empty','Не загружен');
   setStatus('template','empty','Не загружен');
   const cached=loadModel();
   if(cached?.model&&window.ATOMTemplateView){
@@ -201,15 +210,16 @@ async function boot(){
       if(E.parseLog)E.parseLog.textContent='Показываю сохраненную таблицу. Восстанавливаю файлы...';
     }catch(e){console.warn('Cached model render failed',e)}
   }
-  const [sales,template]=await Promise.all([loadFile('sales'),loadFile('template')]);
+  const [sales,smmt,template]=await Promise.all([loadFile('sales'),loadFile('smmt'),loadFile('template')]);
   if(sales){S.salesFile=sales;showFile('sales',sales,true)}
+  if(smmt){S.smmtFile=smmt;showFile('smmt',smmt,true)}
   if(template){S.templateFile=template;showFile('template',template,true)}
   syncCurrentFiles();
   updateReady();
   if(S.salesFile&&S.templateFile){
     if(cached?.model&&cached.salesStamp&&cached.templateStamp&&cached.salesStamp===fileStamp(S.salesFile)&&cached.templateStamp===fileStamp(S.templateFile)){
       if(E.printBtn)E.printBtn.disabled=false;
-      if(E.parseLog)E.parseLog.textContent='Сохраненные файлы и таблица восстановлены. Они останутся после обновления страницы, пока вы не выберете другие файлы.';
+      if(E.parseLog)E.parseLog.textContent=`Сохраненные файлы и таблица восстановлены. СММТ: ${S.smmtFile?S.smmtFile.name:'не загружен'}.`;
     }else{
       await buildReport({scroll:false,reason:'restore'});
     }
