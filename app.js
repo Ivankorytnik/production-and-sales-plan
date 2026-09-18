@@ -52,9 +52,13 @@ function syncCurrentFiles(){
   mirrorFileToInput(E.salesFile,S.salesFile);
   mirrorFileToInput(E.templateFile,S.templateFile);
 }
+function fileStamp(file){
+  if(!file)return '';
+  return [file.name||'',Number(file.size||0),Number(file.lastModified||0)].join('|');
+}
 function saveModel(){
   if(!S.model)return;
-  try{localStorage.setItem(MODEL_KEY,JSON.stringify({savedAt:new Date().toISOString(),salesName:S.salesFile?.name||'',templateName:S.templateFile?.name||'',model:S.model}))}catch(e){console.warn('Model cache failed',e)}
+  try{localStorage.setItem(MODEL_KEY,JSON.stringify({savedAt:new Date().toISOString(),salesName:S.salesFile?.name||'',templateName:S.templateFile?.name||'',salesStamp:fileStamp(S.salesFile),templateStamp:fileStamp(S.templateFile),model:S.model}))}catch(e){console.warn('Model cache failed',e)}
 }
 function loadModel(){
   try{const raw=localStorage.getItem(MODEL_KEY);if(!raw)return null;const data=JSON.parse(raw);return data?.model?data:null}catch(e){return null}
@@ -114,7 +118,12 @@ async function replaceFile(kind,file){
   if(!file)return;
   const valid=kind==='sales'?/\.(xlsx|xls|xlsm)$/i.test(file.name):/\.pptx$/i.test(file.name);
   if(!valid){setStatus(kind,'error','Неверный формат');if(E.parseLog)E.parseLog.textContent='Выбран файл неподдерживаемого формата. Сохраненный файл не заменен.';return}
-  if(kind==='sales')S.salesFile=file;else S.templateFile=file;
+  if(kind==='sales'){
+    S.salesFile=file;
+    S.model=null;
+    window.ATOMCurrentModel=null;
+    try{localStorage.removeItem(MODEL_KEY)}catch{}
+  }else S.templateFile=file;
   showFile(kind,file,false);
   await saveFile(kind,file);
   syncCurrentFiles();
@@ -123,6 +132,8 @@ async function replaceFile(kind,file){
   if(S.salesFile&&S.templateFile)await buildReport({scroll:false,reason:'replace'});
 }
 
+E.salesFile?.addEventListener('click',()=>{try{E.salesFile.value=''}catch{}});
+E.templateFile?.addEventListener('click',()=>{try{E.templateFile.value=''}catch{}});
 E.salesFile?.addEventListener('change',async()=>{const f=E.salesFile.files?.[0]||null;if(f)await replaceFile('sales',f)});
 E.templateFile?.addEventListener('change',async()=>{const f=E.templateFile.files?.[0]||null;if(f)await replaceFile('template',f)});
 E.buildBtn?.addEventListener('click',async()=>{await buildReport({scroll:true,reason:'manual'})});
@@ -149,7 +160,7 @@ async function boot(){
   syncCurrentFiles();
   updateReady();
   if(S.salesFile&&S.templateFile){
-    if(cached?.model&&cached.salesName===S.salesFile.name&&cached.templateName===S.templateFile.name){
+    if(cached?.model&&cached.salesStamp&&cached.templateStamp&&cached.salesStamp===fileStamp(S.salesFile)&&cached.templateStamp===fileStamp(S.templateFile)){
       if(E.printBtn)E.printBtn.disabled=false;
       if(E.parseLog)E.parseLog.textContent='Сохраненные файлы и таблица восстановлены. Они останутся после обновления страницы, пока вы не выберете другие файлы.';
     }else{
