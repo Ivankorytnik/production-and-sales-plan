@@ -6,6 +6,7 @@ const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
 const STOCK_VISIBILITY_KEY='atom-free-stock-visibility-v1';
+const SMMT_VISIBILITY_KEY='atom-smmt-visibility-v1';
 const MONTHS=[['янв','jan','Янв'],['фев','feb','Фев'],['мар','mar','Мар'],['апр','apr','Апр'],['май','may','Май'],['июн','jun','Июн'],['июл','jul','Июл'],['авг','aug','Авг'],['сен','sep','Сен'],['окт','oct','Окт'],['ноя','nov','Ноя'],['дек','dec','Дек']];
 const MONTH_NAMES=MONTHS.map(x=>x[2]);
 const PERIODS={
@@ -242,11 +243,14 @@ function loadStockVisibility(){
 let periodState=loadPeriodState();
 let layerState=loadLayerState();
 let stockVisible=loadStockVisibility();
+let smmtVisible=true;
+try{const saved=localStorage.getItem(SMMT_VISIBILITY_KEY);smmtVisible=saved===null?true:saved!=='false'}catch{}
 let currentModel=null;
 let currentTemplateName='PPTX-шаблон';
 function savePeriodState(){try{localStorage.setItem(PERIOD_KEY,JSON.stringify(periodState))}catch{}}
 function saveLayerState(){try{localStorage.setItem(LAYER_KEY,JSON.stringify(layerState))}catch{}}
 function saveStockVisibility(){try{localStorage.setItem(STOCK_VISIBILITY_KEY,String(stockVisible))}catch{}}
+function saveSmmtVisibility(){try{localStorage.setItem(SMMT_VISIBILITY_KEY,String(smmtVisible))}catch{}}
 function selectedPeriod(){return periodState.mode==='all'?PERIODS.all:PERIODS[periodState.key]||PERIODS.H2}
 function metricTotal(metric){const p=selectedPeriod();return periodState.mode==='all'?annualTotal(metric):sumMonths(metric,p.months)}
 function projectWord(v){const x=Math.abs(Number(v||0))%100;if(x>=11&&x<=14)return'проектов';const d=x%10;return d===1?'проект':d>=2&&d<=4?'проекта':'проектов'}
@@ -265,6 +269,20 @@ function ensureStockToggleButton(){
   btn.textContent=stockVisible?'Скрыть свободный сток':'Показать свободный сток';
   btn.setAttribute('aria-pressed',stockVisible?'true':'false');
   btn.title=stockVisible?'Скрыть «Свободный сток» и «Свободный сток / доступно»':'Показать «Свободный сток» и «Свободный сток / доступно»';
+}
+function ensureSmmtToggleButton(){
+  const nav=document.querySelector('.sidebar-main-nav');
+  if(!nav)return;
+  let btn=$('smmtVisibilityBtn');
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='smmtVisibilityBtn';
+    btn.type='button';
+    btn.className='sidebar-smmt-toggle';
+    nav.appendChild(btn);
+  }
+  btn.textContent=smmtVisible?'Скрыть СММТ':'Показать СММТ';
+  btn.setAttribute('aria-pressed',smmtVisible?'true':'false');
 }
 function kpiCard(label,metric,note,tone=''){
   return `<div class="analytics-kpi ${tone}"><div class="analytics-kpi-label">${esc(label)}</div><div class="analytics-kpi-value">${metric?.found?fmt(metricTotal(metric)):'·'}</div><div class="analytics-kpi-note">${esc(note)}</div></div>`;
@@ -324,7 +342,7 @@ function renderModel(model,templateName=currentTemplateName){
     kpiCard('Забронировано клиентами',metrics.booked,p.label,'accent-green'),
     ...(stockVisible?[kpiCard('Свободный сток',metrics.free,p.label,'accent-green')]:[])
   ].join('');
-  const smmtPlan=smmtPlanRow(model.smmt,metrics.production,months);
+  const smmtPlan=smmtVisible?smmtPlanRow(model.smmt,metrics.production,months):'';
   const balance=[
     smmtPlan,
     metricRow('План производства',metrics.production,months),
@@ -352,6 +370,7 @@ function renderModel(model,templateName=currentTemplateName){
 
   one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
   ensureStockToggleButton();
+  ensureSmmtToggleButton();
 
   const d=$('reportDate');if(d)d.textContent=date;
   const t=$('templateInfo');if(t)t.textContent=`Шаблон презентации: ${currentTemplateName}`;
@@ -367,12 +386,21 @@ async function renderFromFile(file,templateName){
 if(!window.__ATOM_TEMPLATE_V3_BOUND__){
   window.__ATOM_TEMPLATE_V3_BOUND__=true;
   ensureStockToggleButton();
+  ensureSmmtToggleButton();
   document.addEventListener('click',e=>{
     const stockBtn=e.target.closest?.('#stockVisibilityBtn');
     if(stockBtn){
       stockVisible=!stockVisible;
       saveStockVisibility();
       ensureStockToggleButton();
+      renderModel(currentModel,currentTemplateName);
+      return;
+    }
+    const smmtBtn=e.target.closest?.('#smmtVisibilityBtn');
+    if(smmtBtn){
+      smmtVisible=!smmtVisible;
+      saveSmmtVisibility();
+      ensureSmmtToggleButton();
       renderModel(currentModel,currentTemplateName);
       return;
     }
@@ -424,7 +452,7 @@ if(!document.getElementById('template-v3-style')){
     .distribution-table .layer-toggle-row .layer-name{position:relative;padding-left:40px!important}.distribution-table .layer-toggle-row .layer-name:before{content:'▾';position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;line-height:1;color:#667085;font-weight:700}
     .distribution-table .layer-toggle-row.layer-collapsed .layer-name:before{content:'▸'}.distribution-table .layer-toggle-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}.distribution-table .layer-static .layer-name{padding-left:14px!important}
     .distribution-table .no-planned-deliveries td{background:#fff1c2!important;border-top-color:#f5b942!important;border-bottom-color:#f5b942!important}.distribution-table .no-planned-deliveries td:first-child{box-shadow:inset 4px 0 0 #d97706}.distribution-table .no-planned-deliveries .project-name strong{color:#8a4b00}.no-deliveries-hint{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:7px;border-radius:50%;background:#b54708;color:#fff;font:700 11px Arial,Helvetica,sans-serif;cursor:help;vertical-align:1px}.no-deliveries-hint:focus{outline:2px solid #f79009;outline-offset:2px}
-    .sidebar-main-nav .sidebar-stock-toggle{display:flex;align-items:center;width:100%;min-height:38px;padding:0 11px;border:1px solid #d9dde5;border-radius:8px;background:#fff;color:#475467;text-align:left;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer}.sidebar-main-nav .sidebar-stock-toggle:hover{background:#f4f6f8;color:#101828}.sidebar-main-nav .sidebar-stock-toggle[aria-pressed="false"]{border-style:dashed;color:#667085}
+    .sidebar-main-nav .sidebar-stock-toggle,.sidebar-main-nav .sidebar-smmt-toggle{display:flex;align-items:center;width:100%;min-height:38px;padding:0 11px;border:1px solid #d9dde5;border-radius:8px;background:#fff;color:#475467;text-align:left;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer}.sidebar-main-nav .sidebar-stock-toggle:hover,.sidebar-main-nav .sidebar-smmt-toggle:hover{background:#f4f6f8;color:#101828}.sidebar-main-nav .sidebar-stock-toggle[aria-pressed="false"],.sidebar-main-nav .sidebar-smmt-toggle[aria-pressed="false"]{border-style:dashed;color:#667085}
     @media(max-width:1100px){.analytics-filter-group.source{margin-left:0!important}}
   `;
   document.head.appendChild(style);
