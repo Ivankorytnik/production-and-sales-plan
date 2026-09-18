@@ -113,7 +113,7 @@ function parseWorkbook(buf){
     clientShipPlan:firstMetric(s=>/^отгрузка\s+клиенту\s+план$/.test(s)||/^план\s+отгрузки\s+клиенту$/.test(s)||/^доступно\s+для\s+отгрузки\s+клиенту[-\s]*план$/.test(s)),
     corp:firstMetric(s=>(s.includes('корпоративн')&&s.includes('парк'))||s.includes('передано в корпоративный парк')),
     booked:firstMetric(s=>s==='выдачи'||s==='всего забронировано'||s==='забронировано клиентами'||(s.includes('забронировано')&&s.includes('всего'))),
-    free:firstMetric(s=>s==='доступно'||s.includes('свободный сток')||(s.startsWith('доступно')&&s.includes('конец месяца')))
+    free:(()=>{const exact=firstMetric(s=>s.includes('свободный сток'));return exact.found?exact:firstMetric(s=>s==='доступно'||(s.startsWith('доступно')&&s.includes('конец месяца')))})()
   };
 
   const verticals={B2B:null,B2G:null,B2C:null};
