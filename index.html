@@ -57,17 +57,17 @@
         <div class="sidebar-shell-nav">
           <a class="sidebar-brand" href="#top"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
           <nav class="sidebar-main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">Аналитика</a></nav>
-          <div class="user-nav sidebar-user-nav"><span>Версия v2.8.6</span><span>Обновлено <span id="updatedAt">18.09.2026</span></span><span id="authUserBox" class="auth-user"></span></div>
+          <div class="user-nav sidebar-user-nav"><span>Версия v2.9.0</span><span>Обновлено <span id="updatedAt">18.09.2026</span></span><span id="authUserBox" class="auth-user"></span></div>
         </div>
 
         <div class="section-kicker">ИСТОЧНИКИ</div>
-        <div class="source-title-row"><div><h2>Загрузите 3 файла</h2><p>План продаж, СММТ и PPTX-шаблон. Файлы сохраняются в браузере.</p></div><div id="readyBadge" class="source-counter">0 / 3</div></div>
+        <div class="source-title-row"><div><h2>Загрузите 3 файла</h2><p>План продаж, СММТ и PPTX-шаблон. Файлы синхронизируются между компьютерами после входа.</p></div><div id="readyBadge" class="source-counter">0 / 3</div></div>
         <div class="upload-grid">
           <label class="drop-card" id="salesCard"><input id="salesFile" type="file" accept=".xlsx,.xls,.xlsm" /><div class="drop-card-top"><span class="file-index">01</span><span class="file-type">EXCEL</span></div><strong>План продаж</strong><small>Вкладка S&amp;OP09 plan</small><span id="salesStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="salesName">Файл не выбран</span><span class="file-actions"><span class="replace-file-btn">Заменить файл</span><span class="reset-file-btn" data-reset-file="sales" role="button" tabindex="0">Сбросить файл</span></span></label>
           <label class="drop-card" id="smmtCard"><input id="smmtFile" type="file" accept=".xlsx,.xls,.xlsm" /><div class="drop-card-top"><span class="file-index">02</span><span class="file-type">EXCEL</span></div><strong>СММТ</strong><small>Файл плана СММТ</small><span id="smmtStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="smmtName">Файл не выбран</span><span class="file-actions"><span class="replace-file-btn">Заменить файл</span><span class="reset-file-btn" data-reset-file="smmt" role="button" tabindex="0">Сбросить файл</span></span></label>
           <label class="drop-card" id="templateCard"><input id="templateFile" type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" /><div class="drop-card-top"><span class="file-index">03</span><span class="file-type">PPTX</span></div><strong>Шаблон презентации</strong><small>Определяет итоговый PowerPoint</small><span id="templateStatus" class="upload-status status-empty">Не загружен</span><span class="file-name" id="templateName">Файл не выбран</span><span class="file-actions"><span class="replace-file-btn">Заменить файл</span><span class="reset-file-btn" data-reset-file="template" role="button" tabindex="0">Сбросить файл</span></span></label>
         </div>
-        <div class="source-actions"><div class="hint"><b>Статус:</b> загруженные файлы сохраняются и восстанавливаются после обновления страницы.</div><button id="buildBtn" class="btn primary" type="button" disabled>Сформировать аналитику</button></div>
+        <div class="source-actions"><div class="hint"><b>Статус:</b> файлы сохраняются в облаке и автоматически восстанавливаются после входа на другом компьютере.</div><button id="buildBtn" class="btn primary" type="button" disabled>Сформировать аналитику</button></div>
         <div id="parseLog" class="parse-log" aria-live="polite">Ожидаю загрузку файлов.</div>
       </section>
 
@@ -80,14 +80,14 @@
   </div>
 
   <script src="./template-view-v3.js?v=3.1.5"></script>
-  <script src="./app.js?v=3.4.1"></script>
+  <script src="./app.js?v=3.5.0"></script>
   <script src="./pptx-template-export.js?v=2.7.1"></script>
   <script>
   (()=>{
     const version=document.querySelector('.user-nav > span:first-child');
     if(version){
       const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
-      version.textContent=`Версия v2.8.6 · загрузка ${loadedAt}`;
+      version.textContent=`Версия v2.9.0 · загрузка ${loadedAt}`;
     }
     const pdfBtn=document.getElementById('pdfBtn');
     const pptxBtn=document.getElementById('printBtn');
@@ -98,7 +98,7 @@
     sync();
   })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
   <script>
   (()=>{
     const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
@@ -146,7 +146,7 @@
         userBox.replaceChildren();
         const e=document.createElement('span');e.className='auth-user-email';e.textContent=email;
         const b=document.createElement('button');b.id='authLogout';b.className='auth-logout';b.type='button';b.textContent='Выйти';
-        b.addEventListener('click',async()=>{try{if(sb)await sb.auth.signOut({scope:'local'})}catch{}clearLegacy();location.href=location.pathname});
+        b.addEventListener('click',async()=>{try{if(sb)await sb.auth.signOut({scope:'local'})}catch{}clearLegacy();window.ATOMSupabase=null;window.ATOMAuthUser=null;location.href=location.pathname});
         userBox.append(e,b);
       }
       const d=new Date(document.lastModified);
@@ -166,11 +166,13 @@
     async function acceptSession(session){
       if(!session?.access_token)return false;
       let email='';
+      let user=null;
       try{
         if(sb){
           const {data,error}=await sb.auth.getUser(session.access_token);
           if(error)throw error;
-          email=String(data.user?.email||'').toLowerCase();
+          user=data.user||null;
+          email=String(user?.email||'').toLowerCase();
         }else{
           const d=await call(AUTH_ENDPOINT,{action:'check',access_token:session.access_token});
           if(!d.allowed)return false;
@@ -186,6 +188,11 @@
       saveLegacy(session.access_token,session.refresh_token);
       cleanCallbackUrl();
       openApp(email);
+      if(sb&&user){
+        window.ATOMSupabase=sb;
+        window.ATOMAuthUser=user;
+        document.dispatchEvent(new CustomEvent('atom-auth-ready',{detail:{client:sb,user}}));
+      }
       return true;
     }
 
