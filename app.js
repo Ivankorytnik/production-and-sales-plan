@@ -12,7 +12,7 @@ const DB_STORE='files';
 const DB_VERSION=1;
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const S={salesFile:null,smmtFile:null,templateFile:null,model:null};
-const E={salesFile:$('salesFile'),smmtFile:$('smmtFile'),templateFile:$('templateFile'),salesName:$('salesName'),smmtName:$('smmtName'),templateName:$('templateName'),salesStatus:$('salesStatus'),smmtStatus:$('smmtStatus'),templateStatus:$('templateStatus'),salesCard:$('salesCard'),smmtCard:$('smmtCard'),templateCard:$('templateCard'),readyBadge:$('readyBadge'),buildBtn:$('buildBtn'),resetBtn:$('resetBtn'),printBtn:$('printBtn'),parseLog:$('parseLog'),reportSection:$('reportSection'),approveCheck:$('approveCheck'),saveSnapshotBtn:$('saveSnapshotBtn')};
+const E={salesFile:$('salesFile'),smmtFile:$('smmtFile'),templateFile:$('templateFile'),salesName:$('salesName'),smmtName:$('smmtName'),templateName:$('templateName'),salesStatus:$('salesStatus'),smmtStatus:$('smmtStatus'),templateStatus:$('templateStatus'),salesCard:$('salesCard'),smmtCard:$('smmtCard'),templateCard:$('templateCard'),readyBadge:$('readyBadge'),buildBtn:$('buildBtn'),resetBtn:$('resetBtn'),printBtn:$('printBtn'),excelBtn:$('excelBtn'),parseLog:$('parseLog'),reportSection:$('reportSection'),approveCheck:$('approveCheck'),saveSnapshotBtn:$('saveSnapshotBtn')};
 window.ATOMCurrentFiles={sales:null,smmt:null,template:null};
 window.ATOMCurrentModel=null;
 
@@ -86,6 +86,7 @@ function updateReady(){
   const coreReady=Boolean(S.salesFile&&S.templateFile);
   if(E.buildBtn)E.buildBtn.disabled=!coreReady;
   if(E.printBtn)E.printBtn.disabled=!coreReady||!S.model;
+  if(E.excelBtn)E.excelBtn.disabled=!coreReady||!S.model;
 }
 function showFile(kind,file,restored=false){
   if(!file)return;
@@ -95,6 +96,77 @@ function showFile(kind,file,restored=false){
 }
 function loadScript(url,timeout=7000){return new Promise((resolve,reject)=>{const s=document.createElement('script');let done=false;const t=setTimeout(()=>{if(done)return;done=true;s.remove();reject(new Error('timeout'))},timeout);s.src=url;s.async=true;s.onload=()=>{if(done)return;done=true;clearTimeout(t);resolve()};s.onerror=()=>{if(done)return;done=true;clearTimeout(t);s.remove();reject(new Error('load error'))};document.head.appendChild(s)})}
 async function ensureXLSX(){if(window.XLSX)return true;for(const src of ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js']){try{await loadScript(src);if(window.XLSX)return true}catch(e){}}throw new Error('Модуль Excel не загрузился. Проверьте доступ к CDN и повторите.')}
+
+function worksheetFromReportTable(table){
+  if(!table)return null;
+  const clone=table.cloneNode(true);
+  clone.querySelectorAll('tr').forEach(row=>{row.hidden=false;row.style.display=''});
+  clone.querySelectorAll('[hidden]').forEach(el=>el.removeAttribute('hidden'));
+  const ws=window.XLSX.utils.table_to_sheet(clone,{raw:true});
+  const head=clone.rows?.[0];
+  if(head){
+    ws['!cols']=Array.from(head.cells).map((cell,i)=>({wch:i===0?26:i===1?44:14}));
+    if(head.cells.length&&clone.rows.length){
+      ws['!autofilter']={ref:window.XLSX.utils.encode_range({s:{r:0,c:0},e:{r:clone.rows.length-1,c:head.cells.length-1}})};
+    }
+  }
+  return ws;
+}
+
+async function exportExcel(){
+  if(!S.model||!E.reportSection||E.reportSection.classList.contains('hidden'))return;
+  const originalText=E.excelBtn?.textContent||'↓ Выгрузить Excel';
+  if(E.excelBtn){E.excelBtn.disabled=true;E.excelBtn.textContent='Готовлю Excel...'}
+  try{
+    await ensureXLSX();
+    const wb=window.XLSX.utils.book_new();
+    const one=$('onePage');
+    const dateText=one?.querySelector('.analytics-data-date')?.textContent?.trim()||'';
+    const periodText=one?.querySelector('.period-chip.active')?.textContent?.trim()||one?.querySelector('.period-range')?.textContent?.trim()||'';
+    const kpis=Array.from(one?.querySelectorAll('.analytics-kpi')||[]).map(card=>[
+      card.querySelector('.analytics-kpi-label')?.textContent?.trim()||'',
+      card.querySelector('.analytics-kpi-value')?.textContent?.trim()||'',
+      card.querySelector('.analytics-kpi-note')?.textContent?.trim()||''
+    ]);
+    const summaryRows=[
+      ['АТОМ Коммерческий штаб',''],
+      ['Выгружено',new Date().toLocaleString('ru-RU')],
+      ['Период',periodText],
+      ['Дата данных',dateText.replace(/^Данные на\s*/i,'')],
+      ['Источник',S.model?.sheetName||'S&OP09 plan'],
+      [],
+      ['Показатель','Значение','Комментарий'],
+      ...kpis
+    ];
+    const summary=window.XLSX.utils.aoa_to_sheet(summaryRows);
+    summary['!cols']=[{wch:34},{wch:22},{wch:44}];
+    window.XLSX.utils.book_append_sheet(wb,summary,'Сводка');
+
+    const balanceTable=one?.querySelector('.balance-table');
+    const distributionTable=one?.querySelector('.distribution-table');
+    const balance=worksheetFromReportTable(balanceTable);
+    const distribution=worksheetFromReportTable(distributionTable);
+    if(balance){
+      if(balance['!cols']?.length){balance['!cols'][0]={wch:38};for(let i=1;i<balance['!cols'].length;i++)balance['!cols'][i]={wch:14}}
+      window.XLSX.utils.book_append_sheet(wb,balance,'Баланс');
+    }
+    if(distribution){
+      if(distribution['!cols']?.length){distribution['!cols'][0]={wch:22};if(distribution['!cols'][1])distribution['!cols'][1]={wch:46};for(let i=2;i<distribution['!cols'].length;i++)distribution['!cols'][i]={wch:14}}
+      window.XLSX.utils.book_append_sheet(wb,distribution,'Распределение');
+    }
+
+    const stamp=new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const fileName='ATOM_SOP09_'+stamp.getFullYear()+'-'+pad(stamp.getMonth()+1)+'-'+pad(stamp.getDate())+'.xlsx';
+    window.XLSX.writeFile(wb,fileName,{compression:true});
+    if(E.parseLog)E.parseLog.textContent='Excel выгружен: '+fileName;
+  }catch(err){
+    console.error('Excel export failed',err);
+    if(E.parseLog)E.parseLog.textContent='Не удалось выгрузить Excel: '+(err.message||String(err));
+  }finally{
+    if(E.excelBtn){E.excelBtn.textContent=originalText;E.excelBtn.disabled=!(S.salesFile&&S.templateFile&&S.model)}
+  }
+}
 
 async function buildReport({scroll=false,reason='manual'}={}){
   if(!S.salesFile||!S.templateFile)return;
@@ -113,6 +185,7 @@ async function buildReport({scroll=false,reason='manual'}={}){
     setStatus('template','loaded','Сохранен');
     E.reportSection?.classList.remove('hidden');
     if(E.printBtn)E.printBtn.disabled=false;
+    if(E.excelBtn)E.excelBtn.disabled=false;
     if(E.approveCheck)E.approveCheck.checked=true;
     if(E.parseLog)E.parseLog.textContent=`Данные актуальны. Используются сохраненные файлы: ${S.salesFile.name} и ${S.templateFile.name}.`;
     if(scroll)E.reportSection?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -202,6 +275,7 @@ document.addEventListener('keydown',async e=>{
   await resetFile(btn.dataset.resetFile);
 },true);
 E.buildBtn?.addEventListener('click',async()=>{await buildReport({scroll:true,reason:'manual'})});
+E.excelBtn?.addEventListener('click',exportExcel);
 E.saveSnapshotBtn?.addEventListener('click',()=>{if(!S.model)return;localStorage.setItem('atom-onepage-baseline',JSON.stringify({savedAt:new Date().toISOString(),model:S.model}));E.saveSnapshotBtn.textContent='База сохранена'});
 
 if(E.resetBtn){E.resetBtn.style.display='none'}
@@ -229,6 +303,7 @@ async function boot(){
   if(S.salesFile&&S.templateFile){
     if(cached?.model&&cached.salesStamp&&cached.templateStamp&&cached.salesStamp===fileStamp(S.salesFile)&&cached.templateStamp===fileStamp(S.templateFile)){
       if(E.printBtn)E.printBtn.disabled=false;
+      if(E.excelBtn)E.excelBtn.disabled=false;
       if(E.parseLog)E.parseLog.textContent=`Сохраненные файлы и таблица восстановлены. СММТ: ${S.smmtFile?S.smmtFile.name:'не загружен'}.`;
     }else{
       await buildReport({scroll:false,reason:'restore'});
