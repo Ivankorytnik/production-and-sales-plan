@@ -335,3 +335,57 @@ boot().catch(e=>{console.error(e);if(E.parseLog)E.parseLog.textContent='Не у�
   `;
   document.head.appendChild(style);
 })();
+
+(()=>{
+'use strict';
+const PANEL_KEY='atom-sidebar-collapsed-v1';
+const sources=document.getElementById('sources');
+const page=document.querySelector('#appShell .page');
+if(!sources||!page)return;
+let collapsed=false;
+try{collapsed=localStorage.getItem(PANEL_KEY)==='true'}catch{}
+
+let closeBtn=document.getElementById('sidebarCollapseBtn');
+if(!closeBtn){
+  closeBtn=document.createElement('button');
+  closeBtn.id='sidebarCollapseBtn';
+  closeBtn.type='button';
+  closeBtn.className='sidebar-collapse-btn';
+  closeBtn.textContent='Закрыть панель';
+  const nav=document.querySelector('.sidebar-main-nav');
+  if(nav)nav.appendChild(closeBtn);
+}
+let openBtn=document.getElementById('sidebarOpenBtn');
+if(!openBtn){
+  openBtn=document.createElement('button');
+  openBtn.id='sidebarOpenBtn';
+  openBtn.type='button';
+  openBtn.className='sidebar-open-btn no-print';
+  openBtn.textContent='Открыть панель';
+  document.body.appendChild(openBtn);
+}
+function apply(){
+  document.body.classList.toggle('sidebar-collapsed',collapsed);
+  closeBtn.textContent=collapsed?'Открыть панель':'Закрыть панель';
+  try{localStorage.setItem(PANEL_KEY,String(collapsed))}catch{}
+}
+closeBtn.addEventListener('click',()=>{collapsed=!collapsed;apply()});
+openBtn.addEventListener('click',()=>{collapsed=false;apply()});
+apply();
+
+const style=document.createElement('style');
+style.id='sidebar-collapse-style';
+style.textContent=`
+  .sidebar-collapse-btn{display:flex;align-items:center;width:100%;min-height:38px;padding:0 11px;border:1px solid #d9dde5;border-radius:8px;background:#fff;color:#475467;text-align:left;font:700 12px Arial,Helvetica,sans-serif;cursor:pointer}
+  .sidebar-collapse-btn:hover{background:#f4f6f8;color:#101828}
+  .sidebar-open-btn{display:none;position:fixed;left:12px;top:12px;z-index:1000;height:38px;padding:0 12px;border:1px solid #d9dde5;border-radius:8px;background:#fff;color:#344054;font:700 12px Arial,Helvetica,sans-serif;box-shadow:0 4px 14px rgba(16,24,40,.12);cursor:pointer}
+  body.sidebar-collapsed #sources.source-block{display:none!important}
+  body.sidebar-collapsed #appShell .page{padding-left:28px!important}
+  body.sidebar-collapsed .sidebar-open-btn{display:inline-flex;align-items:center}
+  @media(max-width:900px){
+    body.sidebar-collapsed #appShell .page{padding:20px 14px 50px!important}
+    .sidebar-open-btn{left:10px;top:10px}
+  }
+`;
+document.head.appendChild(style);
+})();
