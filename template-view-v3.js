@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const PARSER_VERSION='3.1.0';
+const PARSER_VERSION='3.1.1';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
@@ -281,13 +281,13 @@ function smmtPlanRow(smmt,production,months){
   if(!smmt?.found)return'';
   const total=metricTotal(smmt),prodTotal=metricTotal(production);
   const totalTone=compareTone(total,prodTotal);
-  const totalTitle=`СММТ ${fmt(total)} / производство ${fmt(prodTotal)}`;
+  const totalTitle=`План СММТ: ${fmt(total)}; план производства: ${fmt(prodTotal)}`;
   const cells=months.map(m=>{
     const v=Number(smmt?.months?.[m]||0),p=Number(production?.months?.[m]||0);
     const tone=compareTone(v,p);
     return `<td class="dash-num smmt-compare ${tone}" title="План СММТ: ${fmt(v)}; план производства: ${fmt(p)}">${dot(v)}</td>`;
   }).join('');
-  return `<div class="smmt-plan-strip"><table class="analytics-table smmt-plan-table"><tbody><tr><td class="dash-label"><strong>План СММТ</strong><small>лист «${esc(smmt.sheetName||'Все проекты')}»</small></td><td class="dash-total smmt-compare ${totalTone}" title="${esc(totalTitle)}">${dot(total)}</td>${cells}</tr></tbody></table></div>`;
+  return `<tr class="smmt-plan-row"><td class="dash-label"><strong>План СММТ</strong></td><td class="dash-total smmt-compare ${totalTone}" title="${esc(totalTitle)}">${dot(total)}</td>${cells}</tr>`;
 }
 function clientDetailRow(x,months){
   const product=x.product?`<small>${esc(x.product)}</small>`:'';
@@ -326,6 +326,7 @@ function renderModel(model,templateName=currentTemplateName){
   ].join('');
   const smmtPlan=smmtPlanRow(model.smmt,metrics.production,months);
   const balance=[
+    smmtPlan,
     metricRow('План производства',metrics.production,months),
     metricRow('План отгрузки с завода',metrics.shipPlan,months),
     metricRow('Отгружено автомобилей',metrics.shipped,months),
@@ -349,7 +350,7 @@ function renderModel(model,templateName=currentTemplateName){
   }
   distribution+=`<tr class="grand-total"><td class="layer-name"><strong>ВСЕГО</strong></td><td class="project-name"><strong>Забронировано клиентами</strong></td><td class="dash-total">${dot(metricTotal(metrics.booked))}</td>${months.map(m=>`<td class="dash-num">${dot(metrics.booked?.months?.[m]||0)}</td>`).join('')}</tr>`;
 
-  one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section">${smmtPlan}<div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
+  one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
   ensureStockToggleButton();
 
   const d=$('reportDate');if(d)d.textContent=date;
@@ -418,7 +419,7 @@ if(!document.getElementById('template-v3-style')){
     .period-detail-select{height:42px;min-width:225px;padding:0 34px 0 12px;border:1px solid #d9dde5;border-radius:9px;background:#fff;color:#101828;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer}
     .analytics-filterbar{align-items:center!important;gap:16px!important;flex-wrap:wrap!important}.analytics-filter-group.source{margin-left:auto!important}
     .analytics-table th,.analytics-table td{white-space:nowrap}.analytics-table .project-name{white-space:normal!important}
-    .smmt-plan-strip{margin:0 0 10px;border:1px solid #d9dde5;border-radius:10px;overflow:auto;background:#fff}.smmt-plan-table{min-width:1450px!important;margin:0!important}.smmt-plan-table td{font-weight:700!important}.smmt-plan-table .dash-label{background:#f7f8fa!important}.smmt-plan-table .dash-label small{display:block;margin-top:4px;color:#667085;font-size:11px;font-weight:400}.smmt-compare{transition:background .15s ease,color .15s ease}.smmt-compare.smmt-over{background:#fef3f2!important;color:#b42318!important}.smmt-compare.smmt-under{background:#ecfdf3!important;color:#067647!important}.smmt-compare.smmt-equal{background:#f2f4f7!important;color:#475467!important}
+    .balance-table .smmt-plan-row td{font-weight:700!important;border-bottom:2px solid #cfd4dc!important}.balance-table .smmt-plan-row .dash-label{background:#f7f8fa!important}.smmt-compare{transition:background .15s ease,color .15s ease}.smmt-compare.smmt-over{background:#fef3f2!important;color:#b42318!important}.smmt-compare.smmt-under{background:#ecfdf3!important;color:#067647!important}.smmt-compare.smmt-equal{background:#f2f4f7!important;color:#475467!important}
     .distribution-table .layer-toggle-row{cursor:pointer;user-select:none;transition:background .15s ease}.distribution-table .layer-toggle-row:hover td{background:#eef3f6!important}
     .distribution-table .layer-toggle-row .layer-name{position:relative;padding-left:40px!important}.distribution-table .layer-toggle-row .layer-name:before{content:'▾';position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;line-height:1;color:#667085;font-weight:700}
     .distribution-table .layer-toggle-row.layer-collapsed .layer-name:before{content:'▸'}.distribution-table .layer-toggle-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}.distribution-table .layer-static .layer-name{padding-left:14px!important}
