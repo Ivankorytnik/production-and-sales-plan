@@ -225,6 +225,35 @@ function fillDistributionRow(tr,info,layer,name,metric){
   updateMetricRow(cells,info.periods,metric);
   return Object.keys(info.periods).length+2;
 }
+function companyLabel(x){
+  const raw=n(x?.name||x?.displayName||'');
+  const s=k(raw);
+  if(s==='ассоциация учреждений по управлению имуществом и материального обеспечения')return'Ассоциация учреждений УИМО';
+  return raw;
+}
+function aggregateCompanyRows(items){
+  const out={found:false,months:{},year:0,yearFound:false};
+  for(const item of items||[]){
+    if(!item)continue;
+    out.found=true;
+    for(const [month,value] of Object.entries(item.months||{}))out.months[month]=(out.months[month]||0)+Number(value||0);
+    if(item.yearFound){out.year+=Number(item.year||0);out.yearFound=true}
+  }
+  if(!out.yearFound){out.year=sumMonths(out);out.yearFound=true}
+  return out;
+}
+function groupClientCompanies(items){
+  const groups=new Map();
+  for(const item of items||[]){
+    const label=companyLabel(item);
+    const key=`${item.vertical||''}|${k(label)}`;
+    if(!groups.has(key))groups.set(key,{label,items:[]});
+    groups.get(key).items.push(item);
+  }
+  return [...groups.values()]
+    .map(group=>({label:group.label,metric:aggregateCompanyRows(group.items)}))
+    .sort((a,b)=>annual(b.metric)-annual(a.metric)||a.label.localeCompare(b.label,'ru'));
+}
 function rebuildDistributionTable(tbl,m){
   const info=distributionInfo(tbl);if(!info)return 0;
   const trs=tableRows(tbl),rows=tableCells(tbl);
@@ -254,19 +283,16 @@ function rebuildDistributionTable(tbl,m){
     parent.appendChild(tr);
   };
   append(summaryTemplate,'B2B','Итого B2B',m.verticals.B2B);
-  const b2b=(m.clientRows||[])
-    .filter(x=>x.vertical==='B2B'&&annual(x)>0)
-    .slice()
-    .sort((a,b)=>annual(b)-annual(a)||String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),'ru'));
-  b2b.forEach((x,i)=>{
+  const b2b=groupClientCompanies((m.clientRows||[]).filter(x=>x.vertical==='B2B'&&annual(x)>0));
+  b2b.forEach((company,i)=>{
     const template=detailTemplates.length?detailTemplates[i%detailTemplates.length]:summaryTemplate;
-    append(template,'',x.displayName||x.name,x);
+    append(template,'',company.label,company.metric);
   });
 
   if(m.verticals.B2G?.found&&annual(m.verticals.B2G)>0){
     append(b2gTemplate,'B2G','Итого B2G',m.verticals.B2G);
-    const b2g=(m.clientRows||[]).filter(x=>x.vertical==='B2G'&&annual(x)>0).slice().sort((a,b)=>annual(b)-annual(a)||String(a.displayName||a.name).localeCompare(String(b.displayName||b.name),'ru'));
-    b2g.forEach((x,i)=>{const template=detailTemplates.length?detailTemplates[i%detailTemplates.length]:summaryTemplate;append(template,'',x.displayName||x.name,x)});
+    const b2g=groupClientCompanies((m.clientRows||[]).filter(x=>x.vertical==='B2G'&&annual(x)>0));
+    b2g.forEach((company,i)=>{const template=detailTemplates.length?detailTemplates[i%detailTemplates.length]:summaryTemplate;append(template,'',company.label,company.metric)});
   }
 
   append(b2cTemplate,'B2C','Итого B2C',m.verticals.B2C);
@@ -338,7 +364,7 @@ async function exportPptx(){
     const out=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(out);
-    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.7.pptx';
+    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.7.1.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, план отгрузки клиенту ${disp(annual(m.clientShipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
   }catch(e){
