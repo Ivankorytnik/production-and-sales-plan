@@ -5,6 +5,7 @@ const PARSER_VERSION='3.1.1';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
+const COMPANY_KEY='atom-company-project-collapse-v1';
 const STOCK_VISIBILITY_KEY='atom-free-stock-visibility-v1';
 const SMMT_VISIBILITY_KEY='atom-smmt-visibility-v1';
 const MONTHS=[['янв','jan','Янв'],['фев','feb','Фев'],['мар','mar','Мар'],['апр','apr','Апр'],['май','may','Май'],['июн','jun','Июн'],['июл','jul','Июл'],['авг','aug','Авг'],['сен','sep','Сен'],['окт','oct','Окт'],['ноя','nov','Ноя'],['дек','dec','Дек']];
@@ -234,6 +235,9 @@ function loadLayerState(){
   const def={B2C:true,B2B:false,B2G:false};
   try{return{...def,...JSON.parse(localStorage.getItem(LAYER_KEY)||'{}')}}catch{return def}
 }
+function loadCompanyState(){
+  try{return JSON.parse(localStorage.getItem(COMPANY_KEY)||'{}')||{}}catch{return{}}
+}
 function loadStockVisibility(){
   try{
     const saved=localStorage.getItem(STOCK_VISIBILITY_KEY);
@@ -242,6 +246,7 @@ function loadStockVisibility(){
 }
 let periodState=loadPeriodState();
 let layerState=loadLayerState();
+let companyState=loadCompanyState();
 let stockVisible=loadStockVisibility();
 let smmtVisible=false;
 try{const saved=localStorage.getItem(SMMT_VISIBILITY_KEY);smmtVisible=saved===null?false:saved!=='false'}catch{}
@@ -249,6 +254,7 @@ let currentModel=null;
 let currentTemplateName='PPTX-шаблон';
 function savePeriodState(){try{localStorage.setItem(PERIOD_KEY,JSON.stringify(periodState))}catch{}}
 function saveLayerState(){try{localStorage.setItem(LAYER_KEY,JSON.stringify(layerState))}catch{}}
+function saveCompanyState(){try{localStorage.setItem(COMPANY_KEY,JSON.stringify(companyState))}catch{}}
 function saveStockVisibility(){try{localStorage.setItem(STOCK_VISIBILITY_KEY,String(stockVisible))}catch{}}
 function saveSmmtVisibility(){try{localStorage.setItem(SMMT_VISIBILITY_KEY,String(smmtVisible))}catch{}}
 function selectedPeriod(){return periodState.mode==='all'?PERIODS.all:PERIODS[periodState.key]||PERIODS.H2}
@@ -307,17 +313,53 @@ function smmtPlanRow(smmt,production,months){
   }).join('');
   return `<tr class="smmt-plan-row"><td class="dash-label"><strong>План СММТ</strong></td><td class="dash-total smmt-compare ${totalTone}" title="${esc(totalTitle)}">${dot(total)}</td>${cells}</tr>`;
 }
-function clientDetailRow(x,months){
-  const product=x.product?`<small>${esc(x.product)}</small>`:'';
-  const noPlannedDeliveries=annualTotal(x)===0;
+function companyWord(v){
+  const x=Math.abs(Number(v||0))%100;if(x>=11&&x<=14)return'компаний';const d=x%10;return d===1?'компания':d>=2&&d<=4?'компании':'компаний';
+}
+function companyLabel(x){
+  const s=k(x?.name);
+  if(s==='ассоциация учреждений по управлению имуществом и материального обеспечения')return'Ассоциация учреждений УИМО';
+  return n(x?.name||x?.displayName||'Компания');
+}
+function aggregateItems(items){
+  const out={found:false,months:{},year:0,yearFound:false};
+  for(const item of items)addMetric(out,item);
+  return out;
+}
+function groupCompanies(items){
+  const map=new Map();
+  for(const item of items){
+    const label=companyLabel(item);
+    const key=`${item.vertical||''}|${k(label)}`;
+    if(!map.has(key))map.set(key,{key,label,items:[]});
+    map.get(key).items.push(item);
+  }
+  return [...map.values()].map(g=>({...g,metric:aggregateItems(g.items)}))
+    .sort((a,b)=>annualTotal(b.metric)-annualTotal(a.metric)||a.label.localeCompare(b.label,'ru'));
+}
+function projectLabel(x,index){
+  if(x?.product)return n(x.product);
+  const d=n(x?.displayName||'');
+  const company=companyLabel(x);
+  if(d&&k(d)!==k(company))return d;
+  return `Проект ${index+1}`;
+}
+function companyRow(group,months){
+  const expanded=Boolean(companyState[group.key]);
+  const noPlannedDeliveries=annualTotal(group.metric)===0;
   const hint=noPlannedDeliveries?`<span class="no-deliveries-hint" tabindex="0" role="note" aria-label="Нет запланированных выдач" title="Нет запланированных выдач">!</span>`:'';
-  return `<tr class="client-detail${noPlannedDeliveries?' no-planned-deliveries':''}"${noPlannedDeliveries?' title="Нет запланированных выдач"':''}><td></td><td class="project-name"><strong>${esc(x.displayName||x.name)}</strong>${hint}${product}</td><td class="dash-total">${dot(metricTotal(x))}</td>${months.map(m=>`<td class="dash-num">${dot(x?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  const encoded=encodeURIComponent(group.key);
+  return `<tr class="company-row${expanded?' company-expanded':''}${noPlannedDeliveries?' no-planned-deliveries':''}" data-company-toggle="${esc(encoded)}" tabindex="0" role="button" aria-expanded="${expanded?'true':'false'}"><td></td><td class="project-name company-name"><strong>${esc(group.label)}</strong>${hint}<small>${group.items.length} ${projectWord(group.items.length)} · ${expanded?'Скрыть':'Показать'}</small></td><td class="dash-total">${dot(metricTotal(group.metric))}</td>${months.map(m=>`<td class="dash-num">${dot(group.metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
+}
+function projectRow(x,months,index){
+  const noPlannedDeliveries=annualTotal(x)===0;
+  return `<tr class="client-detail project-detail${noPlannedDeliveries?' no-planned-deliveries':''}"${noPlannedDeliveries?' title="Нет запланированных выдач"':''}><td></td><td class="project-name"><span class="project-indent">↳</span><strong>${esc(projectLabel(x,index))}</strong></td><td class="dash-total">${dot(metricTotal(x))}</td>${months.map(m=>`<td class="dash-num">${dot(x?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function clientSummaryRow(layer,metric,count,months,collapsed){
   const staticRow=count===0;
   const cls=staticRow?'layer-summary layer-static':`layer-summary layer-toggle-row${collapsed?' layer-collapsed':''}`;
   const attr=staticRow?'':` data-layer-toggle="${layer}" tabindex="0" role="button" aria-expanded="${collapsed?'false':'true'}"`;
-  const small=count?`${count} ${projectWord(count)} · ${collapsed?'Показать':'Скрыть'}`:'итого';
+  const small=count?`${count} ${companyWord(count)} · ${collapsed?'Показать':'Скрыть'}`:'итого';
   return `<tr class="${cls}"${attr}><td class="layer-name"><strong>${esc(layer)}</strong><small>${small}</small></td><td class="project-name"><strong>Итого ${esc(layer)}</strong></td><td class="dash-total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function renderControls(model){
@@ -359,16 +401,21 @@ function renderModel(model,templateName=currentTemplateName){
     const metric=verticals?.[layer];
     const items=(model.clients||[])
       .filter(x=>x.vertical===layer&&(layer==='B2B'||layer==='B2G'||annualTotal(x)>0))
-      .slice()
-      .sort((a,b)=>annualTotal(b)-annualTotal(a)||String(a.displayName||a.name||'').localeCompare(String(b.displayName||b.name||''),'ru'));
-    if(layer==='B2G'&&!metric?.found&&!items.length)continue;
+      .slice();
+    const companies=groupCompanies(items);
+    if(layer==='B2G'&&!metric?.found&&!companies.length)continue;
     const collapsed=Boolean(layerState[layer]);
-    distribution+=clientSummaryRow(layer,metric,items.length,months,collapsed);
-    if(!collapsed)distribution+=items.map(x=>clientDetailRow(x,months)).join('');
+    distribution+=clientSummaryRow(layer,metric,companies.length,months,collapsed);
+    if(!collapsed){
+      for(const company of companies){
+        distribution+=companyRow(company,months);
+        if(companyState[company.key])distribution+=company.items.map((x,i)=>projectRow(x,months,i)).join('');
+      }
+    }
   }
   distribution+=`<tr class="grand-total"><td class="layer-name"><strong>ВСЕГО</strong></td><td class="project-name"><strong>Забронировано клиентами</strong></td><td class="dash-total">${dot(metricTotal(metrics.booked))}</td>${months.map(m=>`<td class="dash-num">${dot(metrics.booked?.months?.[m]||0)}</td>`).join('')}</tr>`;
 
-  one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания / проект</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
+  one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
   ensureStockToggleButton();
   ensureSmmtToggleButton();
 
@@ -411,6 +458,14 @@ if(!window.__ATOM_TEMPLATE_V3_BOUND__){
       renderModel(currentModel,currentTemplateName);
       return;
     }
+    const company=e.target.closest?.('[data-company-toggle]');
+    if(company){
+      const key=decodeURIComponent(company.dataset.companyToggle||'');
+      companyState[key]=!Boolean(companyState[key]);
+      saveCompanyState();
+      renderModel(currentModel,currentTemplateName);
+      return;
+    }
     const row=e.target.closest?.('[data-layer-toggle]');
     if(row){
       const layer=row.dataset.layerToggle;
@@ -420,8 +475,18 @@ if(!window.__ATOM_TEMPLATE_V3_BOUND__){
     }
   });
   document.addEventListener('keydown',e=>{
+    if(!(e.key==='Enter'||e.key===' '))return;
+    const company=e.target.closest?.('[data-company-toggle]');
+    if(company){
+      e.preventDefault();
+      const key=decodeURIComponent(company.dataset.companyToggle||'');
+      companyState[key]=!Boolean(companyState[key]);
+      saveCompanyState();
+      renderModel(currentModel,currentTemplateName);
+      return;
+    }
     const row=e.target.closest?.('[data-layer-toggle]');
-    if(!row||!(e.key==='Enter'||e.key===' '))return;
+    if(!row)return;
     e.preventDefault();
     const layer=row.dataset.layerToggle;
     layerState[layer]=!Boolean(layerState[layer]);
@@ -449,6 +514,7 @@ if(!document.getElementById('template-v3-style')){
     .analytics-table th,.analytics-table td{white-space:nowrap}.analytics-table .project-name{white-space:normal!important}
     .balance-table .smmt-plan-row td{font-weight:700!important;border-bottom:2px solid #cfd4dc!important}.balance-table .smmt-plan-row .dash-label{background:#f7f8fa!important}.smmt-compare{transition:background .15s ease,color .15s ease}.smmt-compare.smmt-over{background:#fef3f2!important;color:#b42318!important}.smmt-compare.smmt-under{background:#ecfdf3!important;color:#067647!important}.smmt-compare.smmt-equal{background:#f2f4f7!important;color:#475467!important}
     .distribution-table .layer-toggle-row{cursor:pointer;user-select:none;transition:background .15s ease}.distribution-table .layer-toggle-row:hover td{background:#eef3f6!important}
+    .distribution-table .company-row{cursor:pointer;user-select:none}.distribution-table .company-row:hover td{background:#f7f8fa!important}.distribution-table .company-row .company-name{position:relative;padding-left:42px!important}.distribution-table .company-row .company-name:before{content:'▸';position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:17px;color:#667085;font-weight:700}.distribution-table .company-row.company-expanded .company-name:before{content:'▾'}.distribution-table .company-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}.distribution-table .project-detail td{background:#fbfcfd!important}.distribution-table .project-detail .project-name{padding-left:56px!important}.project-indent{display:inline-block;margin-right:8px;color:#98a2b3}
     .distribution-table .layer-toggle-row .layer-name{position:relative;padding-left:40px!important}.distribution-table .layer-toggle-row .layer-name:before{content:'▾';position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;line-height:1;color:#667085;font-weight:700}
     .distribution-table .layer-toggle-row.layer-collapsed .layer-name:before{content:'▸'}.distribution-table .layer-toggle-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}.distribution-table .layer-static .layer-name{padding-left:14px!important}
     .distribution-table .no-planned-deliveries td{background:#fff1c2!important;border-top-color:#f5b942!important;border-bottom-color:#f5b942!important}.distribution-table .no-planned-deliveries td:first-child{box-shadow:inset 4px 0 0 #d97706}.distribution-table .no-planned-deliveries .project-name strong{color:#8a4b00}.no-deliveries-hint{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:7px;border-radius:50%;background:#b54708;color:#fff;font:700 11px Arial,Helvetica,sans-serif;cursor:help;vertical-align:1px}.no-deliveries-hint:focus{outline:2px solid #f79009;outline-offset:2px}
