@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>ATOM B2B CRM Control Center</title>
+  <link rel="stylesheet" href="./crm.css?v=1.0.0" />
+</head>
+<body>
+<section id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-brand">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
+    <h1>Вход для сотрудников</h1>
+    <p>Введите рабочую почту <b>@atom.team</b>.</p>
+    <div class="auth-field"><label for="authEmail">Рабочая почта</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@atom.team" /></div>
+    <div class="auth-actions"><button id="authSend" class="auth-btn" type="button">Получить ссылку на почту</button></div>
+    <div id="authStatus" class="auth-status">Проверяю текущий доступ...</div>
+    <div class="auth-note">Выгрузка ELMA обрабатывается локально в браузере. Содержимое Excel не публикуется в GitHub.</div>
+  </div>
+</section>
+<div id="appShell" class="app-hidden shell">
+  <aside class="sidebar">
+    <a class="brand" href="./index.html"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
+    <div class="nav-title">Проекты</div>
+    <nav class="project-nav"><a href="./index.html">S&amp;OP09 plan</a><a class="active" href="./crm.html">B2B CRM Control Center</a></nav>
+    <div class="nav-title">CRM</div>
+    <nav class="page-nav"><a href="#source">Исходные данные</a><a class="active" href="#dashboard">Аналитика</a></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="user-box"><span>CRM MVP v1.0</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
+  </aside>
+  <main class="main">
+    <header class="page-head">
+      <div><h1>ATOM B2B CRM Control Center</h1><p>Состояние B2B-воронки ELMA, активность менеджеров и качество данных</p></div>
+      <div class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
+    </header>
+    <section id="source" class="source">
+      <div><h2>Выгрузка лидов ELMA</h2><p>Загрузите актуальный файл <b>_opportunities.xlsx</b>. Используется первый лист.</p><div class="privacy"><b>Конфиденциальность:</b> файл читается на вашем компьютере. Исходные данные не записываются в публичный репозиторий.</div><div id="fileStatus" class="statusline">Файл не загружен.</div></div>
+      <div class="actions"><label class="btn primary file-pick">Загрузить Excel<input id="crmFile" type="file" accept=".xlsx,.xls,.xlsm" /></label><button id="clearBtn" class="btn" type="button" disabled>Сбросить данные</button></div>
+    </section>
+    <section id="emptyState" class="card empty section">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</section>
+    <div id="dashboard" class="dashboard hidden">
+      <section class="section card callout"><div><strong>CRM-срез по загруженной выгрузке</strong><br><span>Данные рассчитываются в браузере</span></div><div><span>Источник: </span><b id="sourceName"></b></div></section>
+      <section class="section kpis">
+        <div class="card kpi"><div class="label">Всего лидов</div><div id="kTotal" class="value">0</div><div class="foot">полная выгрузка</div></div>
+        <div class="card kpi"><div class="label">Формально активные</div><div id="kActive" class="value">0</div><div class="foot">без дисквалифицированных</div></div>
+        <div class="card kpi live"><div class="label">Живой контур ≤30 дней</div><div id="kLive" class="value">0</div><div class="foot">по последней значимой дате</div></div>
+        <div class="card kpi stale"><div class="label">Просрочены &gt;90 дней</div><div id="kStale" class="value">0</div><div class="foot">требуют ревизии</div></div>
+        <div class="card kpi new"><div class="label">Есть ближайшая задача</div><div id="kTasks" class="value">0</div><div class="foot">управляемая работа</div></div>
+      </section>
+      <section class="section grid2"><div class="card panel"><div class="panel-title">Активная воронка по статусам</div><div id="statusBars"></div></div><div class="card panel"><div class="panel-title">Активная база по вертикалям</div><div id="verticalBars"></div></div></section>
+      <section class="section grid2">
+        <div class="card panel"><div class="panel-title">Нагрузка и состояние по ответственным</div><table class="owners"><thead><tr><th>Ответственный</th><th class="num">Активно</th><th class="num">≤30</th><th class="num">&gt;90</th><th class="num">С задачей</th></tr></thead><tbody id="owners"></tbody></table></div>
+        <div class="card panel"><div class="panel-title">Качество данных активной базы</div><div id="quality" class="quality"></div><div class="footer">Для прогноза продаж критичны количество ATOM, ближайшая задача, сумма сделки и плановая дата договора/отгрузки.</div></div>
+      </section>
+      <section class="section card">
+        <div class="filters">
+          <div class="field"><label>Поиск</label><input id="fSearch" placeholder="Компания, ИНН, контакт, телефон..." /></div>
+          <div class="field"><label>Статус</label><select id="fStatus"><option>Активные</option></select></div>
+          <div class="field"><label>Вертикаль</label><select id="fVertical"><option>Все</option></select></div>
+          <div class="field"><label>Ответственный</label><select id="fOwner"><option>Все</option></select></div>
+          <div class="field"><label>Свежесть</label><select id="fHealth"><option>Все</option><option>≤30 дней</option><option>31-90 дней</option><option>&gt;90 дней</option><option>Нет даты</option></select></div>
+        </div>
+        <div class="table-head"><span id="resultCount" class="result-count"></span><div class="legend"><span><i class="dot live"></i>≤30 дней</span><span><i class="dot mid"></i>31-90 дней</span><span><i class="dot stale"></i>&gt;90 дней</span></div></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Компания</th><th>Статус</th><th>Вертикаль</th><th>Ответственный</th><th>Свежесть</th><th class="num">Дней</th><th>Ближайшая задача</th><th class="num">Автопарк</th><th class="num">ATOM</th><th>Контакт</th></tr></thead><tbody id="tbody"></tbody></table></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+<script src="./crm.js?v=1.0.0"></script>
+</body>
+</html>
