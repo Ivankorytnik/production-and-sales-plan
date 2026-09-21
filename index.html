@@ -17,10 +17,12 @@
     .sidebar-brand{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:#101828}
     .sidebar-brand strong{font-size:22px;line-height:1;font-weight:800;letter-spacing:.3px}
     .sidebar-brand span{font-size:10px;font-weight:700;letter-spacing:1.25px;color:#667085}
-    .sidebar-main-nav{display:grid;gap:6px}
-    .sidebar-main-nav a{display:flex;align-items:center;min-height:38px;padding:0 11px;border-radius:8px;text-decoration:none;color:#475467;font-size:13px;font-weight:700}
-    .sidebar-main-nav a:hover{background:#f4f6f8;color:#101828}
-    .sidebar-main-nav a.active{background:#111318;color:#fff}
+    .sidebar-nav-label{font-size:10px;color:#98a2b3;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0 10px -8px}
+    .sidebar-project-nav,.sidebar-main-nav{display:grid;gap:6px}
+    .sidebar-project-nav a,.sidebar-main-nav a{display:flex;align-items:center;min-height:38px;padding:0 11px;border-radius:8px;text-decoration:none;color:#475467;font-size:13px;font-weight:700}
+    .sidebar-project-nav a:hover,.sidebar-main-nav a:hover{background:#f4f6f8;color:#101828}
+    .sidebar-project-nav a.active{background:#111318;color:#fff}
+    .sidebar-main-nav a.active{background:#fff8c5;color:#5d4b00}
     .sidebar-user-nav{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:7px!important;color:#667085;font-size:11px;line-height:1.35}
     .sidebar-user-nav>.divider{display:none!important}
     .sidebar-user-nav>.auth-user{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:7px!important;margin-top:3px}
@@ -56,6 +58,9 @@
       <section id="sources" class="source-block no-print">
         <div class="sidebar-shell-nav">
           <a class="sidebar-brand" href="#top"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
+          <div class="sidebar-nav-label">Проекты</div>
+          <nav class="sidebar-project-nav"><a class="active" href="./index.html">S&amp;OP09 plan</a><a href="./crm.html">B2B CRM Control Center</a></nav>
+          <div class="sidebar-nav-label">S&amp;OP09 plan</div>
           <nav class="sidebar-main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">Аналитика</a></nav>
           <div class="user-nav sidebar-user-nav"><span>Версия v2.9.0</span><span>Обновлено <span id="updatedAt">18.09.2026</span></span><span id="authUserBox" class="auth-user"></span></div>
         </div>
