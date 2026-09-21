@@ -86,10 +86,19 @@ function formatRuDate(value){
   if(!d)return'';
   return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
 }
+function dateFromFileName(name){
+  const s=String(name||'');
+  let m=s.match(/(?:^|[^0-9])(\d{2})[.\-_](\d{2})[.\-_](20\d{2})(?:[^0-9]|$)/);
+  if(!m)m=s.match(/(?:^|[^0-9])(\d{2})(\d{2})(20\d{2})(?:[^0-9]|$)/);
+  if(!m)return null;
+  const d=new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));
+  return Number.isNaN(d.getTime())?null:d;
+}
 function currentAnchor(){
   const model=window.ATOMCurrentModel;
   const fromModel=parseRuDate(model&&model.sourceDate);
-  const d=fromModel||new Date();
+  const fromName=dateFromFileName(window.ATOMCurrentFiles&&window.ATOMCurrentFiles.sales&&window.ATOMCurrentFiles.sales.name);
+  const d=fromModel||fromName||new Date();
   return new Date(d.getFullYear(),d.getMonth(),d.getDate());
 }
 function targetFor(rangeKey){
@@ -125,7 +134,7 @@ function chooseBaseline(items,rangeKey){
   });
   const shtab=excel.filter(function(x){return normalizeSource(x.source)==='ШТАБ'});
   const planLike=excel.filter(isPlanLike);
-  const pool=shtab.length?shtab:(planLike.length?planLike:excel);
+  const pool=shtab.length?shtab:(planLike.length?planLike:[]);
   const eligible=pool.filter(function(x){
     const d=parseIsoDate(x.actualDate);
     return d&&d<=target;
@@ -191,6 +200,15 @@ function ensureXLSX(){
     document.head.appendChild(s);
   });
 }
+function waitForIdle(){
+  return new Promise(function(resolve){
+    if('requestIdleCallback' in window){
+      window.requestIdleCallback(function(){resolve()},{timeout:500});
+    }else{
+      setTimeout(resolve,0);
+    }
+  });
+}
 async function baselineModel(entry){
   if(modelCache.has(entry.path))return modelCache.get(entry.path);
   const promise=(async function(){
@@ -199,6 +217,7 @@ async function baselineModel(entry){
     const result=await client.storage.from(CLOUD_BUCKET).download(entry.path);
     if(result.error)throw result.error;
     const buf=await result.data.arrayBuffer();
+    await waitForIdle();
     return window.ATOMTemplateView.parseWorkbook(buf);
   })();
   modelCache.set(entry.path,promise);
@@ -230,7 +249,7 @@ function ensureControls(){
         if(selectedRange===key)return;
         selectedRange=key;
         saveRange();
-        renderCompare(true);
+        renderCompare(false);
       });
       tabs.appendChild(btn);
     });
@@ -372,8 +391,7 @@ if(onePage){
 
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible'){
-    listCache={at:0,items:[]};
-    scheduleRender(true);
+    scheduleRender(false);
   }
 });
 
