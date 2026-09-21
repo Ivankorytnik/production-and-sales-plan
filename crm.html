@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
-  <link rel="stylesheet" href="./crm.css?v=1.0.1" />
+  <link rel="stylesheet" href="./crm.css?v=1.0.2" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -44,7 +44,7 @@
       <div><h1>ATOM B2B CRM Control Center</h1><p>Состояние B2B-воронки ELMA, активность менеджеров и качество данных</p></div>
       <div class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
     </header>
-    <section id="emptyState" class="card empty section">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</section>
+    <div id="emptyState" class="info-line">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</div>
     <div id="dashboard" class="dashboard hidden">
       <section class="section card callout"><div><strong>CRM-срез по загруженной выгрузке</strong><br><span>Данные рассчитываются в браузере</span></div><div><span>Источник: </span><b id="sourceName"></b></div></section>
       <section class="section kpis">
