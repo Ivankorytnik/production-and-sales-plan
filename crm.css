@@ -29,3 +29,17 @@
 .multi-option{display:flex;align-items:center;gap:8px;min-height:32px;padding:5px 7px;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap}
 .multi-option:hover{background:#f7f8fa}
 .multi-option input{width:14px;height:14px;margin:0;accent-color:#111318}
+
+.dynamics-panel{padding:18px}
+.dynamics-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}
+.dynamics-subtitle{font-size:11px;color:#667085;margin-top:-6px}
+.dynamics-total{font-size:22px;font-weight:900;white-space:nowrap}
+.dynamics-controls{display:grid;grid-template-columns:160px 160px 180px;gap:10px;margin-bottom:10px}
+.dynamics-note{min-height:18px;font-size:10px;color:#667085;margin-bottom:6px}
+.dynamics-chart{min-height:360px;border-top:1px solid #eef0f2;padding-top:10px}
+.dyn-scroll{overflow-x:auto;overflow-y:hidden}
+.dyn-grid{stroke:#e9ecef;stroke-width:1}
+.dyn-line{fill:none;stroke:#111318;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.dyn-dot{fill:#ffd800;stroke:#111318;stroke-width:1.5}
+.dyn-x,.dyn-y{font:10px Arial,Helvetica,sans-serif;fill:#667085}
+@media(max-width:760px){.dynamics-head{flex-direction:column}.dynamics-controls{grid-template-columns:1fr}.dynamics-total{font-size:18px}}
