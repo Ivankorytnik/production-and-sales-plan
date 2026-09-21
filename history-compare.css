@@ -26,3 +26,20 @@
   .history-compare-group{width:100%}
   .history-compare-base{max-width:none}
 }
+
+
+/* Historical deltas inside all numeric dashboard cells */
+.analytics-kpi.history-has-delta .analytics-kpi-value{color:#111827!important}
+.history-cell-current{display:block;color:#111827!important;font-weight:inherit;line-height:1.05;font-variant-numeric:tabular-nums}
+.history-cell-delta{display:block;margin-top:3px;font:700 8px/1.05 Arial,Helvetica,sans-serif;letter-spacing:-.05px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.history-cell-delta.up{color:#009b72}
+.history-cell-delta.down{color:#e53935}
+.history-cell-delta.flat{color:#8a93a3}
+.history-cell-delta.muted{color:#b1b7c2}
+.analytics-table td[data-history-cell],.analytics-table td[data-history-month]{height:46px!important;vertical-align:middle}
+.analytics-table .dash-total .history-cell-current{font-weight:700}
+.layer-summary .history-cell-current,.grand-total .history-cell-current,.row-accent .history-cell-current{font-weight:700}
+@media(max-width:1200px){
+  .history-cell-delta{font-size:7px}
+  .analytics-table td[data-history-cell],.analytics-table td[data-history-month]{height:43px!important}
+}
