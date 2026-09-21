@@ -438,8 +438,8 @@ function applyDeltas(historyModel){
     deltaEl.append(arrow,value);
     deltaEl.title='Было: '+fmt(oldValue)+'. Сейчас: '+fmt(currentValue)+'. Изменение: '+signedFmt(diff)+'.';
   });
-}
   applyTableDeltas(historyModel);
+}
 async function renderCompare(forceList){
   clearTimeout(renderTimer);
   const one=document.getElementById('onePage');
