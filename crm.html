@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./crm.css?v=1.1.0" />
+  <link rel="stylesheet" href="./crm.css?v=1.2.0" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -38,7 +38,7 @@
     </section>
 
     <div class="sidebar-spacer"></div>
-    <div class="user-box"><span id="crmVersion">CRM MVP v1.1</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
+    <div class="user-box"><span id="crmVersion">CRM MVP v1.2</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
   </aside>
   <main class="main">
     <header class="page-head">
@@ -92,11 +92,28 @@
         <div id="dynNote" class="dynamics-note"></div>
         <div id="dynChart" class="dynamics-chart"></div>
       </section>
+
+      <section class="section card dynamics-panel">
+        <div class="dynamics-head">
+          <div>
+            <div class="panel-title">Квалификация / дисквалификация</div>
+            <div class="dynamics-subtitle">События по дате перехода в статус из ELMA</div>
+          </div>
+          <div id="qualTotal" class="dynamics-total"></div>
+        </div>
+        <div class="qual-legend">
+          <span><i class="qual-swatch qualified"></i>Квалификация</span>
+          <span><i class="qual-swatch disqualified"></i>Дисквалификация</span>
+          <span class="qual-legend-note">Число над столбцом = суммарно</span>
+        </div>
+        <div id="qualNote" class="dynamics-note"></div>
+        <div id="qualChart" class="dynamics-chart"></div>
+      </section>
     </section>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.4.3"></script>
+<script src="./crm.js?v=1.5.0"></script>
 </body>
 </html>
