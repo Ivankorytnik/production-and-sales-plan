@@ -207,9 +207,13 @@ function companyMetric(model,encodedKey){
   try{decoded=decodeURIComponent(encodedKey||'')}catch{decoded=String(encodedKey||'')}
   const parts=decoded.split('|');
   const vertical=parts.shift()||'';
+  let b2bGroup='';
+  if(vertical==='B2B'&&parts.length>1)b2bGroup=parts.shift()||'';
   const wanted=parts.join('|');
   const items=(model&&model.clients||[]).filter(function(x){
-    return String(x&&x.vertical||'')===vertical&&keyNorm(historyCompanyLabel(x))===wanted;
+    return String(x&&x.vertical||'')===vertical
+      &&(!b2bGroup||String(x&&x.b2bGroup||'')===b2bGroup)
+      &&keyNorm(historyCompanyLabel(x))===wanted;
   });
   if(!items.length)return emptyMetric();
   return items.reduce(function(acc,x){return addMetricLocal(acc,x)},emptyMetric());

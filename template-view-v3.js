@@ -1,11 +1,12 @@
 (()=>{
 'use strict';
 
-const PARSER_VERSION='3.1.2';
+const PARSER_VERSION='3.2.0';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
 const COMPANY_KEY='atom-company-project-collapse-v1';
+const B2B_GROUP_KEY='atom-b2b-group-collapse-v1';
 const STOCK_VISIBILITY_KEY='atom-free-stock-visibility-v1';
 const SMMT_VISIBILITY_KEY='atom-smmt-visibility-v1';
 const MONTHS=[['янв','jan','Янв'],['фев','feb','Фев'],['мар','mar','Мар'],['апр','apr','Апр'],['май','may','Май'],['июн','jun','Июн'],['июл','jul','Июл'],['авг','aug','Авг'],['сен','sep','Сен'],['окт','oct','Окт'],['ноя','nov','Ноя'],['дек','dec','Дек']];
@@ -128,28 +129,39 @@ function parseWorkbook(buf){
 
   const verticals={B2B:null,B2G:null,B2C:null};
   const clients={},order=[];
-  let currentVertical=null,product=null;
+  let currentVertical=null,currentB2BGroup=null,product=null;
   for(let ri=h.ri+1;ri<rows.length;ri++){
     const row=rows[ri]||[];
     const label=rowLabel(row),s=k(label);
     if(!label)continue;
-    if(isAggregate(s,'B2B')){currentVertical='B2B';product=null;verticals.B2B=rowMetric(row);continue}
-    if(isAggregate(s,'B2G')){currentVertical='B2G';product=null;verticals.B2G=rowMetric(row);continue}
-    if(isAggregate(s,'B2C')){currentVertical='B2C';product=null;verticals.B2C=rowMetric(row);continue}
-    if(s==='выдачи'||s.startsWith('доступно')||(s.includes('забронировано')&&s.includes('всего'))){currentVertical=null;product=null;continue}
+
+    if(hasVerticalToken(s,'B2B')&&s.includes('контракт')){
+      currentVertical='B2B';currentB2BGroup='contracts';product=null;continue;
+    }
+    if(hasVerticalToken(s,'B2B')&&(s.includes('бронирован')||s.includes('забронирован')||s.includes('бронь'))){
+      currentVertical='B2B';currentB2BGroup='booked';product=null;continue;
+    }
+    if(isAggregate(s,'B2B')){currentVertical='B2B';currentB2BGroup=null;product=null;verticals.B2B=rowMetric(row);continue}
+    if(isAggregate(s,'B2G')){currentVertical='B2G';currentB2BGroup=null;product=null;verticals.B2G=rowMetric(row);continue}
+    if(isAggregate(s,'B2C')){currentVertical='B2C';currentB2BGroup=null;product=null;verticals.B2C=rowMetric(row);continue}
+    if(s==='выдачи'||s.startsWith('доступно')||(s.includes('забронировано')&&s.includes('всего'))){currentVertical=null;currentB2BGroup=null;product=null;continue}
     const g=groupLabel(s);if(g){product=g;continue}
     if(!currentVertical)continue;
-    if(/^план |^выпуск |^отгрузка |^передано |^контракты |^итого /.test(s))continue;
+    if(/^план |^выпуск |^отгрузка |^передано |^контракты |^бронирование(?:\s|$)|^итого /.test(s))continue;
     if(!hasPeriodData(row)&&currentVertical==='B2C')continue;
     const m=rowMetric(row);
-    const clientKey=`${currentVertical}|${s}|${product||''}`;
+    const clientKey=`${currentVertical}|${currentB2BGroup||''}|${s}|${product||''}`;
     if(!clients[clientKey]){
-      clients[clientKey]={key:clientKey,name:label,displayName:label,product,vertical:currentVertical,found:true,months:{},year:0,yearFound:false};
+      clients[clientKey]={key:clientKey,name:label,displayName:label,product,vertical:currentVertical,b2bGroup:currentVertical==='B2B'?currentB2BGroup:null,found:true,months:{},year:0,yearFound:false};
       order.push(clientKey);
     }
     addMetric(clients[clientKey],m);
   }
 
+  const b2bCombined={found:false,months:{},year:0,yearFound:false};
+  if(metrics.contractsB2B?.found)addMetric(b2bCombined,metrics.contractsB2B);
+  if(metrics.bookedB2B?.found)addMetric(b2bCombined,metrics.bookedB2B);
+  if(b2bCombined.found)verticals.B2B=b2bCombined;
   const aliasName=x=>{
     const s=k(x.name);
     if(s==='ассоциация учреждений по управлению имуществом и материального обеспечения')return'Ассоциация учреждений УИМО';
@@ -246,6 +258,10 @@ function loadLayerState(){
 function loadCompanyState(){
   try{return JSON.parse(localStorage.getItem(COMPANY_KEY)||'{}')||{}}catch{return{}}
 }
+function loadB2BGroupState(){
+  const def={booked:true,contracts:true};
+  try{return{...def,...JSON.parse(localStorage.getItem(B2B_GROUP_KEY)||'{}')}}catch{return def}
+}
 function loadStockVisibility(){
   try{
     const saved=localStorage.getItem(STOCK_VISIBILITY_KEY);
@@ -255,6 +271,7 @@ function loadStockVisibility(){
 let periodState=loadPeriodState();
 let layerState=loadLayerState();
 let companyState=loadCompanyState();
+let b2bGroupState=loadB2BGroupState();
 let stockVisible=loadStockVisibility();
 let smmtVisible=false;
 try{const saved=localStorage.getItem(SMMT_VISIBILITY_KEY);smmtVisible=saved===null?false:saved!=='false'}catch{}
@@ -263,6 +280,7 @@ let currentTemplateName='PPTX-шаблон';
 function savePeriodState(){try{localStorage.setItem(PERIOD_KEY,JSON.stringify(periodState))}catch{}}
 function saveLayerState(){try{localStorage.setItem(LAYER_KEY,JSON.stringify(layerState))}catch{}}
 function saveCompanyState(){try{localStorage.setItem(COMPANY_KEY,JSON.stringify(companyState))}catch{}}
+function saveB2BGroupState(){try{localStorage.setItem(B2B_GROUP_KEY,JSON.stringify(b2bGroupState))}catch{}}
 function saveStockVisibility(){try{localStorage.setItem(STOCK_VISIBILITY_KEY,String(stockVisible))}catch{}}
 function saveSmmtVisibility(){try{localStorage.setItem(SMMT_VISIBILITY_KEY,String(smmtVisible))}catch{}}
 function selectedPeriod(){return periodState.mode==='all'?PERIODS.all:PERIODS[periodState.key]||PERIODS.H2}
@@ -342,7 +360,7 @@ function groupCompanies(items){
   const map=new Map();
   for(const item of items){
     const label=companyLabel(item);
-    const key=`${item.vertical||''}|${k(label)}`;
+    const key=item.vertical==='B2B'?`${item.vertical||''}|${item.b2bGroup||''}|${k(label)}`:`${item.vertical||''}|${k(label)}`;
     if(!map.has(key))map.set(key,{key,label,items:[]});
     map.get(key).items.push(item);
   }
@@ -374,6 +392,13 @@ function clientSummaryRow(layer,metric,count,months,collapsed){
   const attr=staticRow?'':` data-layer-toggle="${layer}" tabindex="0" role="button" aria-expanded="${collapsed?'false':'true'}"`;
   const small=count?`${count} ${companyWord(count)} · ${collapsed?'Показать':'Скрыть'}`:'итого';
   return `<tr class="${cls}" data-history-layer="${esc(layer)}"${attr}><td class="layer-name"><strong>${esc(layer)}</strong><small>${small}</small></td><td class="project-name"><strong>Итого ${esc(layer)}</strong></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
+}
+function uniqueCompanyCount(items){
+  return new Set((items||[]).map(x=>k(companyLabel(x)))).size;
+}
+function b2bGroupRow(groupKey,label,metric,historyKey,count,months,collapsed){
+  const small=count?`${count} ${companyWord(count)} · ${collapsed?'Показать':'Скрыть'}`:'нет компаний';
+  return `<tr class="b2b-group-row${collapsed?' b2b-group-collapsed':''}" data-b2b-group-toggle="${esc(groupKey)}" data-history-metric="${esc(historyKey)}" tabindex="0" role="button" aria-expanded="${collapsed?'false':'true'}"><td></td><td class="project-name b2b-group-name"><strong>${esc(label)}</strong><small>${small}</small></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function renderControls(model){
   const halfOptions=['H1','H2'].map(h=>`<option value="${h}"${h===periodState.key?' selected':''}>${PERIODS[h].label}</option>`).join('');
@@ -415,6 +440,32 @@ function renderModel(model,templateName=currentTemplateName){
     const items=(model.clients||[])
       .filter(x=>x.vertical===layer&&(layer==='B2B'||layer==='B2G'||annualTotal(x)>0))
       .slice();
+
+    if(layer==='B2B'){
+      const collapsed=Boolean(layerState.B2B);
+      distribution+=clientSummaryRow('B2B',metric,uniqueCompanyCount(items),months,collapsed);
+      if(!collapsed){
+        const groups=[
+          {key:'booked',label:'Бронирование B2B',metric:metrics.bookedB2B,historyKey:'bookedB2B'},
+          {key:'contracts',label:'Контракты B2B',metric:metrics.contractsB2B,historyKey:'contractsB2B'}
+        ];
+        for(const g of groups){
+          const groupItems=items.filter(x=>x.b2bGroup===g.key);
+          const companies=groupCompanies(groupItems);
+          if(!g.metric?.found&&!companies.length)continue;
+          const groupCollapsed=Boolean(b2bGroupState[g.key]);
+          distribution+=b2bGroupRow(g.key,g.label,g.metric,g.historyKey,companies.length,months,groupCollapsed);
+          if(!groupCollapsed){
+            for(const company of companies){
+              distribution+=companyRow(company,months);
+              if(companyState[company.key])distribution+=company.items.map((x,i)=>projectRow(x,months,i)).join('');
+            }
+          }
+        }
+      }
+      continue;
+    }
+
     const companies=groupCompanies(items);
     if(layer==='B2G'&&!metric?.found&&!companies.length)continue;
     const collapsed=Boolean(layerState[layer]);
@@ -471,6 +522,14 @@ if(!window.__ATOM_TEMPLATE_V3_BOUND__){
       renderModel(currentModel,currentTemplateName);
       return;
     }
+    const b2bGroup=e.target.closest?.('[data-b2b-group-toggle]');
+    if(b2bGroup){
+      const key=b2bGroup.dataset.b2bGroupToggle;
+      b2bGroupState[key]=!Boolean(b2bGroupState[key]);
+      saveB2BGroupState();
+      renderModel(currentModel,currentTemplateName);
+      return;
+    }
     const company=e.target.closest?.('[data-company-toggle]');
     if(company){
       const key=decodeURIComponent(company.dataset.companyToggle||'');
@@ -489,6 +548,15 @@ if(!window.__ATOM_TEMPLATE_V3_BOUND__){
   });
   document.addEventListener('keydown',e=>{
     if(!(e.key==='Enter'||e.key===' '))return;
+    const b2bGroup=e.target.closest?.('[data-b2b-group-toggle]');
+    if(b2bGroup){
+      e.preventDefault();
+      const key=b2bGroup.dataset.b2bGroupToggle;
+      b2bGroupState[key]=!Boolean(b2bGroupState[key]);
+      saveB2BGroupState();
+      renderModel(currentModel,currentTemplateName);
+      return;
+    }
     const company=e.target.closest?.('[data-company-toggle]');
     if(company){
       e.preventDefault();
@@ -527,6 +595,7 @@ if(!document.getElementById('template-v3-style')){
     .analytics-table th,.analytics-table td{white-space:nowrap}.analytics-table .project-name{white-space:normal!important}
     .balance-table .smmt-plan-row td{font-weight:700!important;border-bottom:2px solid #cfd4dc!important}.balance-table .smmt-plan-row .dash-label{background:#f7f8fa!important}.smmt-compare{transition:background .15s ease,color .15s ease}.smmt-compare.smmt-over{background:#fef3f2!important;color:#b42318!important}.smmt-compare.smmt-under{background:#ecfdf3!important;color:#067647!important}.smmt-compare.smmt-equal{background:#f2f4f7!important;color:#475467!important}
     .distribution-table .layer-toggle-row{cursor:pointer;user-select:none;transition:background .15s ease}.distribution-table .layer-toggle-row:hover td{background:#eef3f6!important}
+    .distribution-table .b2b-group-row{cursor:pointer;user-select:none}.distribution-table .b2b-group-row td{background:#fbfcfd!important}.distribution-table .b2b-group-row:hover td{background:#f4f6f8!important}.distribution-table .b2b-group-name{position:relative;padding-left:32px!important}.distribution-table .b2b-group-name:before{content:'▾';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:#667085;font-weight:700}.distribution-table .b2b-group-row.b2b-group-collapsed .b2b-group-name:before{content:'▸'}.distribution-table .b2b-group-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}
     .distribution-table th{height:40px!important}.distribution-table .company-row td{height:36px!important;padding-top:3px!important;padding-bottom:3px!important}.distribution-table .project-detail td{height:32px!important;padding-top:2px!important;padding-bottom:2px!important}.distribution-table .project-detail .project-name strong{display:inline!important}.distribution-table .layer-summary td{height:48px!important}.distribution-table .grand-total td{height:40px!important}
     .distribution-table{table-layout:auto!important}.distribution-table .company-row{cursor:pointer;user-select:none}.distribution-table .company-row:hover td{background:#f7f8fa!important}.distribution-table .company-row .company-name{position:relative;padding-left:42px!important;white-space:nowrap!important}.distribution-table .company-row .company-name strong,.distribution-table .company-row .company-name small{display:inline!important}.distribution-table .company-row .company-name small{margin:0 0 0 10px!important}.distribution-table .company-row .company-name:before{content:'▸';position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:17px;color:#667085;font-weight:700}.distribution-table .company-row.company-expanded .company-name:before{content:'▾'}.distribution-table .company-row:focus{outline:2px solid #98a2b3;outline-offset:-2px}.distribution-table .project-detail td{background:#fbfcfd!important}.distribution-table .project-detail .project-name{padding-left:56px!important}.project-indent{display:inline-block;margin-right:8px;color:#98a2b3}
     .distribution-table .layer-toggle-row .layer-name{position:relative;padding-left:40px!important}.distribution-table .layer-toggle-row .layer-name:before{content:'▾';position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;line-height:1;color:#667085;font-weight:700}
