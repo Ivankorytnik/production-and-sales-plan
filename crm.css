@@ -50,3 +50,13 @@
 .qual-swatch.disqualified,.qual-bar.disqualified{fill:#cf5a50;background:#cf5a50}
 .qual-legend-note{margin-left:auto}
 .qual-total-label{font:700 11px Arial,Helvetica,sans-serif;fill:#111318}
+
+.status-transition-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 0 8px;font-size:10px;color:#667085}
+.status-transition-legend span{display:inline-flex;align-items:center;gap:5px}
+.status-swatch{display:inline-block;width:10px;height:10px;border-radius:2px}
+.status-swatch.status-new,.status-bar.status-new{fill:#ffd800;background:#ffd800}
+.status-swatch.status-qualified,.status-bar.status-qualified{fill:#43a36b;background:#43a36b}
+.status-swatch.status-work,.status-bar.status-work{fill:#3b82f6;background:#3b82f6}
+.status-swatch.status-inactive,.status-bar.status-inactive{fill:#cf5a50;background:#cf5a50}
+.status-swatch.status-other,.status-bar.status-other{fill:#98a2b3;background:#98a2b3}
+.status-total-label{font:700 11px Arial,Helvetica,sans-serif;fill:#111318}
