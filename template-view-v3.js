@@ -295,8 +295,11 @@ function ensureSmmtToggleButton(){
     btn.className='sidebar-smmt-toggle';
     nav.appendChild(btn);
   }
-  btn.textContent=smmtVisible?'Скрыть СММТ':'Показать СММТ';
-  btn.setAttribute('aria-pressed',smmtVisible?'true':'false');
+  const available=Boolean(currentModel?.smmt?.found);
+  btn.disabled=!available;
+  btn.textContent=available?(smmtVisible?'Скрыть СММТ':'Показать СММТ'):'СММТ не загружен';
+  btn.setAttribute('aria-pressed',available&&smmtVisible?'true':'false');
+  btn.title=available?'Показать или скрыть строку плана СММТ':'Загрузите файл СММТ в исходных данных';
 }
 function kpiCard(label,metric,note,tone=''){
   return `<div class="analytics-kpi ${tone}"><div class="analytics-kpi-label">${esc(label)}</div><div class="analytics-kpi-value">${metric?.found?fmt(metricTotal(metric)):'·'}</div><div class="analytics-kpi-note">${esc(note)}</div></div>`;
@@ -395,6 +398,7 @@ function renderModel(model,templateName=currentTemplateName){
     ...(stockVisible?[kpiCard('Свободный сток',metrics.free,p.label,'accent-green')]:[])
   ].join('');
   const balance=[
+    ...(smmtVisible&&model.smmt?.found?[smmtPlanRow(model.smmt,metrics.production,months)]:[]),
     metricRow('План производства 2026 S&OP09',metrics.production,months,'','production'),
     metricRow('В корпоративный парк АТОМ / инженерам',metrics.corp,months,'','corp'),
     metricRow('Контракты B2B',metrics.contractsB2B,months,'','contractsB2B'),
