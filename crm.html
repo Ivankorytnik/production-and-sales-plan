@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
-  <link rel="stylesheet" href="./crm.css?v=1.0.2" />
+  <link rel="stylesheet" href="./crm.css?v=1.0.3" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -62,10 +62,10 @@
       <section class="section card">
         <div class="filters">
           <div class="field"><label>Поиск</label><input id="fSearch" placeholder="Компания, ИНН, контакт, телефон..." /></div>
-          <div class="field"><label>Статус</label><select id="fStatus"><option>Активные</option></select></div>
-          <div class="field"><label>Вертикаль</label><select id="fVertical"><option>Все</option></select></div>
-          <div class="field"><label>Ответственный</label><select id="fOwner"><option>Все</option></select></div>
-          <div class="field"><label>Свежесть</label><select id="fHealth"><option>Все</option><option>≤30 дней</option><option>31-90 дней</option><option>&gt;90 дней</option><option>Нет даты</option></select></div>
+          <div class="field"><label>Статус</label><div id="fStatus" class="multi-select" data-placeholder="Все"></div></div>
+          <div class="field"><label>Вертикаль</label><div id="fVertical" class="multi-select" data-placeholder="Все"></div></div>
+          <div class="field"><label>Ответственный</label><div id="fOwner" class="multi-select" data-placeholder="Все"></div></div>
+          <div class="field"><label>Свежесть</label><div id="fHealth" class="multi-select" data-placeholder="Все"></div></div>
         </div>
         <div class="table-head"><span id="resultCount" class="result-count"></span><div class="legend"><span><i class="dot live"></i>≤30 дней</span><span><i class="dot mid"></i>31-90 дней</span><span><i class="dot stale"></i>&gt;90 дней</span></div></div>
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Компания</th><th>Статус</th><th>Вертикаль</th><th>Ответственный</th><th>Свежесть</th><th class="num">Дней</th><th>Ближайшая задача</th><th class="num">Автопарк</th><th class="num">ATOM</th><th>Контакт</th></tr></thead><tbody id="tbody"></tbody></table></div>
@@ -75,6 +75,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.0.0"></script>
+<script src="./crm.js?v=1.1.0"></script>
 </body>
 </html>
