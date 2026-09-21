@@ -87,7 +87,7 @@ function renderModel(model,templateName){
   const date=model.sourceDate||new Date().toLocaleDateString('ru-RU');
   one.className='one-page analytics-onepage';
   const kpiHtml=[kpiCard('План производства',metrics.production,'2026, S&OP09'),kpiCard('План отгрузки',metrics.shipPlan,'с завода'),kpiCard('Отгружено автомобилей',metrics.shipped,'факт на дату файла','accent-red'),kpiCard('Забронировано клиентами',metrics.booked,'все коммерческие слои','accent-green'),kpiCard('Свободный сток',metrics.free,'доступно к распределению','accent-green')].join('');
-  const balance=[metricRow('План производства',metrics.production),metricRow('План отгрузки с завода',metrics.shipPlan),metricRow('Отгружено автомобилей',metrics.shipped),metricRow('Передано в корпоративный парк',metrics.corp),metricRow('Забронировано клиентами',metrics.booked,'row-accent'),metricRow('Свободный сток / доступно',metrics.free)].join('');
+  const balance=[metricRow('План производства',metrics.production),metricRow('План отгрузки с завода',metrics.shipPlan),metricRow('Отгружено автомобилей',metrics.shipped),metricRow('Передано в корпоративный парк АТОМ',metrics.corp),metricRow('Забронировано клиентами',metrics.booked,'row-accent'),metricRow('Свободный сток / доступно',metrics.free)].join('');
   let distribution='';
   distribution+=clientSummaryRow('B2C',verticals.B2C,0);
   distribution+=clientSummaryRow('B2B',verticals.B2B,b2b.length)+b2b.map(clientDetailRow).join('');
