@@ -400,7 +400,7 @@ function renderModel(model,templateName=currentTemplateName){
     metricRow('Контракты B2G',metrics.contractsB2G,months),
     metricRow('Контракты B2C',metrics.contractsB2C,months),
     metricRow('Контракты / Забронировано ВСЕГО',metrics.bookedTotal,months,'row-accent'),
-    metricRow('Доступно а.м на конец месяца',metrics.availableEndMonth,months)
+    ...(stockVisible?[metricRow('Доступно а.м. на конец месяца',metrics.free,months)]:[])
   ].join('');
 
   let distribution='';
