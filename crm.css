@@ -43,3 +43,10 @@
 .dyn-dot{fill:#ffd800;stroke:#111318;stroke-width:1.5}
 .dyn-x,.dyn-y{font:10px Arial,Helvetica,sans-serif;fill:#667085}
 @media(max-width:760px){.dynamics-head{flex-direction:column}.dynamics-controls{grid-template-columns:1fr}.dynamics-total{font-size:18px}}
+
+.qual-legend{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:2px 0 8px;font-size:10px;color:#667085}
+.qual-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.qual-swatch.qualified,.qual-bar.qualified{fill:#43a36b;background:#43a36b}
+.qual-swatch.disqualified,.qual-bar.disqualified{fill:#cf5a50;background:#cf5a50}
+.qual-legend-note{margin-left:auto}
+.qual-total-label{font:700 11px Arial,Helvetica,sans-serif;fill:#111318}
