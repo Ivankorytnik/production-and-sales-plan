@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>АТОМ · Источники данных</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="stylesheet" href="./sources.css?v=1.0.0" />
+</head>
+<body>
+<section id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-brand">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
+    <h1>Вход для сотрудников</h1>
+    <p>Введите рабочую почту <b>@atom.team</b>.</p>
+    <div class="auth-field"><label for="authEmail">Рабочая почта</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@atom.team" /></div>
+    <div class="auth-actions"><button id="authSend" class="auth-btn" type="button">Получить ссылку на почту</button></div>
+    <div id="authStatus" class="auth-status">Проверяю текущий доступ...</div>
+    <div class="auth-note">Файлы источников не публикуются в GitHub. Они сохраняются в защищённом облачном хранилище после авторизации.</div>
+  </div>
+</section>
+
+<div id="appShell" class="app-hidden shell">
+  <aside class="sidebar">
+    <a class="brand" href="./index.html"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
+    <div class="nav-title">Проекты</div>
+    <nav class="project-nav">
+      <a href="./index.html">S&amp;OP09 plan</a>
+      <a href="./crm.html">B2B CRM Control Center</a>
+      <a class="active" href="./sources.html">Источники</a>
+    </nav>
+
+    <section class="sidebar-note">
+      <div class="sidebar-note-title">Назначение</div>
+      <div>Реестр исходных файлов с датой актуальности. Следующим шагом сюда можно будет привязать назначение каждого файла и правила загрузки данных.</div>
+    </section>
+
+    <div class="sidebar-spacer"></div>
+    <div class="user-box">
+      <span>Источники v1.0</span>
+      <span id="authUserEmail"></span>
+      <button id="authLogout" class="logout" type="button">Выйти</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="page-head">
+      <div>
+        <h1>Источники данных</h1>
+        <p>Загрузка файлов с фиксацией даты, на которую данные считаются актуальными</p>
+      </div>
+      <div id="cloudStatus" class="cloud-status">Подключение...</div>
+    </header>
+
+    <section class="card upload-card">
+      <div class="card-title-row">
+        <div>
+          <div class="eyebrow">НОВЫЙ ИСТОЧНИК</div>
+          <h2>Добавить файл</h2>
+        </div>
+        <div id="sourcePreview" class="source-preview">ШТАБ_ДД.ММ.ГГГГ</div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="sourceName">Название источника</label>
+          <input id="sourceName" type="text" value="ШТАБ" placeholder="Например, ШТАБ" />
+        </div>
+        <div class="field">
+          <label for="actualDate">Дата актуальности</label>
+          <input id="actualDate" type="date" />
+        </div>
+        <div class="field file-field">
+          <label>Файл</label>
+          <label class="file-pick">
+            <span id="filePickText">Выбрать файл</span>
+            <input id="sourceFile" type="file" />
+          </label>
+          <div id="selectedFileName" class="selected-file">Файл не выбран</div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <div class="hint">Системное имя формируется из названия источника и даты актуальности. Оригинальное имя файла сохраняется отдельно.</div>
+        <button id="uploadBtn" class="btn primary" type="button" disabled>Сохранить источник</button>
+      </div>
+      <div id="uploadMessage" class="message" aria-live="polite"></div>
+    </section>
+
+    <section class="card registry-card">
+      <div class="registry-head">
+        <div>
+          <div class="eyebrow">РЕЕСТР</div>
+          <h2>Загруженные источники</h2>
+        </div>
+        <div id="sourceCount" class="count-pill">0</div>
+      </div>
+
+      <div id="emptyState" class="empty-state">Источники пока не загружены.</div>
+      <div id="tableWrap" class="table-wrap hidden">
+        <table class="sources-table">
+          <thead>
+            <tr>
+              <th>Источник</th>
+              <th>Актуальность</th>
+              <th>Файл</th>
+              <th>Добавлен</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="sourcesBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+<script src="./sources.js?v=1.0.0"></script>
+</body>
+</html>
