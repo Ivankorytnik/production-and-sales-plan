@@ -336,7 +336,7 @@ async function renderCompare(forceList){
     const pick=chooseBaseline(items,selectedRange);
     if(!pick.entry){
       setBase('Нет файла до '+formatRuDate(pick.target),'missing','В источниках нет подходящего Excel-файла на эту дату или раньше.');
-      setAllDeltas('muted','нет базы');
+      setAllDeltas('muted','нет файла для сравнения');
       return;
     }
 
