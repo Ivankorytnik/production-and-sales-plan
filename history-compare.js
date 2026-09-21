@@ -135,16 +135,17 @@ function chooseBaseline(items,rangeKey){
   const shtab=excel.filter(function(x){return normalizeSource(x.source)==='ШТАБ'});
   const planLike=excel.filter(isPlanLike);
   const pool=shtab.length?shtab:(planLike.length?planLike:[]);
-  const eligible=pool.filter(function(x){
-    const d=parseIsoDate(x.actualDate);
-    return d&&d<=target;
+  const targetTime=target.getTime();
+  const ranked=pool.slice().sort(function(a,b){
+    const da=parseIsoDate(a.actualDate);
+    const db=parseIsoDate(b.actualDate);
+    const diffA=Math.abs(da.getTime()-targetTime);
+    const diffB=Math.abs(db.getTime()-targetTime);
+    if(diffA!==diffB)return diffA-diffB;
+    if(da.getTime()!==db.getTime())return db.getTime()-da.getTime();
+    return String(a.storageName||a.originalName||'').localeCompare(String(b.storageName||b.originalName||''),'ru');
   });
-  eligible.sort(function(a,b){
-    const da=parseIsoDate(a.actualDate).getTime();
-    const db=parseIsoDate(b.actualDate).getTime();
-    return db-da||(b.createdAt||0)-(a.createdAt||0);
-  });
-  return{entry:eligible[0]||null,target:target};
+  return{entry:ranked[0]||null,target:target};
 }
 async function listRegistry(force){
   if(!client||!user||!user.id)return[];
@@ -461,15 +462,15 @@ async function renderCompare(forceList){
     if(myRequest!==requestId)return;
     const pick=chooseBaseline(items,selectedRange);
     if(!pick.entry){
-      setBase('Нет файла до '+formatRuDate(pick.target),'missing','В источниках нет подходящего Excel-файла на эту дату или раньше.');
+      setBase('Нет файла с актуальностью около '+formatRuDate(pick.target),'missing','В «Источниках» нет подходящего файла плана с указанной датой актуальности.');
       setAllDeltas('muted','нет файла для сравнения');
       return;
     }
 
-    setBase('Сравнение с '+logicalName(pick.entry),'','Файл: '+pick.entry.originalName);
+    setBase('Актуальность '+formatRuDate(pick.entry.actualDate),'','Источник: '+logicalName(pick.entry)+' · файл: '+pick.entry.originalName);
     const historical=await baselineModel(pick.entry);
     if(myRequest!==requestId)return;
-    setBase('к '+logicalName(pick.entry),'ready','Файл: '+pick.entry.originalName);
+    setBase('Актуальность '+formatRuDate(pick.entry.actualDate),'ready','Источник: '+logicalName(pick.entry)+' · файл: '+pick.entry.originalName);
     applyDeltas(historical);
   }catch(e){
     console.error('History comparison failed',e);
