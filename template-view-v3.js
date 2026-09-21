@@ -389,8 +389,8 @@ function renderModel(model,templateName=currentTemplateName){
     smmtPlan,
     metricRow('План производства',metrics.production,months),
     metricRow('План отгрузки с завода',metrics.shipPlan,months),
-    metricRow('Отгружено автомобилей',metrics.shipped,months),
     metricRow('Доступно для отгрузки клиенту-план',metrics.clientShipPlan,months,'row-client-ship-plan'),
+    metricRow('Отгружено автомобилей',metrics.shipped,months),
     metricRow('Передано в корпоративный парк АТОМ',metrics.corp,months),
     metricRow('Забронировано клиентами',metrics.booked,months,'row-accent'),
     ...(stockVisible?[metricRow('Свободный сток / доступно',metrics.free,months)]:[])
