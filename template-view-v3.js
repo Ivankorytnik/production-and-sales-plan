@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 
-const PARSER_VERSION='3.1.1';
+const PARSER_VERSION='3.1.2';
 const MODEL_KEY='atom-production-sales-plan-current-model-v1';
 const PERIOD_KEY='atom-period-filter-v2';
 const LAYER_KEY='atom-business-layer-collapse-v2';
@@ -114,9 +114,17 @@ function parseWorkbook(buf){
     shipped:firstMetric(/^отгрузка с завода факт$|^отгружено.*авто/),
     clientShipPlan:firstMetric(s=>/^отгрузка\s+клиенту\s+план$/.test(s)||/^план\s+отгрузки\s+клиенту$/.test(s)||/^доступно\s+для\s+отгрузки\s+клиенту[-\s]*план$/.test(s)),
     corp:firstMetric(s=>(s.includes('корпоративн')&&s.includes('парк'))||s.includes('передано в корпоративный парк')),
+    contractsB2B:firstMetric(s=>hasVerticalToken(s,'B2B')&&s.includes('контракт')),
+    bookedB2B:firstMetric(s=>hasVerticalToken(s,'B2B')&&(s.includes('бронирован')||s.includes('забронирован')||s.includes('бронь'))),
+    contractsB2G:firstMetric(s=>hasVerticalToken(s,'B2G')&&s.includes('контракт')),
+    contractsB2C:firstMetric(s=>hasVerticalToken(s,'B2C')&&s.includes('контракт')),
+    bookedTotal:firstMetric(s=>(s.includes('контракт')&&(s.includes('забронирован')||s.includes('бронирован'))&&(s.includes('всего')||s.includes('итого')))),
     booked:firstMetric(s=>s==='выдачи'||s==='всего забронировано'||s==='забронировано клиентами'||(s.includes('забронировано')&&s.includes('всего'))),
+    availableEndMonth:firstMetric(s=>s.startsWith('доступно')&&s.includes('конец месяца')),
     free:(()=>{const exact=firstMetric(s=>s.includes('свободный сток'));return exact.found?exact:firstMetric(s=>s==='доступно'||(s.startsWith('доступно')&&s.includes('конец месяца')))})()
   };
+  if(!metrics.bookedTotal.found)metrics.bookedTotal=metrics.booked;
+  if(!metrics.availableEndMonth.found)metrics.availableEndMonth=metrics.free;
 
   const verticals={B2B:null,B2G:null,B2C:null};
   const clients={},order=[];
@@ -384,16 +392,15 @@ function renderModel(model,templateName=currentTemplateName){
     kpiCard('Забронировано клиентами',metrics.booked,p.label,'accent-green'),
     ...(stockVisible?[kpiCard('Свободный сток',metrics.free,p.label,'accent-green')]:[])
   ].join('');
-  const smmtPlan=smmtVisible?smmtPlanRow(model.smmt,metrics.production,months):'';
   const balance=[
-    smmtPlan,
-    metricRow('План производства',metrics.production,months),
-    metricRow('План отгрузки с завода',metrics.shipPlan,months),
-    metricRow('Доступно для отгрузки клиенту-план',metrics.clientShipPlan,months,'row-client-ship-plan'),
-    metricRow('Отгружено автомобилей',metrics.shipped,months),
-    metricRow('Передано в корпоративный парк АТОМ',metrics.corp,months),
-    metricRow('Забронировано клиентами',metrics.booked,months,'row-accent'),
-    ...(stockVisible?[metricRow('Свободный сток / доступно',metrics.free,months)]:[])
+    metricRow('План производства 2026 S&OP09',metrics.production,months),
+    metricRow('В корпоративный парк АТОМ / инженерам',metrics.corp,months),
+    metricRow('Контракты B2B',metrics.contractsB2B,months),
+    metricRow('Бронирование B2B',metrics.bookedB2B,months),
+    metricRow('Контракты B2G',metrics.contractsB2G,months),
+    metricRow('Контракты B2C',metrics.contractsB2C,months),
+    metricRow('Контракты / Забронировано ВСЕГО',metrics.bookedTotal,months,'row-accent'),
+    metricRow('Доступно а.м на конец месяца',metrics.availableEndMonth,months)
   ].join('');
 
   let distribution='';
