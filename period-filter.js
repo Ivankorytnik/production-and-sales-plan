@@ -155,7 +155,7 @@ function rebuildTables(model){
       metricRow('План отгрузки с завода',model.metrics?.shipPlan,months),
       metricRow('Отгружено автомобилей',model.metrics?.shipped,months),
       metricRow('Доступно для отгрузки клиенту-план',model.metrics?.clientShipPlan,months,'row-client-ship-plan'),
-      metricRow('Передано в корпоративный парк',model.metrics?.corp,months),
+      metricRow('Передано в корпоративный парк АТОМ',model.metrics?.corp,months),
       metricRow('Забронировано клиентами',model.metrics?.booked,months,'row-accent'),
       metricRow('Свободный сток / доступно',model.metrics?.free,months)
     ].join('');
