@@ -301,9 +301,10 @@ function ensureSmmtToggleButton(){
 function kpiCard(label,metric,note,tone=''){
   return `<div class="analytics-kpi ${tone}"><div class="analytics-kpi-label">${esc(label)}</div><div class="analytics-kpi-value">${metric?.found?fmt(metricTotal(metric)):'·'}</div><div class="analytics-kpi-note">${esc(note)}</div></div>`;
 }
-function metricRow(label,metric,months,cls=''){
+function metricRow(label,metric,months,cls='',historyKey=''){
   const missing=!metric?.found?' is-missing':'';
-  return `<tr class="${cls}${missing}"><td class="dash-label">${esc(label)}</td><td class="dash-total">${metric?.found?dot(metricTotal(metric)):'·'}</td>${months.map(m=>`<td class="dash-num">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  const historyAttr=historyKey?` data-history-metric="${esc(historyKey)}"`:'';
+  return `<tr class="${cls}${missing}"${historyAttr}><td class="dash-label">${esc(label)}</td><td class="dash-total" data-history-cell="total">${metric?.found?dot(metricTotal(metric)):'·'}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function compareTone(value,production){
   const a=Number(value||0),b=Number(production||0);
@@ -357,18 +358,19 @@ function companyRow(group,months){
   const noPlannedDeliveries=annualTotal(group.metric)===0;
   const hint=noPlannedDeliveries?`<span class="no-deliveries-hint" tabindex="0" role="note" aria-label="Нет запланированных выдач" title="Нет запланированных выдач">!</span>`:'';
   const encoded=encodeURIComponent(group.key);
-  return `<tr class="company-row${expanded?' company-expanded':''}${noPlannedDeliveries?' no-planned-deliveries':''}" data-company-toggle="${esc(encoded)}" tabindex="0" role="button" aria-expanded="${expanded?'true':'false'}"><td></td><td class="project-name company-name"><strong>${esc(group.label)}</strong>${hint}<small>${group.items.length} ${projectWord(group.items.length)} · ${expanded?'Скрыть':'Показать'}</small></td><td class="dash-total">${dot(metricTotal(group.metric))}</td>${months.map(m=>`<td class="dash-num">${dot(group.metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  return `<tr class="company-row${expanded?' company-expanded':''}${noPlannedDeliveries?' no-planned-deliveries':''}" data-company-toggle="${esc(encoded)}" data-history-company="${esc(encoded)}" tabindex="0" role="button" aria-expanded="${expanded?'true':'false'}"><td></td><td class="project-name company-name"><strong>${esc(group.label)}</strong>${hint}<small>${group.items.length} ${projectWord(group.items.length)} · ${expanded?'Скрыть':'Показать'}</small></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(group.metric))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(group.metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function projectRow(x,months,index){
   const noPlannedDeliveries=annualTotal(x)===0;
-  return `<tr class="client-detail project-detail${noPlannedDeliveries?' no-planned-deliveries':''}"${noPlannedDeliveries?' title="Нет запланированных выдач"':''}><td></td><td class="project-name"><span class="project-indent">↳</span><strong>${esc(projectLabel(x,index))}</strong></td><td class="dash-total">${dot(metricTotal(x))}</td>${months.map(m=>`<td class="dash-num">${dot(x?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  const historyKey=encodeURIComponent(x?.key||'');
+  return `<tr class="client-detail project-detail${noPlannedDeliveries?' no-planned-deliveries':''}" data-history-project="${esc(historyKey)}"${noPlannedDeliveries?' title="Нет запланированных выдач"':''}><td></td><td class="project-name"><span class="project-indent">↳</span><strong>${esc(projectLabel(x,index))}</strong></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(x))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(x?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function clientSummaryRow(layer,metric,count,months,collapsed){
   const staticRow=count===0;
   const cls=staticRow?'layer-summary layer-static':`layer-summary layer-toggle-row${collapsed?' layer-collapsed':''}`;
   const attr=staticRow?'':` data-layer-toggle="${layer}" tabindex="0" role="button" aria-expanded="${collapsed?'false':'true'}"`;
   const small=count?`${count} ${companyWord(count)} · ${collapsed?'Показать':'Скрыть'}`:'итого';
-  return `<tr class="${cls}"${attr}><td class="layer-name"><strong>${esc(layer)}</strong><small>${small}</small></td><td class="project-name"><strong>Итого ${esc(layer)}</strong></td><td class="dash-total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  return `<tr class="${cls}" data-history-layer="${esc(layer)}"${attr}><td class="layer-name"><strong>${esc(layer)}</strong><small>${small}</small></td><td class="project-name"><strong>Итого ${esc(layer)}</strong></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function renderControls(model){
   const halfOptions=['H1','H2'].map(h=>`<option value="${h}"${h===periodState.key?' selected':''}>${PERIODS[h].label}</option>`).join('');
@@ -393,14 +395,14 @@ function renderModel(model,templateName=currentTemplateName){
     ...(stockVisible?[kpiCard('Свободный сток',metrics.free,p.label,'accent-green')]:[])
   ].join('');
   const balance=[
-    metricRow('План производства 2026 S&OP09',metrics.production,months),
-    metricRow('В корпоративный парк АТОМ / инженерам',metrics.corp,months),
-    metricRow('Контракты B2B',metrics.contractsB2B,months),
-    metricRow('Бронирование B2B',metrics.bookedB2B,months),
-    metricRow('Контракты B2G',metrics.contractsB2G,months),
-    metricRow('Контракты B2C',metrics.contractsB2C,months),
-    metricRow('Контракты / Забронировано ВСЕГО',metrics.bookedTotal,months,'row-accent'),
-    ...(stockVisible?[metricRow('Доступно а.м. на конец месяца',metrics.free,months)]:[])
+    metricRow('План производства 2026 S&OP09',metrics.production,months,'','production'),
+    metricRow('В корпоративный парк АТОМ / инженерам',metrics.corp,months,'','corp'),
+    metricRow('Контракты B2B',metrics.contractsB2B,months,'','contractsB2B'),
+    metricRow('Бронирование B2B',metrics.bookedB2B,months,'','bookedB2B'),
+    metricRow('Контракты B2G',metrics.contractsB2G,months,'','contractsB2G'),
+    metricRow('Контракты B2C',metrics.contractsB2C,months,'','contractsB2C'),
+    metricRow('Контракты / Забронировано ВСЕГО',metrics.bookedTotal,months,'row-accent','bookedTotal'),
+    ...(stockVisible?[metricRow('Доступно а.м. на конец месяца',metrics.free,months,'','free')]:[])
   ].join('');
 
   let distribution='';
@@ -420,7 +422,7 @@ function renderModel(model,templateName=currentTemplateName){
       }
     }
   }
-  distribution+=`<tr class="grand-total"><td class="layer-name"><strong>ВСЕГО</strong></td><td class="project-name"><strong>Забронировано клиентами</strong></td><td class="dash-total">${dot(metricTotal(metrics.booked))}</td>${months.map(m=>`<td class="dash-num">${dot(metrics.booked?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  distribution+=`<tr class="grand-total" data-history-metric="booked"><td class="layer-name"><strong>ВСЕГО</strong></td><td class="project-name"><strong>Забронировано клиентами</strong></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(metrics.booked))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metrics.booked?.months?.[m]||0)}</td>`).join('')}</tr>`;
 
   one.innerHTML=`<div class="analytics-head analytics-head-date-only"><div class="analytics-data-date">Данные на ${esc(date)}</div></div><div class="analytics-filterbar">${renderControls(model)}</div><div class="analytics-kpi-grid">${kpiHtml}</div><section class="analytics-section"><div class="analytics-section-title">БАЛАНС ПРОИЗВОДСТВА И ПРОДАЖ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table balance-table"><thead><tr><th>Показатель</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${balance}</tbody></table></div></section><section class="analytics-section distribution-section"><div class="analytics-section-title">КОММЕРЧЕСКОЕ РАСПРЕДЕЛЕНИЕ ПО СЛОЯМ · ${esc(p.short.toUpperCase())}</div><div class="analytics-table-wrap"><table class="analytics-table distribution-table"><thead><tr><th>Бизнес-слой</th><th>Компания</th><th>${esc(totalHeader())}</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>${distribution}</tbody></table></div></section><div class="analytics-footnote"><span>Источник: ${esc(model.sheetName||'S&OP09 plan')}.</span><span>${esc(currentTemplateName)}</span></div>`;
   ensureStockToggleButton();
