@@ -183,6 +183,111 @@ function signedFmt(value){
   if(v<0)return'-'+fmt(Math.abs(v));
   return'0';
 }
+function keyNorm(v){
+  return n(v).toLowerCase().replace(/ё/g,'е');
+}
+function historyCompanyLabel(x){
+  const s=keyNorm(x&&x.name);
+  if(s==='ассоциация учреждений по управлению имуществом и материального обеспечения')return'Ассоциация учреждений УИМО';
+  return n(x&&((x.name||x.displayName))||'Компания');
+}
+function emptyMetric(){
+  return{found:true,months:{},year:0,yearFound:true};
+}
+function addMetricLocal(target,src){
+  if(!target)target=emptyMetric();
+  MONTHS.forEach(function(m){target.months[m]=Number(target.months[m]||0)+Number(src&&src.months&&src.months[m]||0)});
+  if(src&&src.yearFound){target.year=Number(target.year||0)+Number(src.year||0);target.yearFound=true}
+  target.found=true;
+  return target;
+}
+function companyMetric(model,encodedKey){
+  let decoded='';
+  try{decoded=decodeURIComponent(encodedKey||'')}catch{decoded=String(encodedKey||'')}
+  const parts=decoded.split('|');
+  const vertical=parts.shift()||'';
+  const wanted=parts.join('|');
+  const items=(model&&model.clients||[]).filter(function(x){
+    return String(x&&x.vertical||'')===vertical&&keyNorm(historyCompanyLabel(x))===wanted;
+  });
+  if(!items.length)return emptyMetric();
+  return items.reduce(function(acc,x){return addMetricLocal(acc,x)},emptyMetric());
+}
+function projectMetric(model,encodedKey){
+  let decoded='';
+  try{decoded=decodeURIComponent(encodedKey||'')}catch{decoded=String(encodedKey||'')}
+  const found=(model&&model.clients||[]).find(function(x){return String(x&&x.key||'')===decoded});
+  return found||emptyMetric();
+}
+function rowMetric(model,row){
+  if(!model||!row)return null;
+  const metricKey=row.dataset.historyMetric;
+  if(metricKey)return model.metrics&&model.metrics[metricKey]||null;
+  const layer=row.dataset.historyLayer;
+  if(layer)return model.verticals&&model.verticals[layer]||emptyMetric();
+  const company=row.dataset.historyCompany;
+  if(company)return companyMetric(model,company);
+  const project=row.dataset.historyProject;
+  if(project)return projectMetric(model,project);
+  return null;
+}
+function valueForCell(metric,cell){
+  if(!metric||metric.found===false)return null;
+  if(cell.dataset.historyCell==='total')return metricTotal(metric);
+  const month=cell.dataset.historyMonth;
+  if(month)return Number(metric.months&&metric.months[month]||0);
+  return null;
+}
+function ensureCellDelta(cell){
+  let current=cell.querySelector(':scope > .history-cell-current');
+  if(!current){
+    const raw=n(cell.textContent);
+    cell.replaceChildren();
+    current=document.createElement('span');
+    current.className='history-cell-current';
+    current.textContent=raw||'·';
+    const delta=document.createElement('span');
+    delta.className='history-cell-delta muted';
+    delta.dataset.historyCellDelta='1';
+    cell.append(current,delta);
+  }
+  return cell.querySelector(':scope > [data-history-cell-delta]');
+}
+function setTableDeltas(state,text){
+  document.querySelectorAll('#onePage tr[data-history-metric],#onePage tr[data-history-layer],#onePage tr[data-history-company],#onePage tr[data-history-project]').forEach(function(row){
+    row.querySelectorAll('td[data-history-cell],td[data-history-month]').forEach(function(cell){
+      const delta=ensureCellDelta(cell);
+      if(!delta)return;
+      delta.className='history-cell-delta '+(state||'muted');
+      delta.textContent=text||'';
+      delta.removeAttribute('title');
+    });
+  });
+}
+function applyTableDeltas(historyModel){
+  const current=window.ATOMCurrentModel;
+  document.querySelectorAll('#onePage tr[data-history-metric],#onePage tr[data-history-layer],#onePage tr[data-history-company],#onePage tr[data-history-project]').forEach(function(row){
+    const currentMetric=rowMetric(current,row);
+    const oldMetric=rowMetric(historyModel,row);
+    row.querySelectorAll('td[data-history-cell],td[data-history-month]').forEach(function(cell){
+      const deltaEl=ensureCellDelta(cell);
+      if(!deltaEl)return;
+      const currentValue=valueForCell(currentMetric,cell);
+      const oldValue=valueForCell(oldMetric,cell);
+      if(currentValue===null||oldValue===null){
+        deltaEl.className='history-cell-delta muted';
+        deltaEl.textContent='·';
+        deltaEl.title='Нет данных для сравнения';
+        return;
+      }
+      const diff=currentValue-oldValue;
+      deltaEl.className='history-cell-delta '+(diff>0?'up':diff<0?'down':'flat');
+      deltaEl.textContent=signedFmt(diff);
+      deltaEl.title='Было: '+fmt(oldValue)+'. Сейчас: '+fmt(currentValue)+'. Изменение: '+signedFmt(diff)+'.';
+    });
+  });
+}
+
 function ensureXLSX(){
   if(window.XLSX)return Promise.resolve();
   return new Promise(function(resolve,reject){
@@ -304,6 +409,7 @@ function setAllDeltas(state,text){
     delta.className='history-delta '+(state||'muted');
     delta.textContent=text||'';
   });
+  setTableDeltas(state,text==='нет файла для сравнения'?'':text);
 }
 function applyDeltas(historyModel){
   const current=window.ATOMCurrentModel;
@@ -333,6 +439,7 @@ function applyDeltas(historyModel){
     deltaEl.title='Было: '+fmt(oldValue)+'. Сейчас: '+fmt(currentValue)+'. Изменение: '+signedFmt(diff)+'.';
   });
 }
+  applyTableDeltas(historyModel);
 async function renderCompare(forceList){
   clearTimeout(renderTimer);
   const one=document.getElementById('onePage');
