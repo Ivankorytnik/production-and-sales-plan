@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
-  <link rel="stylesheet" href="./crm.css?v=1.0.0" />
+  <link rel="stylesheet" href="./crm.css?v=1.0.1" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -26,6 +26,16 @@
     <nav class="project-nav"><a href="./index.html">S&amp;OP09 plan</a><a class="active" href="./crm.html">B2B CRM Control Center</a></nav>
     <div class="nav-title">CRM</div>
     <nav class="page-nav"><a href="#source">Исходные данные</a><a class="active" href="#dashboard">Аналитика</a></nav>
+
+    <section id="source" class="sidebar-source">
+      <div class="sidebar-source-title">Выгрузка лидов ELMA</div>
+      <div class="sidebar-source-text">Загрузите актуальный файл <b>_opportunities.xlsx</b>. Используется первый лист.</div>
+      <div class="sidebar-source-note"><b>Конфиденциальность:</b> файл читается на вашем компьютере и не записывается в публичный репозиторий.</div>
+      <label class="btn primary file-pick sidebar-upload">Загрузить Excel<input id="crmFile" type="file" accept=".xlsx,.xls,.xlsm" /></label>
+      <button id="clearBtn" class="btn sidebar-clear" type="button" disabled>Сбросить данные</button>
+      <div id="fileStatus" class="statusline">Файл не загружен.</div>
+    </section>
+
     <div class="sidebar-spacer"></div>
     <div class="user-box"><span>CRM MVP v1.0</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
   </aside>
@@ -34,10 +44,6 @@
       <div><h1>ATOM B2B CRM Control Center</h1><p>Состояние B2B-воронки ELMA, активность менеджеров и качество данных</p></div>
       <div class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
     </header>
-    <section id="source" class="source">
-      <div><h2>Выгрузка лидов ELMA</h2><p>Загрузите актуальный файл <b>_opportunities.xlsx</b>. Используется первый лист.</p><div class="privacy"><b>Конфиденциальность:</b> файл читается на вашем компьютере. Исходные данные не записываются в публичный репозиторий.</div><div id="fileStatus" class="statusline">Файл не загружен.</div></div>
-      <div class="actions"><label class="btn primary file-pick">Загрузить Excel<input id="crmFile" type="file" accept=".xlsx,.xls,.xlsm" /></label><button id="clearBtn" class="btn" type="button" disabled>Сбросить данные</button></div>
-    </section>
     <section id="emptyState" class="card empty section">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</section>
     <div id="dashboard" class="dashboard hidden">
       <section class="section card callout"><div><strong>CRM-срез по загруженной выгрузке</strong><br><span>Данные рассчитываются в браузере</span></div><div><span>Источник: </span><b id="sourceName"></b></div></section>
