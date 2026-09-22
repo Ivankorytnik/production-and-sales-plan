@@ -97,7 +97,7 @@
         <div class="card kpi"><div class="label">Компаний</div><div id="aKCompanies" class="value">0</div><div class="foot">уникальные компании</div></div>
         <div class="card kpi"><div class="label">Рабочих листов</div><div id="aKRows" class="value">0</div><div class="foot">строки файла</div></div>
         <div class="card kpi"><div class="label">Этапов</div><div id="aKStages" class="value">0</div><div class="foot">фактические этапы</div></div>
-        <div class="card kpi"><div class="label">Ответственных</div><div id="aKOwners" class="value">0</div><div class="foot">по рабочему листу</div></div>
+        <div class="card kpi"><div class="label">Авторов</div><div id="aKOwners" class="value">0</div><div class="foot">по рабочему листу</div></div>
       </section>
 
       <section class="section grid2">
@@ -106,12 +106,12 @@
           <div id="alfaStageBars"></div>
         </div>
         <div class="card panel">
-          <div class="panel-title">По ответственным</div>
+          <div class="panel-title">По авторам</div>
           <table class="owners">
-            <thead><tr><th>Ответственный</th><th class="num">Компаний</th><th class="num">РЛ</th></tr></thead>
+            <thead><tr><th>Автор</th><th class="num">Компаний</th><th class="num">РЛ</th></tr></thead>
             <tbody id="alfaOwnersBody"></tbody>
           </table>
-          <div id="alfaOwnersEmpty" class="empty hidden">Ответственный в файле не найден.</div>
+          <div id="alfaOwnersEmpty" class="empty hidden">Автор в файле не найден.</div>
         </div>
       </section>
 
@@ -121,12 +121,12 @@
           <div class="alfa-summary-filters">
             <input id="alfaSearch" type="search" placeholder="Поиск по компании..." />
             <select id="alfaStageFilter"><option value="">Все этапы</option></select>
-            <select id="alfaOwnerFilter"><option value="">Все ответственные</option></select>
+            <select id="alfaOwnerFilter"><option value="">Все авторы</option></select>
           </div>
         </div>
         <div class="table-wrap">
           <table class="tbl alfa-summary-table">
-            <thead><tr><th>Компания</th><th>Этап</th><th>Ответственный</th></tr></thead>
+            <thead><tr><th>Компания</th><th>Этап</th><th>Автор</th></tr></thead>
             <tbody id="alfaSummaryBody"></tbody>
           </table>
         </div>
@@ -187,6 +187,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.9.1"></script>
+<script src="./crm.js?v=1.9.2"></script>
 </body>
 </html>
