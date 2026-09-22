@@ -68,3 +68,8 @@
 .header-projects a:hover{background:#f4f6f8;color:#101828}
 .header-projects a.active{background:#111318;border-color:#111318;color:#fff}
 @media(max-width:760px){.header-projects{width:100%}}
+
+
+.sidebar-source-date{display:grid;gap:5px}
+.sidebar-source-date label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#667085;font-weight:700}
+.sidebar-source-date input{height:34px;border:1px solid #d0d5dd;background:#fff;border-radius:7px;padding:0 8px;font-size:11px;outline:none}
