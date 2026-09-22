@@ -44,10 +44,10 @@ function renderFunnel(){
   if(!stages.some(x=>x.count)){box.innerHTML='<div class="empty">Нет данных для построения воронки.</div>';return}
   const max=Math.max(1,...stages.map(x=>x.count));
   box.innerHTML=stages.map((s,i)=>{
-    const width=Math.max(18,Math.round(s.count/max*100));
+    const width=s.count<=0?0:(s.count/max*100);
     const prev=i?stages[i-1].count:null;
     const conv=prev>0?Math.round(s.count/prev*100):null;
-    return '<div class="funnel-row"><div class="funnel-step">'+(i+1)+'</div><div class="funnel-main"><div class="funnel-label"><span>'+esc(s.name)+'</span><small>'+s.source+'</small></div><div class="funnel-track"><div class="funnel-bar '+(s.source==='ELMA'?'elma':'alfa')+'" style="width:'+width+'%"><b>'+fmt(s.count)+'</b></div></div></div><div class="funnel-conv">'+(conv==null?'':conv+'%')+'</div></div>';
+    return '<div class="funnel-row"><div class="funnel-step">'+(i+1)+'</div><div class="funnel-main"><div class="funnel-label"><span>'+esc(s.name)+'</span><span class="funnel-label-meta"><b>'+fmt(s.count)+'</b><small>'+s.source+'</small></span></div><div class="funnel-track"><div class="funnel-bar '+(s.source==='ELMA'?'elma':'alfa')+'" style="width:'+width+'%"></div></div></div><div class="funnel-conv">'+(conv==null?'':conv+'%')+'</div></div>';
   }).join('');
 }
 function bucketLabel(d,grain){if(grain==='day')return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});if(grain==='week')return 'Нед. '+isoWeekNumber(d)+' · с '+d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});if(grain==='month')return d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'});if(grain==='quarter')return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear();return String(d.getFullYear())}
