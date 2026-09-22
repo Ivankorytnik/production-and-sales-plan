@@ -7,6 +7,7 @@ const date=v=>{if(!v)return null;const s=String(v),m=s.match(/^(\d{1,2})\.(\d{1,
 const vcat=v=>{const s=strip(v).toLowerCase();if(!s)return'Не указана';if(s.includes('corp')||s.includes('корп'))return'Корпоративные';if(s.includes('taxi')||s.includes('такс'))return'Такси';if(s.includes('delivery')||s.includes('достав'))return'Доставка';if(s==='gr'||s.includes('b2g'))return'GR / B2G';if(s.includes('carsharing')||s.includes('каршер'))return'Каршеринг';return strip(v)};
 const SNAPSHOT_KEY='atom_b2b_crm_snapshot_v1';
 const ALFA_SNAPSHOT_KEY='atom_b2b_alfa_funnel_snapshot_v1';
+const ALFA_FUNNEL_STAGES=['Подтвержден потенциал','Состоялось знакомство с ЛПР','Выявлена потребность','Направлено КП','КП принято','Подписан ДКП','Получена оплата','Передано в доставку','Выданы все автомобили','Отказ'];
 const versionEl=document.getElementById('crmVersion');
 if(versionEl){const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');versionEl.textContent='CRM MVP v1.5 · загрузка '+loadedAt;}
 let data=[], current=[];
@@ -35,7 +36,7 @@ function renderFunnel(){
   const stages=[
     {name:'Новые лиды',count:e.newLeads,source:'ELMA'},
     {name:'Квалификация',count:e.qualified,source:'ELMA'},
-    ...((a?.stages||[]).map(x=>({name:x.name,count:Number(x.count)||0,source:'Альфа'})))
+    ...ALFA_FUNNEL_STAGES.map(name=>{const hit=(a?.stages||[]).find(x=>String(x.name||'').trim().toLowerCase()===name.toLowerCase());return{name,count:Number(hit?.count)||0,source:'Альфа'}})
   ];
   $('#funnelElmaMeta').textContent=data.length?'ELMA: '+fmt(data.length)+' лидов':'ELMA: нет данных';
   $('#funnelAlfaMeta').textContent=a?'Альфа: '+(a.fileName||'рабочий лист')+(a.actualDate?' · '+a.actualDate:''):'Альфа: нет данных';
