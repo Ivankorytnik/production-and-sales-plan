@@ -216,29 +216,44 @@ $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics
       }
       const numbered=order.length>0&&order.every(x=>/^\s*\d+/.test(x));
       if(numbered)order.sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
-      let ownerCol=-1,ownerBest=-1;
-      header.forEach((v,i)=>{
+      let ownerCol=-1,ownerHeaderRow=-1,ownerBest=-Infinity;
+      const topRows=Math.min(matrix.length,35);
+      const looksLikeName=v=>{
         const s=String(v||'').trim();
-        const technical=/id|код|номер|uid|guid/i.test(s);
-        const score=technical?0:
-          (/^автор$/i.test(s)?100:0)+
-          (/автор.*фио|фио.*автор/i.test(s)?95:0)+
-          (/автор.*имя|имя.*автор/i.test(s)?90:0)+
-          (/автор/i.test(s)?80:0)+
-          (/ответствен.*фио|фио.*ответствен/i.test(s)?70:0)+
-          (/ответствен/i.test(s)?60:0)+
-          (/менеджер/i.test(s)?50:0)+
-          (/продавец/i.test(s)?40:0)+
-          (/owner/i.test(s)?30:0);
-        if(score>ownerBest){ownerBest=score;ownerCol=i}
-      });
+        if(!s||/^\d+(?:[.,]\d+)?$/.test(s))return false;
+        if(!/[A-Za-zА-Яа-яЁё]/.test(s))return false;
+        const parts=s.replace(/[.,()]/g,' ').split(/\s+/).filter(Boolean);
+        return parts.length>=2 || /[А-ЯA-Z][а-яa-z]+\s+[А-ЯA-Z]\.?[А-ЯA-Z]?\.?/u.test(s);
+      };
+      for(let hr=0;hr<topRows;hr++){
+        const hrow=matrix[hr]||[];
+        hrow.forEach((v,i)=>{
+          const s=String(v||'').trim();
+          if(!/автор|author|фио.*автор|автор.*фио/i.test(s))return;
+          if(/id|код|номер|uid|guid/i.test(s))return;
+          const sample=matrix.slice(hr+1,Math.min(matrix.length,hr+41)).map(r=>String((r||[])[i]||'').trim()).filter(Boolean);
+          const numeric=sample.filter(x=>/^\d+(?:[.,]\d+)?$/.test(x)).length;
+          const names=sample.filter(looksLikeName).length;
+          const base=(/^автор$/i.test(s)?120:0)+(/автор.*фио|фио.*автор/i.test(s)?150:0)+(/автор.*имя|имя.*автор/i.test(s)?130:0)+(/author/i.test(s)?60:0);
+          const score=base+names*12-numeric*20;
+          if(score>ownerBest){ownerBest=score;ownerCol=i;ownerHeaderRow=hr}
+        });
+      }
+      if(ownerCol>=0){
+        const sample=matrix.slice(ownerHeaderRow+1,Math.min(matrix.length,ownerHeaderRow+41)).map(r=>String((r||[])[ownerCol]||'').trim()).filter(Boolean);
+        const names=sample.filter(looksLikeName).length;
+        const numeric=sample.filter(x=>/^\d+(?:[.,]\d+)?$/.test(x)).length;
+        if(!names||numeric>names){ownerCol=-1;ownerHeaderRow=-1}
+      }
       const rows=[];
-      for(let r=headerRow+1;r<matrix.length;r++){
+      const dataStart=Math.max(headerRow,ownerHeaderRow>=0?ownerHeaderRow:headerRow)+1;
+      for(let r=dataStart;r<matrix.length;r++){
         const row=matrix[r]||[],stage=String(row[statusCol]||'').trim(),companyRaw=String(row[companyCol]||'').trim(),company=normalizeCompany(companyRaw);
         if(!stage||!company)continue;
         rows.push({stage,company:companyRaw,companyKey:company,owner:ownerCol>=0?String(row[ownerCol]||'').trim():''});
       }
-      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),ownerHeader:ownerCol>=0?String(header[ownerCol]||''):'',stages:order.map(stage=>({name:stage,count:companies.get(stage).size})),rows};
+      const ownerHeader=ownerCol>=0&&ownerHeaderRow>=0?String((matrix[ownerHeaderRow]||[])[ownerCol]||''):'';
+      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),ownerHeader,stages:order.map(stage=>({name:stage,count:companies.get(stage).size})),rows};
       localStorage.setItem('atom_b2b_alfa_funnel_snapshot_v1',JSON.stringify(snap));
       window.dispatchEvent(new CustomEvent('atom-alfa-updated'));
     }catch(parseErr){
