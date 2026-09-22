@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./crm.css?v=1.3.2" />
+  <link rel="stylesheet" href="./crm.css?v=1.3.3" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -26,7 +26,7 @@
     <div class="nav-title">Данные</div>
     <nav class="project-nav"><a href="./sources.html?project=crm">Источники</a></nav>
     <div class="nav-title">CRM</div>
-    <nav class="page-nav"><a href="#source">Исходные данные</a><a id="navAnalytics" class="active" href="#analytics">Сводная ЭЛМА Лиды</a><a id="navDynamics" href="#dynamics">Динамика</a></nav>
+    <nav class="page-nav"><a href="#source">Исходные данные</a><a id="navAnalytics" class="active" href="#analytics">Сводная ЭЛМА Лиды</a><a id="navFunnel" href="#funnel">Воронка</a><a id="navDynamics" href="#dynamics">Динамика</a></nav>
 
     <section id="source" class="sidebar-source">
       <div class="sidebar-source-title">Выгрузка лидов ELMA</div>
@@ -49,7 +49,7 @@
     </section>
 
     <div class="sidebar-spacer"></div>
-    <div class="user-box"><span id="crmVersion">CRM MVP v1.4</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
+    <div class="user-box"><span id="crmVersion">CRM MVP v1.5</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
   </aside>
   <main class="main">
     <header class="page-head">
@@ -84,6 +84,23 @@
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Компания</th><th>Дата создания</th><th>Статус</th><th>Вертикаль</th><th>Ответственный</th><th>Свежесть</th><th class="num">Дней</th><th>Ближайшая задача</th><th class="num">Автопарк</th><th class="num">ATOM</th><th>Контакт</th></tr></thead><tbody id="tbody"></tbody></table></div>
       </section>
     </div>
+
+    <section id="funnelView" class="dashboard hidden">
+      <section class="section card funnel-panel">
+        <div class="funnel-head">
+          <div>
+            <div class="panel-title">Сквозная воронка ELMA → Альфа</div>
+            <div class="dynamics-subtitle">1–2 этапы считаются из ELMA. Далее используется последний загруженный файл «Альфа · рабочий лист».</div>
+          </div>
+          <div class="funnel-source-meta">
+            <span id="funnelElmaMeta">ELMA: нет данных</span>
+            <span id="funnelAlfaMeta">Альфа: нет данных</span>
+          </div>
+        </div>
+        <div id="funnelNotice" class="funnel-notice"></div>
+        <div id="funnelStages" class="funnel-stages"></div>
+      </section>
+    </section>
 
     <section id="dynamicsView" class="dashboard hidden">
       <section class="section card dynamics-panel">
@@ -120,6 +137,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.7.0"></script>
+<script src="./crm.js?v=1.8.0"></script>
 </body>
 </html>
