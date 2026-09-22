@@ -8,6 +8,8 @@ const vcat=v=>{const s=strip(v).toLowerCase();if(!s)return'Не указана';
 const SNAPSHOT_KEY='atom_b2b_crm_snapshot_v1';
 const ELMA_FROM=new Date(2026,8,1);
 const ALFA_SNAPSHOT_KEY='atom_b2b_alfa_funnel_snapshot_v1';
+const ALFA_FUNNEL_ORDER=['Подтвержден потенциал','Состоялось знакомство с ЛПР','Выявлена потребность','Направлено КП','КП принято','Подписан ДКП','Получена оплата','Передано в доставку','Выданы все автомобили','Отказ'];
+const normalizeStageName=v=>String(v||'').toLowerCase().replace(/ё/g,'е').replace(/^\s*\d+\s*[.):-]?\s*/,'').replace(/[^a-zа-я0-9]+/gi,' ').trim().replace(/\s+/g,' ');
 const versionEl=document.getElementById('crmVersion');
 if(versionEl){const loadedAt=new Date().toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');versionEl.textContent='CRM MVP v1.5 · загрузка '+loadedAt;}
 let data=[], current=[];
@@ -65,7 +67,7 @@ function renderFunnel(){
   const e=funnelElmaStages(),a=alfaSnapshot();
   const stages=[
     ...e,
-    ...((a?.countType==='companies'?a.stages:[]).map(x=>({name:x.name,count:Number(x.count)||0,source:'Альфа'})))
+    ...ALFA_FUNNEL_ORDER.map(name=>{const hit=(a?.countType==='companies'?a.stages:[]).find(x=>normalizeStageName(x.name)===normalizeStageName(name));return{name,count:Number(hit?.count)||0,source:'Альфа'}})
   ];
   $('#funnelElmaMeta').textContent=data.length?'ELMA: воронка по уникальным компаниям':'ELMA: нет данных';
   $('#funnelAlfaMeta').textContent=a&&a.countType==='companies'?'Альфа: '+(a.fileName||'рабочий лист')+(a.actualDate?' · '+a.actualDate:'')+' · по компаниям':'Альфа: загрузите файл заново';
