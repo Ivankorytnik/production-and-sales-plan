@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./crm.css?v=1.3.7" />
+  <link rel="stylesheet" href="./crm.css?v=1.3.8" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -71,12 +71,11 @@
         <div class="card kpi"><div class="label">Всего лидов</div><div id="kTotal" class="value">0</div><div class="foot">полная выгрузка</div></div>
         <div class="card kpi"><div class="label">Формально активные</div><div id="kActive" class="value">0</div><div class="foot">без дисквалифицированных</div></div>
         <div class="card kpi live"><div class="label">Живой контур ≤30 дней</div><div id="kLive" class="value">0</div><div class="foot">по последней значимой дате</div></div>
-        <div class="card kpi stale"><div class="label">Просрочены &gt;90 дней</div><div id="kStale" class="value">0</div><div class="foot">требуют ревизии</div></div>
-        <div class="card kpi new"><div class="label">Есть ближайшая задача</div><div id="kTasks" class="value">0</div><div class="foot">управляемая работа</div></div>
+        <div class="card kpi stale"><div class="label">Просрочены &gt;1 дня</div><div id="kStale" class="value">0</div><div class="foot">требуют ревизии</div></div>
       </section>
       <section class="section grid2"><div class="card panel"><div class="panel-title">Воронка по статусам</div><div id="statusBars"></div></div><div class="card panel"><div class="panel-title">База по вертикалям</div><div id="verticalBars"></div></div></section>
       <section class="section grid2">
-        <div class="card panel"><div class="panel-title">Нагрузка и состояние по ответственным</div><table class="owners"><thead><tr><th>Ответственный</th><th class="num">Лидов</th><th class="num">≤30</th><th class="num">&gt;90</th><th class="num">С задачей</th></tr></thead><tbody id="owners"></tbody></table></div>
+        <div class="card panel"><div class="panel-title">Нагрузка и состояние по ответственным</div><table class="owners"><thead><tr><th>Ответственный</th><th class="num">Лидов</th><th class="num">≤30</th><th class="num">&gt;1</th><th class="num">С задачей</th></tr></thead><tbody id="owners"></tbody></table></div>
         <div class="card panel"><div class="panel-title">Качество данных выборки</div><div id="quality" class="quality"></div><div class="footer">Для прогноза продаж критичны количество ATOM, ближайшая задача, сумма сделки и плановая дата договора/отгрузки.</div></div>
       </section>
       <section class="section card">
@@ -187,6 +186,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.9.2"></script>
+<script src="./crm.js?v=1.9.3"></script>
 </body>
 </html>
