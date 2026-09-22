@@ -27,6 +27,62 @@ function isoWeekNumber(d){const x=new Date(Date.UTC(d.getFullYear(),d.getMonth()
 function getDynamicsControls(){const fromVal=$('#dynFrom').value,toVal=$('#dynTo').value,grain=$('#dynGrain').value;return{fromVal,toVal,grain,from:fromVal?new Date(fromVal+'T00:00:00'):null,to:toVal?new Date(toVal+'T23:59:59'):null}}
 function renderAllDynamics(){renderDynamics(current);renderStatusTransitions(current)}
 function alfaSnapshot(){try{const raw=localStorage.getItem(ALFA_SNAPSHOT_KEY);if(!raw)return null;const s=JSON.parse(raw);return s&&Array.isArray(s.stages)?s:null}catch{return null}}
+function alfaSummarySnapshot(){return alfaSnapshot()}
+function fillSimpleSelect(el,values,placeholder){
+  if(!el)return;
+  const current=el.value;
+  el.innerHTML='<option value="">'+placeholder+'</option>'+values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(values.includes(current))el.value=current;
+}
+function renderAlfaSummary(){
+  const a=alfaSummarySnapshot();
+  const meta=$('#alfaSummaryMeta');
+  const rows=Array.isArray(a?.rows)?a.rows:[];
+  const companies=[...new Set(rows.map(r=>r.company).filter(Boolean))];
+  const owners=[...new Set(rows.map(r=>r.owner).filter(Boolean))];
+  const stages=[...new Set(rows.map(r=>r.stage).filter(Boolean))];
+  if(meta)meta.textContent=a?'Файл: '+(a.fileName||'Альфа РЛ')+(a.actualDate?' · актуально на '+a.actualDate:''):'Загрузите «Альфа · рабочий лист».';
+  $('#aKCompanies').textContent=fmt(companies.length||Math.max(0,...(a?.stages||[]).map(x=>Number(x.count)||0)));
+  $('#aKRows').textContent=fmt(rows.length);
+  $('#aKStages').textContent=fmt(stages.length||(a?.stages||[]).length);
+  $('#aKOwners').textContent=fmt(owners.length);
+  const stageCounts={};
+  if(rows.length){
+    rows.forEach(r=>{if(!r.stage)return;stageCounts[r.stage]=(stageCounts[r.stage]||0)+1});
+  }else{
+    (a?.stages||[]).forEach(x=>stageCounts[x.name]=Number(x.count)||0);
+  }
+  bars('#alfaStageBars',stageCounts);
+
+  const ownerBody=$('#alfaOwnersBody'),ownerEmpty=$('#alfaOwnersEmpty');
+  if(rows.length&&owners.length){
+    ownerEmpty.classList.add('hidden');
+    ownerBody.innerHTML=owners.map(o=>{
+      const rs=rows.filter(r=>r.owner===o);
+      const cs=new Set(rs.map(r=>r.companyKey||r.company).filter(Boolean));
+      return '<tr><td>'+esc(o)+'</td><td class="num"><b>'+fmt(cs.size)+'</b></td><td class="num">'+fmt(rs.length)+'</td></tr>';
+    }).sort().join('');
+  }else{
+    ownerBody.innerHTML='';
+    ownerEmpty.classList.remove('hidden');
+  }
+
+  fillSimpleSelect($('#alfaStageFilter'),stages.sort(),'Все этапы');
+  fillSimpleSelect($('#alfaOwnerFilter'),owners.sort(),'Все ответственные');
+  const q=String($('#alfaSearch')?.value||'').toLowerCase();
+  const sf=$('#alfaStageFilter')?.value||'';
+  const of=$('#alfaOwnerFilter')?.value||'';
+  const filtered=rows.filter(r=>(!q||String(r.company||'').toLowerCase().includes(q))&&(!sf||r.stage===sf)&&(!of||r.owner===of));
+  $('#alfaResultCount').textContent=rows.length?'Показано '+fmt(filtered.length)+' из '+fmt(rows.length):'Нет детальных данных';
+  const body=$('#alfaSummaryBody'),empty=$('#alfaSummaryEmpty');
+  if(rows.length){
+    empty.classList.add('hidden');
+    body.innerHTML=filtered.map(r=>'<tr><td class="company">'+esc(r.company)+'</td><td>'+esc(r.stage)+'</td><td>'+esc(r.owner||'')+'</td></tr>').join('');
+  }else{
+    body.innerHTML='';
+    empty.classList.remove('hidden');
+  }
+}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function funnelElmaStages(){
   const companiesByStatus=new Map();
@@ -87,17 +143,20 @@ function renderDynamics(rows){const {from,to,grain}=getDynamicsControls();const 
 function statusClassName(status){const s=String(status||'').toLowerCase();if(/дисквалиф|неактив/.test(s))return'status-inactive';if(/квалификац/.test(s))return'status-qualified';if(/в работе/.test(s))return'status-work';if(/нов/.test(s))return'status-new';return'status-other'}
 function renderStatusTransitions(rows){const {from,to,grain}=getDynamicsControls();const hasStatusDate=rows.some(r=>r.statusChangedAt);if(rows.length&&!hasStatusDate){$('#statusTransitionTotal').textContent='—';$('#statusTransitionLegend').innerHTML='';$('#statusTransitionNote').textContent='В сохранённом срезе нет поля Дата перехода в статус [__statusChangedAt]. Один раз загрузите актуальный Excel, после этого поле будет сохраняться вместе с данными.';$('#statusTransitionChart').innerHTML='<div class="empty">Для построения графика загрузите актуальный _opportunities.xlsx один раз.</div>';return}const events=rows.map(r=>({status:r.status||'Не указана',d:r.statusChangedAt?new Date(r.statusChangedAt):null})).filter(x=>x.d&&!Number.isNaN(x.d.getTime())&&(!from||x.d>=from)&&(!to||x.d<=to));const statuses=[...new Set(events.map(x=>x.status))].sort();const grouped=new Map();events.forEach(x=>{const b=bucketDate(x.d,grain),k=isoDate(b);if(!grouped.has(k))grouped.set(k,{date:b,total:0,counts:{}});const g=grouped.get(k);g.counts[x.status]=(g.counts[x.status]||0)+1;g.total++});const pts=[...grouped.values()].sort((a,b)=>a.date-b.date);$('#statusTransitionTotal').textContent=fmt(events.length)+' переходов';$('#statusTransitionNote').textContent='Источник: Дата перехода в статус [__statusChangedAt]. Число над столбцом = всего переходов за период.';$('#statusTransitionLegend').innerHTML=statuses.map(st=>'<span><i class="status-swatch '+statusClassName(st)+'"></i>'+st+'</span>').join('');const box=$('#statusTransitionChart');if(!pts.length){box.innerHTML='<div class="empty">Нет переходов в статус в выбранном периоде.</div>';return}const w=Math.max(760,pts.length*76),h=370,pad={l:46,r:18,t:34,b:62},max=Math.max(...pts.map(p=>p.total),1),plotH=h-pad.t-pad.b,stepX=(w-pad.l-pad.r)/Math.max(pts.length,1),barW=Math.min(36,stepX*.58),y=v=>pad.t+plotH*(1-v/max),base=h-pad.b;const ticks=[0,.25,.5,.75,1].map(f=>Math.round(max*f));const grid=ticks.map(v=>'<line x1="'+pad.l+'" x2="'+(w-pad.r)+'" y1="'+y(v)+'" y2="'+y(v)+'" class="dyn-grid"/><text x="'+(pad.l-8)+'" y="'+(y(v)+4)+'" class="dyn-y" text-anchor="end">'+v+'</text>').join('');const bars=pts.map((p,i)=>{const cx=pad.l+stepX*(i+.5),label=bucketLabel(p.date,grain);let acc=0,rects='';statuses.forEach(st=>{const cnt=p.counts[st]||0;if(!cnt)return;const hh=plotH*(cnt/max),yy=base-acc-hh;rects+='<rect x="'+(cx-barW/2)+'" y="'+yy+'" width="'+barW+'" height="'+hh+'" rx="2" class="status-bar '+statusClassName(st)+'"><title>'+label+' · '+st+': '+cnt+'</title></rect>';acc+=hh});const top=base-plotH*(p.total/max);return '<g>'+rects+'<text x="'+cx+'" y="'+Math.max(14,top-7)+'" class="status-total-label" text-anchor="middle">'+p.total+'</text><text x="'+cx+'" y="'+(h-22)+'" class="dyn-x" text-anchor="middle">'+label+'</text></g>'}).join('');box.innerHTML='<div class="dyn-scroll"><svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" role="img" aria-label="Переходы в статус">'+grid+bars+'</svg></div>'}
 function setView(view){
-  const analytics=view==='analytics',dynamics=view==='dynamics',funnel=view==='funnel';
+  const analytics=view==='analytics',dynamics=view==='dynamics',funnel=view==='funnel',alfaSummary=view==='alfa-summary';
   $('#dashboard').classList.toggle('hidden',!analytics);
   $('#dynamicsView').classList.toggle('hidden',!dynamics);
   $('#funnelView').classList.toggle('hidden',!funnel);
+  $('#alfaSummaryView').classList.toggle('hidden',!alfaSummary);
   $('#globalFilters').classList.toggle('hidden',!analytics||!data.length);
-  $('#emptyState').classList.toggle('hidden',funnel||dynamics||data.length>0);
+  $('#emptyState').classList.toggle('hidden',funnel||dynamics||alfaSummary||data.length>0);
   $('#navAnalytics').classList.toggle('active',analytics);
   $('#navDynamics').classList.toggle('active',dynamics);
   $('#navFunnel').classList.toggle('active',funnel);
+  $('#navAlfaSummary').classList.toggle('active',alfaSummary);
   if(dynamics)renderAllDynamics();
   if(funnel)renderFunnel();
+  if(alfaSummary)renderAlfaSummary();
 }
 function count(arr,k){return arr.reduce((m,r)=>(m[r[k]||'Не указано']=(m[r[k]||'Не указано']||0)+1,m),{})}
 function bars(id,obj){const e=$(id),a=Object.entries(obj).sort((x,y)=>y[1]-x[1]),mx=Math.max(1,...a.map(x=>x[1]));e.innerHTML=a.map(([k,v])=>`<div class="bar-row"><div>${k}</div><div class="bar-track"><div class="bar" style="width:${v/mx*100}%"></div></div><div class="bar-val">${fmt(v)}</div></div>`).join('')}
@@ -112,7 +171,7 @@ function health(r){if(!r.active)return'Неактивный';if(r.age==null)retu
 function apply(){const q=$('#fSearch').value.toLowerCase(),ss=selected('#fStatus'),vs=selected('#fVertical'),os=selected('#fOwner'),hs=selected('#fHealth'),inactiveSelected=ss.has('Неактивные / дисквалифицированные');current=data.filter(r=>(!ss.size||ss.has(r.status)||(inactiveSelected&&!r.active))&&(!vs.size||vs.has(r.vertical))&&(!os.size||os.has(r.owner))&&(!hs.size||hs.has(health(r)))&&(!q||[r.company,r.inn,r.owner,r.phone,r.email].some(x=>String(x||'').toLowerCase().includes(q))));renderOverview(current);renderAllDynamics();renderFunnel();$('#resultCount').textContent=`Показано ${fmt(current.length)} из ${fmt(data.length)}`;$('#tbody').innerHTML=current.slice(0,600).map(r=>`<tr><td class="company">${r.company}</td><td>${fmtCreated(r.createdAt)}</td><td>${r.status}</td><td>${r.vertical}</td><td>${r.owner}</td><td><span class="pill ${r.age!=null&&r.age<=30?'live':r.age>90?'stale':'mid'}">${health(r)}</span></td><td class="num">${r.age??''}</td><td>${r.task||'<span class="muted">нет</span>'}</td><td class="num">${r.fleet??''}</td><td class="num">${r.atom??''}</td><td>${r.phone||r.email?'✓':''}</td></tr>`).join('')}
 function csv(){const c=[['Компания','company'],['Статус','status'],['Вертикаль','vertical'],['Ответственный','owner'],['Дней','age'],['Задача','task'],['Автопарк','fleet'],['ATOM','atom'],['Телефон','phone'],['Email','email'],['ИНН','inn']],q=v=>'"'+String(v??'').replaceAll('"','""')+'"';const lines=[c.map(x=>q(x[0])).join(';'),...current.map(r=>c.map(x=>q(r[x[1]])).join(';'))];const b=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ATOM_B2B_CRM.csv';a.click()}
 $('#crmFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});data=parse(m);const saved=persistSnapshot(f.name);showLoadedState(f.name,false,saved.savedAt)}catch(err){$('#fileStatus').textContent='Ошибка: '+err.message;$('#fileStatus').className='statusline bad'}};
-$('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#analytics');setView('analytics')});$('#navFunnel').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#funnel');setView('funnel')});$('#navDynamics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#dynamics');setView('dynamics')});window.addEventListener('atom-alfa-updated',renderFunnel);['#dynFrom','#dynTo','#dynGrain'].forEach(id=>{const el=$(id);el.addEventListener('change',renderAllDynamics);if(el.type==='date')el.addEventListener('input',renderAllDynamics)});$('#fSearch').addEventListener('input',apply);$('#exportBtn').onclick=csv;$('#resetBtn').onclick=()=>{$('#fSearch').value='';const activeStatuses=[...new Set(data.filter(x=>x.active).map(x=>x.status))].sort(),statusOptions=[...activeStatuses,'Неактивные / дисквалифицированные'],verticalOptions=[...new Set(data.map(x=>x.vertical))].sort(),defaultVerticals=verticalOptions.filter(v=>['GR / B2G','Каршеринг','Корпоративные','Не указана'].includes(v));setupMulti('#fStatus',statusOptions,statusOptions);setupMulti('#fVertical',verticalOptions,defaultVerticals);setupMulti('#fOwner',[...new Set(data.map(x=>x.owner))].sort(),[]);setupMulti('#fHealth',['≤30 дней','31-90 дней','>90 дней','Нет даты','Неактивный'],[]);apply()};$('#clearBtn').onclick=()=>{localStorage.removeItem(SNAPSHOT_KEY);location.reload()};restoreSnapshot();setView(location.hash==='#dynamics'?'dynamics':location.hash==='#funnel'?'funnel':'analytics');
+$('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#analytics');setView('analytics')});$('#navAlfaSummary').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#alfa-summary');setView('alfa-summary')});$('#navFunnel').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#funnel');setView('funnel')});$('#navDynamics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#dynamics');setView('dynamics')});window.addEventListener('atom-alfa-updated',()=>{renderFunnel();renderAlfaSummary()});['#alfaSearch','#alfaStageFilter','#alfaOwnerFilter'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',renderAlfaSummary);el.addEventListener('change',renderAlfaSummary)}});['#dynFrom','#dynTo','#dynGrain'].forEach(id=>{const el=$(id);el.addEventListener('change',renderAllDynamics);if(el.type==='date')el.addEventListener('input',renderAllDynamics)});$('#fSearch').addEventListener('input',apply);$('#exportBtn').onclick=csv;$('#resetBtn').onclick=()=>{$('#fSearch').value='';const activeStatuses=[...new Set(data.filter(x=>x.active).map(x=>x.status))].sort(),statusOptions=[...activeStatuses,'Неактивные / дисквалифицированные'],verticalOptions=[...new Set(data.map(x=>x.vertical))].sort(),defaultVerticals=verticalOptions.filter(v=>['GR / B2G','Каршеринг','Корпоративные','Не указана'].includes(v));setupMulti('#fStatus',statusOptions,statusOptions);setupMulti('#fVertical',verticalOptions,defaultVerticals);setupMulti('#fOwner',[...new Set(data.map(x=>x.owner))].sort(),[]);setupMulti('#fHealth',['≤30 дней','31-90 дней','>90 дней','Нет даты','Неактивный'],[]);apply()};$('#clearBtn').onclick=()=>{localStorage.removeItem(SNAPSHOT_KEY);location.reload()};restoreSnapshot();setView(location.hash==='#dynamics'?'dynamics':location.hash==='#funnel'?'funnel':location.hash==='#alfa-summary'?'alfa-summary':'analytics');
 })();
 
 (()=>{const U='https://enlyiedwkarajvfsilel.supabase.co',K='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5',BUCKET='plan-source-files',gate=document.getElementById('authGate'),shell=document.getElementById('appShell'),st=document.getElementById('authStatus'),mail=document.getElementById('authEmail'),send=document.getElementById('authSend'),user=document.getElementById('authUserEmail'),alfaFile=document.getElementById('alfaFile'),alfaDate=document.getElementById('alfaActualDate'),alfaStatus=document.getElementById('alfaFileStatus');let sb=null;try{sb=window.supabase?.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}})}catch{}const ok=e=>/^[^@\s]+@atom\.team$/i.test(e||'');const enc=t=>{const b=new TextEncoder().encode(String(t||''));let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};const safe=n=>String(n||'file').replace(/[\\/]+/g,'_').replace(/[\u0000-\u001f\u007f]/g,'_').slice(0,160);const setAlfa=(t,cl='')=>{if(!alfaStatus)return;alfaStatus.textContent=t;alfaStatus.className='statusline'+(cl?' '+cl:'')};const show=e=>{gate.classList.add('app-hidden');shell.classList.remove('app-hidden');user.textContent=e};async function open(s){if(!s?.access_token)return false;try{const{data,error}=await sb.auth.getUser(s.access_token);if(error||!ok(data.user?.email))return false;localStorage.setItem('atom_access_token',s.access_token);if(s.refresh_token)localStorage.setItem('atom_refresh_token',s.refresh_token);show(data.user.email);return true}catch{return false}}async function boot(){if(!sb){st.textContent='Не удалось загрузить модуль входа.';return}try{const{data}=await sb.auth.getSession();if(data.session&&await open(data.session))return;const a=localStorage.getItem('atom_access_token'),r=localStorage.getItem('atom_refresh_token');if(a&&r){const x=await sb.auth.setSession({access_token:a,refresh_token:r});if(x.data.session&&await open(x.data.session))return}}catch{}st.textContent='Введите рабочую почту @atom.team. Пароль не нужен.'}send.onclick=async()=>{const e=mail.value.trim().toLowerCase();if(!ok(e)){st.textContent='Доступ разрешен только для @atom.team.';st.className='auth-status bad';return}send.disabled=true;st.textContent='Отправляю ссылку...';try{const r=await fetch(U+'/functions/v1/atom-magic-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});if(!r.ok)throw new Error('Не удалось отправить ссылку');st.textContent='Ссылка отправлена на '+e+'.';st.className='auth-status ok'}catch(err){st.textContent=err.message;st.className='auth-status bad'}finally{send.disabled=false}};mail.addEventListener('keydown',e=>{if(e.key==='Enter')send.click()});document.getElementById('authLogout').onclick=async()=>{try{await sb.auth.signOut({scope:'local'})}catch{}localStorage.removeItem('atom_access_token');localStorage.removeItem('atom_refresh_token');location.reload()};if(alfaDate){const d=new Date();alfaDate.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}if(alfaFile)alfaFile.addEventListener('change',async()=>{
@@ -157,7 +216,15 @@ $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics
       }
       const numbered=order.length>0&&order.every(x=>/^\s*\d+/.test(x));
       if(numbered)order.sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
-      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),stages:order.map(stage=>({name:stage,count:companies.get(stage).size}))};
+      let ownerCol=-1,ownerBest=-1;
+      header.forEach((v,i)=>{const s=String(v||'').trim(),score=(/ответствен/i.test(s)?10:0)+(/менеджер/i.test(s)?9:0)+(/продавец/i.test(s)?8:0)+(/owner/i.test(s)?7:0);if(score>ownerBest){ownerBest=score;ownerCol=i}});
+      const rows=[];
+      for(let r=headerRow+1;r<matrix.length;r++){
+        const row=matrix[r]||[],stage=String(row[statusCol]||'').trim(),companyRaw=String(row[companyCol]||'').trim(),company=normalizeCompany(companyRaw);
+        if(!stage||!company)continue;
+        rows.push({stage,company:companyRaw,companyKey:company,owner:ownerCol>=0?String(row[ownerCol]||'').trim():''});
+      }
+      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),ownerHeader:ownerCol>=0?String(header[ownerCol]||''):'',stages:order.map(stage=>({name:stage,count:companies.get(stage).size})),rows};
       localStorage.setItem('atom_b2b_alfa_funnel_snapshot_v1',JSON.stringify(snap));
       window.dispatchEvent(new CustomEvent('atom-alfa-updated'));
     }catch(parseErr){
