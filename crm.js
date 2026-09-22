@@ -46,7 +46,8 @@ function funnelElmaStages(){
   const rank=status=>{
     const s=String(status||'').toLowerCase();
     if(/нов/.test(s))return 10;
-    if(/квалификац/.test(s)&&!/дисквалификац/.test(s))return 20;
+    if(/в работе/.test(s))return 20;
+    if(/квалификац/.test(s)&&!/дисквалификац/.test(s))return 30;
     if(/предварител|оценк/.test(s))return 30;
     if(/встреч|знакомств/.test(s))return 40;
     if(/тз|пилот/.test(s))return 50;
