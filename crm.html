@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffffff" />
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./crm.css?v=1.3.1" />
+  <link rel="stylesheet" href="./crm.css?v=1.3.2" />
 </head>
 <body>
 <section id="authGate" class="auth-gate">
@@ -17,7 +17,7 @@
     <div class="auth-field"><label for="authEmail">Рабочая почта</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@atom.team" /></div>
     <div class="auth-actions"><button id="authSend" class="auth-btn" type="button">Получить ссылку на почту</button></div>
     <div id="authStatus" class="auth-status">Проверяю текущий доступ...</div>
-    <div class="auth-note">Выгрузка ELMA обрабатывается локально в браузере. Содержимое Excel не публикуется в GitHub.</div>
+    <div class="auth-note">Выгрузка ELMA обрабатывается локально в браузере. Файл «Альфа · рабочий лист» сохраняется в защищённом хранилище и не публикуется в GitHub.</div>
   </div>
 </section>
 <div id="appShell" class="app-hidden shell">
@@ -37,8 +37,19 @@
       <div id="fileStatus" class="statusline">Файл не загружен.</div>
     </section>
 
+    <section id="alfaSource" class="sidebar-source">
+      <div class="sidebar-source-title">Альфа · рабочий лист</div>
+      <div class="sidebar-source-text">Загрузите актуальный рабочий лист Альфа. Файл будет сохранён в реестре источников проекта CRM.</div>
+      <div class="sidebar-source-date">
+        <label for="alfaActualDate">Дата актуальности</label>
+        <input id="alfaActualDate" type="date" />
+      </div>
+      <label class="btn primary file-pick sidebar-upload">Загрузить Excel<input id="alfaFile" type="file" accept=".xlsx,.xls,.xlsm" /></label>
+      <div id="alfaFileStatus" class="statusline">Файл не загружен.</div>
+    </section>
+
     <div class="sidebar-spacer"></div>
-    <div class="user-box"><span id="crmVersion">CRM MVP v1.3</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
+    <div class="user-box"><span id="crmVersion">CRM MVP v1.4</span><span id="authUserEmail"></span><button id="authLogout" class="logout" type="button">Выйти</button></div>
   </aside>
   <main class="main">
     <header class="page-head">
@@ -109,6 +120,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.6.6"></script>
+<script src="./crm.js?v=1.7.0"></script>
 </body>
 </html>
