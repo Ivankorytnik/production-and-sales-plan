@@ -7,6 +7,13 @@ const SEND_ENDPOINT=SUPABASE_URL+'/functions/v1/atom-magic-auth';
 const AUTH_ENDPOINT=SUPABASE_URL+'/functions/v1/atom-auth';
 const CLOUD_BUCKET='plan-source-files';
 const PREFIX='registry__';
+const PROJECTS={
+  sop09:{title:'S&OP09 plan',defaultSource:'ШТАБ'},
+  crm:{title:'B2B CRM Control Center',defaultSource:'ELMA'}
+};
+const requestedProject=new URLSearchParams(location.search).get('project');
+const activeProject=Object.prototype.hasOwnProperty.call(PROJECTS,requestedProject)?requestedProject:'sop09';
+const projectMeta=PROJECTS[activeProject];
 
 const $=id=>document.getElementById(id);
 const gate=$('authGate');
@@ -29,6 +36,10 @@ const sourceCount=$('sourceCount');
 const emptyState=$('emptyState');
 const tableWrap=$('tableWrap');
 const sourcesBody=$('sourcesBody');
+const projectTitle=$('projectTitle');
+const uploadProjectTitle=$('uploadProjectTitle');
+const registryProjectTitle=$('registryProjectTitle');
+const sourcesHomeLink=$('sourcesHomeLink');
 
 let sb=null;
 let currentUser=null;
@@ -106,15 +117,29 @@ function decodeText(text){
 }
 function parseItem(item){
   const name=String(item?.name||'');
-  const m=name.match(/^registry__(\d+)__(.+?)__(\d{4}-\d{2}-\d{2})__(.+)$/);
-  if(!m)return null;
+  const modern=name.match(/^registry__(sop09|crm)__(\d+)__(.+?)__(\d{4}-\d{2}-\d{2})__(.+)$/);
+  if(modern){
+    return {
+      path:currentUser.id+'/'+name,
+      storageName:name,
+      project:modern[1],
+      createdAt:Number(modern[2])||0,
+      source:decodeText(modern[3]),
+      actualDate:modern[4],
+      originalName:modern[5],
+      updatedAt:item.updated_at||item.created_at||''
+    };
+  }
+  const legacy=name.match(/^registry__(\d+)__(.+?)__(\d{4}-\d{2}-\d{2})__(.+)$/);
+  if(!legacy)return null;
   return {
     path:currentUser.id+'/'+name,
     storageName:name,
-    createdAt:Number(m[1])||0,
-    source:decodeText(m[2]),
-    actualDate:m[3],
-    originalName:m[4],
+    project:'sop09',
+    createdAt:Number(legacy[1])||0,
+    source:decodeText(legacy[2]),
+    actualDate:legacy[3],
+    originalName:legacy[4],
     updatedAt:item.updated_at||item.created_at||''
   };
 }
@@ -129,7 +154,7 @@ function logicalName(entry){
 async function cloudList(){
   const {data,error}=await sb.storage.from(CLOUD_BUCKET).list(currentUser.id,{limit:100,sortBy:{column:'updated_at',order:'desc'}});
   if(error)throw error;
-  return (data||[]).map(parseItem).filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt);
+  return (data||[]).map(parseItem).filter(entry=>entry&&entry.project===activeProject).sort((a,b)=>b.createdAt-a.createdAt);
 }
 async function refreshRegistry(){
   if(!sb||!currentUser)return;
@@ -137,7 +162,7 @@ async function refreshRegistry(){
   try{
     const items=await cloudList();
     renderRegistry(items);
-    setCloud('Облако подключено','ok');
+    setCloud('Облако подключено · '+projectMeta.title,'ok');
   }catch(e){
     console.error(e);
     setCloud('Ошибка синхронизации','bad');
@@ -203,7 +228,7 @@ async function uploadSource(){
   setMessage('Загружаю '+logicalName({source:name,actualDate:date})+'...');
   try{
     const stamp=Date.now();
-    const objectName=PREFIX+stamp+'__'+encodeText(name)+'__'+date+'__'+safeName(file.name);
+    const objectName=PREFIX+activeProject+'__'+stamp+'__'+encodeText(name)+'__'+date+'__'+safeName(file.name);
     const path=currentUser.id+'/'+objectName;
     const {error}=await sb.storage.from(CLOUD_BUCKET).upload(path,file,{
       cacheControl:'3600',
@@ -373,8 +398,23 @@ emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendLink()});
 logoutBtn.addEventListener('click',async()=>{
   try{if(sb)await sb.auth.signOut({scope:'local'})}catch{}
   clearLegacy();
-  location.href=location.pathname;
+  location.href=location.pathname+'?project='+activeProject;
 });
+
+function applyProjectUi(){
+  document.title='АТОМ · Источники · '+projectMeta.title;
+  if(projectTitle)projectTitle.textContent=projectMeta.title;
+  if(uploadProjectTitle)uploadProjectTitle.textContent=projectMeta.title;
+  if(registryProjectTitle)registryProjectTitle.textContent=projectMeta.title;
+  if(sourcesHomeLink)sourcesHomeLink.href='./sources.html?project='+activeProject;
+  document.querySelectorAll('[data-project]').forEach(link=>{
+    link.classList.toggle('active',link.dataset.project===activeProject);
+  });
+  emptyState.textContent='Источники проекта '+projectMeta.title+' пока не загружены.';
+  sourceName.value=projectMeta.defaultSource;
+  sourceName.placeholder=activeProject==='crm'?'Например, ELMA':'Например, ШТАБ';
+}
+applyProjectUi();
 updatePreview();
 bootAuth().catch(e=>{console.error(e);setAuthStatus('Не удалось проверить доступ. Обновите страницу или запросите новую ссылку.','bad')});
 })();
