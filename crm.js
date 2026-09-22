@@ -112,34 +112,62 @@ $('#crmFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{cons
 $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#analytics');setView('analytics')});$('#navFunnel').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#funnel');setView('funnel')});$('#navDynamics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#dynamics');setView('dynamics')});window.addEventListener('atom-alfa-updated',renderFunnel);['#dynFrom','#dynTo','#dynGrain'].forEach(id=>{const el=$(id);el.addEventListener('change',renderAllDynamics);if(el.type==='date')el.addEventListener('input',renderAllDynamics)});$('#fSearch').addEventListener('input',apply);$('#exportBtn').onclick=csv;$('#resetBtn').onclick=()=>{$('#fSearch').value='';const activeStatuses=[...new Set(data.filter(x=>x.active).map(x=>x.status))].sort(),statusOptions=[...activeStatuses,'Неактивные / дисквалифицированные'],verticalOptions=[...new Set(data.map(x=>x.vertical))].sort(),defaultVerticals=verticalOptions.filter(v=>['GR / B2G','Каршеринг','Корпоративные','Не указана'].includes(v));setupMulti('#fStatus',statusOptions,statusOptions);setupMulti('#fVertical',verticalOptions,defaultVerticals);setupMulti('#fOwner',[...new Set(data.map(x=>x.owner))].sort(),[]);setupMulti('#fHealth',['≤30 дней','31-90 дней','>90 дней','Нет даты','Неактивный'],[]);apply()};$('#clearBtn').onclick=()=>{localStorage.removeItem(SNAPSHOT_KEY);location.reload()};restoreSnapshot();setView(location.hash==='#dynamics'?'dynamics':location.hash==='#funnel'?'funnel':'analytics');
 })();
 
-(()=>{const U='https://enlyiedwkarajvfsilel.supabase.co',K='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5',BUCKET='plan-source-files',gate=document.getElementById('authGate'),shell=document.getElementById('appShell'),st=document.getElementById('authStatus'),mail=document.getElementById('authEmail'),send=document.getElementById('authSend'),user=document.getElementById('authUserEmail'),alfaFile=document.getElementById('alfaFile'),alfaDate=document.getElementById('alfaActualDate'),alfaStatus=document.getElementById('alfaFileStatus');let sb=null;try{sb=window.supabase?.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}})}catch{}const ok=e=>/^[^@\s]+@atom\.team$/i.test(e||'');const enc=t=>{const b=new TextEncoder().encode(String(t||''));let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};const safe=n=>String(n||'file').replace(/[\\/]+/g,'_').replace(/[\u0000-\u001f\u007f]/g,'_').slice(0,160);const setAlfa=(t,cl='')=>{if(!alfaStatus)return;alfaStatus.textContent=t;alfaStatus.className='statusline'+(cl?' '+cl:'')};const show=e=>{gate.classList.add('app-hidden');shell.classList.remove('app-hidden');user.textContent=e};async function open(s){if(!s?.access_token)return false;try{const{data,error}=await sb.auth.getUser(s.access_token);if(error||!ok(data.user?.email))return false;localStorage.setItem('atom_access_token',s.access_token);if(s.refresh_token)localStorage.setItem('atom_refresh_token',s.refresh_token);show(data.user.email);return true}catch{return false}}async function boot(){if(!sb){st.textContent='Не удалось загрузить модуль входа.';return}try{const{data}=await sb.auth.getSession();if(data.session&&await open(data.session))return;const a=localStorage.getItem('atom_access_token'),r=localStorage.getItem('atom_refresh_token');if(a&&r){const x=await sb.auth.setSession({access_token:a,refresh_token:r});if(x.data.session&&await open(x.data.session))return}}catch{}st.textContent='Введите рабочую почту @atom.team. Пароль не нужен.'}send.onclick=async()=>{const e=mail.value.trim().toLowerCase();if(!ok(e)){st.textContent='Доступ разрешен только для @atom.team.';st.className='auth-status bad';return}send.disabled=true;st.textContent='Отправляю ссылку...';try{const r=await fetch(U+'/functions/v1/atom-magic-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});if(!r.ok)throw new Error('Не удалось отправить ссылку');st.textContent='Ссылка отправлена на '+e+'.';st.className='auth-status ok'}catch(err){st.textContent=err.message;st.className='auth-status bad'}finally{send.disabled=false}};mail.addEventListener('keydown',e=>{if(e.key==='Enter')send.click()});document.getElementById('authLogout').onclick=async()=>{try{await sb.auth.signOut({scope:'local'})}catch{}localStorage.removeItem('atom_access_token');localStorage.removeItem('atom_refresh_token');location.reload()};if(alfaDate){const d=new Date();alfaDate.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}if(alfaFile)alfaFile.addEventListener('change',async()=>{const file=alfaFile.files?.[0];if(!file)return;const actual=alfaDate?.value;if(!actual){setAlfa('Укажите дату актуальности.','bad');alfaFile.value='';return}setAlfa('Загружаю файл...');alfaFile.disabled=true;try{
-const ab=await file.arrayBuffer();
-const wb=XLSX.read(ab,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
-let headerRow=0,statusCol=-1,companyCol=-1,best=-1,companyBest=-1;
-for(let r=0;r<Math.min(matrix.length,35);r++){
-  const row=matrix[r]||[];
-  row.forEach((v,i)=>{
-    const s=String(v||'').trim();
-    const statusScore=(/статус рабочего листа/i.test(s)?8:0)+(/статус сделки/i.test(s)?7:0)+(/^статус$/i.test(s)?6:0)+(/этап/i.test(s)?5:0)+(/^stage$/i.test(s)?5:0);
-    if(statusScore>best){best=statusScore;headerRow=r;statusCol=i}
-    const companyScore=(/^компания$/i.test(s)?10:0)+(/наименование.*компан/i.test(s)?9:0)+(/название.*компан/i.test(s)?9:0)+(/^клиент$/i.test(s)?8:0)+(/контрагент/i.test(s)?7:0)+(/организац/i.test(s)?6:0);
-    if(companyScore>companyBest){companyBest=companyScore;companyCol=i}
-  });
-}
-if(statusCol<0)throw new Error('Не найдена колонка статуса/этапа в рабочем листе Альфа');
-const header=matrix[headerRow]||[];
-if(companyCol<0||!String(header[companyCol]||'').trim())throw new Error('Не найдена колонка компании/клиента в рабочем листе Альфа');
-const order=[],companies=new Map();
-const normalizeCompany=v=>String(v||'').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9]+/gi,' ').trim().replace(/\s+/g,' ');
-for(let r=headerRow+1;r<matrix.length;r++){
-  const row=matrix[r]||[],name=String(row[statusCol]||'').trim(),company=normalizeCompany(row[companyCol]);
-  if(!name||!company)continue;
-  if(!companies.has(name)){companies.set(name,new Set());order.push(name)}
-  companies.get(name).add(company);
-}
-const numbered=order.every(x=>/^\s*\d+/.test(x));
-if(numbered)order.sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
-const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),stages:order.map(name=>({name,count:companies.get(name).size}))};
-localStorage.setItem('atom_b2b_alfa_funnel_snapshot_v1',JSON.stringify(snap));
-window.dispatchEvent(new CustomEvent('atom-alfa-updated'));
-const{data,error}=await sb.auth.getUser();if(error||!data?.user)throw new Error('Нет активной авторизации');const stamp=Date.now(),source='АЛЬФА РАБОЧИЙ ЛИСТ',name='registry__crm__'+stamp+'__'+enc(source)+'__'+actual+'__'+safe(file.name),path=data.user.id+'/'+name;const res=await sb.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});if(res.error)throw res.error;setAlfa('Загружено: '+file.name+' · '+actual,'ok');alfaFile.value=''}catch(err){setAlfa('Ошибка: '+(err?.message||String(err)),'bad')}finally{alfaFile.disabled=false}});sb?.auth.onAuthStateChange(async(ev,s)=>{if((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED')&&s)await open(s)});boot()})();
+(()=>{const U='https://enlyiedwkarajvfsilel.supabase.co',K='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5',BUCKET='plan-source-files',gate=document.getElementById('authGate'),shell=document.getElementById('appShell'),st=document.getElementById('authStatus'),mail=document.getElementById('authEmail'),send=document.getElementById('authSend'),user=document.getElementById('authUserEmail'),alfaFile=document.getElementById('alfaFile'),alfaDate=document.getElementById('alfaActualDate'),alfaStatus=document.getElementById('alfaFileStatus');let sb=null;try{sb=window.supabase?.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}})}catch{}const ok=e=>/^[^@\s]+@atom\.team$/i.test(e||'');const enc=t=>{const b=new TextEncoder().encode(String(t||''));let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};const safe=n=>String(n||'file').replace(/[\\/]+/g,'_').replace(/[\u0000-\u001f\u007f]/g,'_').slice(0,160);const setAlfa=(t,cl='')=>{if(!alfaStatus)return;alfaStatus.textContent=t;alfaStatus.className='statusline'+(cl?' '+cl:'')};const show=e=>{gate.classList.add('app-hidden');shell.classList.remove('app-hidden');user.textContent=e};async function open(s){if(!s?.access_token)return false;try{const{data,error}=await sb.auth.getUser(s.access_token);if(error||!ok(data.user?.email))return false;localStorage.setItem('atom_access_token',s.access_token);if(s.refresh_token)localStorage.setItem('atom_refresh_token',s.refresh_token);show(data.user.email);return true}catch{return false}}async function boot(){if(!sb){st.textContent='Не удалось загрузить модуль входа.';return}try{const{data}=await sb.auth.getSession();if(data.session&&await open(data.session))return;const a=localStorage.getItem('atom_access_token'),r=localStorage.getItem('atom_refresh_token');if(a&&r){const x=await sb.auth.setSession({access_token:a,refresh_token:r});if(x.data.session&&await open(x.data.session))return}}catch{}st.textContent='Введите рабочую почту @atom.team. Пароль не нужен.'}send.onclick=async()=>{const e=mail.value.trim().toLowerCase();if(!ok(e)){st.textContent='Доступ разрешен только для @atom.team.';st.className='auth-status bad';return}send.disabled=true;st.textContent='Отправляю ссылку...';try{const r=await fetch(U+'/functions/v1/atom-magic-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});if(!r.ok)throw new Error('Не удалось отправить ссылку');st.textContent='Ссылка отправлена на '+e+'.';st.className='auth-status ok'}catch(err){st.textContent=err.message;st.className='auth-status bad'}finally{send.disabled=false}};mail.addEventListener('keydown',e=>{if(e.key==='Enter')send.click()});document.getElementById('authLogout').onclick=async()=>{try{await sb.auth.signOut({scope:'local'})}catch{}localStorage.removeItem('atom_access_token');localStorage.removeItem('atom_refresh_token');location.reload()};if(alfaDate){const d=new Date();alfaDate.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}if(alfaFile)alfaFile.addEventListener('change',async()=>{
+  const file=alfaFile.files?.[0];
+  if(!file)return;
+  const actual=alfaDate?.value;
+  if(!actual){setAlfa('Укажите дату актуальности.','bad');alfaFile.value='';return}
+  setAlfa('Сохраняю файл...');
+  alfaFile.disabled=true;
+  try{
+    const{data,error}=await sb.auth.getUser();
+    if(error||!data?.user)throw new Error('Нет активной авторизации');
+    const stamp=Date.now(),source='АЛЬФА РАБОЧИЙ ЛИСТ',name='registry__crm__'+stamp+'__'+enc(source)+'__'+actual+'__'+safe(file.name),path=data.user.id+'/'+name;
+    const res=await sb.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||'application/octet-stream'});
+    if(res.error)throw res.error;
+
+    let parseWarning='';
+    try{
+      const ab=await file.arrayBuffer();
+      const wb=XLSX.read(ab,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+      let headerRow=0,statusCol=-1,companyCol=-1,best=-1,companyBest=-1;
+      for(let r=0;r<Math.min(matrix.length,35);r++){
+        const row=matrix[r]||[];
+        row.forEach((v,i)=>{
+          const s=String(v||'').trim();
+          const statusScore=(/статус рабочего листа/i.test(s)?8:0)+(/статус сделки/i.test(s)?7:0)+(/^статус$/i.test(s)?6:0)+(/этап/i.test(s)?5:0)+(/^stage$/i.test(s)?5:0);
+          if(statusScore>best){best=statusScore;headerRow=r;statusCol=i}
+          const companyScore=(/^компания$/i.test(s)?10:0)+(/наименование.*компан/i.test(s)?9:0)+(/название.*компан/i.test(s)?9:0)+(/наименование.*клиент/i.test(s)?9:0)+(/название.*клиент/i.test(s)?9:0)+(/^клиент$/i.test(s)?8:0)+(/контрагент/i.test(s)?7:0)+(/организац/i.test(s)?6:0);
+          if(companyScore>companyBest){companyBest=companyScore;companyCol=i}
+        });
+      }
+      if(statusCol<0)throw new Error('не найдена колонка статуса/этапа');
+      const header=matrix[headerRow]||[];
+      if(companyCol<0||!String(header[companyCol]||'').trim())throw new Error('не найдена колонка компании/клиента');
+      const order=[],companies=new Map();
+      const normalizeCompany=v=>String(v||'').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9]+/gi,' ').trim().replace(/\s+/g,' ');
+      for(let r=headerRow+1;r<matrix.length;r++){
+        const row=matrix[r]||[],stage=String(row[statusCol]||'').trim(),company=normalizeCompany(row[companyCol]);
+        if(!stage||!company)continue;
+        if(!companies.has(stage)){companies.set(stage,new Set());order.push(stage)}
+        companies.get(stage).add(company);
+      }
+      const numbered=order.length>0&&order.every(x=>/^\s*\d+/.test(x));
+      if(numbered)order.sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
+      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),stages:order.map(stage=>({name:stage,count:companies.get(stage).size}))};
+      localStorage.setItem('atom_b2b_alfa_funnel_snapshot_v1',JSON.stringify(snap));
+      window.dispatchEvent(new CustomEvent('atom-alfa-updated'));
+    }catch(parseErr){
+      parseWarning=parseErr?.message||String(parseErr);
+    }
+
+    setAlfa(parseWarning
+      ?'Файл сохранён: '+file.name+' · '+actual+'. Воронка не обновлена: '+parseWarning+'.'
+      :'Файл сохранён: '+file.name+' · '+actual+'. Воронка обновлена.','ok');
+    alfaFile.value='';
+  }catch(err){
+    setAlfa('Ошибка сохранения: '+(err?.message||String(err)),'bad');
+  }finally{
+    alfaFile.disabled=false;
+  }
+}sb?.auth.onAuthStateChange(async(ev,s)=>{if((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED')&&s)await open(s)});boot()})();
