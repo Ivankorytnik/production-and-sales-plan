@@ -15,6 +15,11 @@
     .appbar{display:none!important}
     #appShell #sources.source-block{top:0!important}
     #appShell #sources .source-counter{position:static!important;align-self:flex-start!important}
+    .header-projects{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:18px;margin-right:auto;font-family:Arial,Helvetica,sans-serif}
+    .header-projects-label{font-size:10px;color:#98a2b3;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-right:3px}
+    .header-projects a{display:inline-flex;align-items:center;min-height:34px;padding:0 11px;border:1px solid #dfe2e7;border-radius:8px;background:#fff;text-decoration:none;color:#475467;font-size:12px;font-weight:700;white-space:nowrap}
+    .header-projects a:hover{background:#f4f6f8;color:#101828}
+    .header-projects a.active{background:#111318;border-color:#111318;color:#fff}
     .sidebar-shell-nav{display:flex;flex-direction:column;gap:16px;padding:2px 0 20px;margin-bottom:20px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif}
     .sidebar-brand{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:#101828}
     .sidebar-brand strong{font-size:22px;line-height:1;font-weight:800;letter-spacing:.3px}
@@ -30,6 +35,11 @@
     .sidebar-user-nav>.auth-user{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:7px!important;margin-top:3px}
     .sidebar-user-nav .auth-user-email{font-size:11px!important;overflow-wrap:anywhere;color:#475467!important}
     .sidebar-user-nav .auth-logout{width:100%;height:34px;background:#fff}
+    @media(max-width:900px){
+      #appShell .page .page-heading{flex-wrap:wrap!important}
+      .header-projects{order:2;width:100%;margin:4px 0 0}
+      #appShell .page .page-heading .heading-actions{order:3}
+    }
   </style>
 </head>
 <body>
@@ -49,6 +59,7 @@
     <main id="top" class="page">
       <section class="page-heading no-print">
         <div class="heading-title-row"><h1>S&amp;OP09 plan</h1></div>
+        <nav class="header-projects" aria-label="Проекты"><span class="header-projects-label">Проекты</span><a class="active" href="./index.html">S&amp;OP09 plan</a><a href="./crm.html">B2B CRM Control Center</a></nav>
         <div class="heading-actions">
           <button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу</button>
           <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button>
@@ -60,8 +71,8 @@
       <section id="sources" class="source-block no-print">
         <div class="sidebar-shell-nav">
           <a class="sidebar-brand" href="#top"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
-          <div class="sidebar-nav-label">Проекты</div>
-          <nav class="sidebar-project-nav"><a class="active" href="./index.html">S&amp;OP09 plan</a><a href="./crm.html">B2B CRM Control Center</a><a href="./sources.html">Источники</a></nav>
+          <div class="sidebar-nav-label">Данные</div>
+          <nav class="sidebar-project-nav"><a href="./sources.html">Источники</a></nav>
           <div class="sidebar-nav-label">S&amp;OP09 plan</div>
           <nav class="sidebar-main-nav"><a href="#sources">Исходные данные</a><a href="#report" class="active">Аналитика</a></nav>
           <div class="user-nav sidebar-user-nav"><span>Версия v2.9.0</span><span>Обновлено <span id="updatedAt">18.09.2026</span></span><span id="authUserBox" class="auth-user"></span></div>
