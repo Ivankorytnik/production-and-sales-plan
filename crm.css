@@ -94,10 +94,8 @@
 @media(max-width:760px){.funnel-head{flex-direction:column}.funnel-source-meta{justify-content:flex-start}.funnel-row{grid-template-columns:28px minmax(0,1fr) 48px}.funnel-track{height:30px}}
 
 
-.funnel-source-divider{display:flex;align-items:center;gap:10px;margin:14px 0 4px}
-.funnel-source-divider:before,.funnel-source-divider:after{content:"";height:1px;flex:1;background:#e4e7ec}
-.funnel-source-divider span{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.06em;white-space:nowrap}
-.funnel-source-divider.elma span{background:#fff5a6;color:#5d4b00;border:1px solid #f0d400}
-.funnel-source-divider.alfa span{background:#2f3040;color:#fff;border:1px solid #2f3040}
-.source-elma .funnel-step{background:#fff5a6;color:#5d4b00}
-.source-alfa .funnel-step{background:#ececf3;color:#2f3040}
+.funnel-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:4px 0 10px;font-size:10px;color:#667085}
+.funnel-legend span{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.funnel-legend i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.funnel-legend i.elma{background:#ffd800;border:1px solid #d8b900}
+.funnel-legend i.alfa{background:#2f3040;border:1px solid #2f3040}
