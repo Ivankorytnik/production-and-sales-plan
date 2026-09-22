@@ -217,7 +217,7 @@ $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics
       const numbered=order.length>0&&order.every(x=>/^\s*\d+/.test(x));
       if(numbered)order.sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
       let ownerCol=-1,ownerBest=-1;
-      header.forEach((v,i)=>{const s=String(v||'').trim(),score=(/ответствен/i.test(s)?10:0)+(/менеджер/i.test(s)?9:0)+(/продавец/i.test(s)?8:0)+(/owner/i.test(s)?7:0);if(score>ownerBest){ownerBest=score;ownerCol=i}});
+      header.forEach((v,i)=>{const s=String(v||'').trim(),score=(/^автор$/i.test(s)?20:0)+(/автор/i.test(s)?15:0)+(/ответствен/i.test(s)?10:0)+(/менеджер/i.test(s)?9:0)+(/продавец/i.test(s)?8:0)+(/owner/i.test(s)?7:0);if(score>ownerBest){ownerBest=score;ownerCol=i}});
       const rows=[];
       for(let r=headerRow+1;r<matrix.length;r++){
         const row=matrix[r]||[],stage=String(row[statusCol]||'').trim(),companyRaw=String(row[companyCol]||'').trim(),company=normalizeCompany(companyRaw);
