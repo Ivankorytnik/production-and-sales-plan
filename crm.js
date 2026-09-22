@@ -26,7 +26,7 @@ function alfaSnapshot(){try{const raw=localStorage.getItem(ALFA_SNAPSHOT_KEY);if
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function funnelElmaCounts(){
   const newLeads=data.filter(r=>/нов/i.test(String(r.status||''))&&!/дисквалиф|неактив/i.test(String(r.status||''))).length;
-  const qualified=data.filter(r=>/квалифиц/i.test(String(r.status||''))&&!/дисквалифиц/i.test(String(r.status||''))).length;
+  const qualified=data.filter(r=>/квалификац/i.test(String(r.status||''))&&!/дисквалификац/i.test(String(r.status||''))).length;
   return {newLeads,qualified};
 }
 function renderFunnel(){
@@ -34,7 +34,7 @@ function renderFunnel(){
   const e=funnelElmaCounts(),a=alfaSnapshot();
   const stages=[
     {name:'Новые лиды',count:e.newLeads,source:'ELMA'},
-    {name:'Квалифицирован',count:e.qualified,source:'ELMA'},
+    {name:'Квалификация',count:e.qualified,source:'ELMA'},
     ...((a?.stages||[]).map(x=>({name:x.name,count:Number(x.count)||0,source:'Альфа'})))
   ];
   $('#funnelElmaMeta').textContent=data.length?'ELMA: '+fmt(data.length)+' лидов':'ELMA: нет данных';
