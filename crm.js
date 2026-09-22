@@ -24,22 +24,42 @@ function getDynamicsControls(){const fromVal=$('#dynFrom').value,toVal=$('#dynTo
 function renderAllDynamics(){renderDynamics(current);renderStatusTransitions(current)}
 function alfaSnapshot(){try{const raw=localStorage.getItem(ALFA_SNAPSHOT_KEY);if(!raw)return null;const s=JSON.parse(raw);return s&&Array.isArray(s.stages)?s:null}catch{return null}}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function funnelElmaCounts(){
-  const newLeads=data.filter(r=>/нов/i.test(String(r.status||''))&&!/дисквалиф|неактив/i.test(String(r.status||''))).length;
-  const qualified=data.filter(r=>/квалификац/i.test(String(r.status||''))&&!/дисквалификац/i.test(String(r.status||''))).length;
-  return {newLeads,qualified};
+function funnelElmaStages(){
+  const counts=new Map();
+  data.forEach(r=>{
+    const status=String(r.status||'').trim();
+    if(!status||status==='Не указана')return;
+    counts.set(status,(counts.get(status)||0)+1);
+  });
+  const rank=status=>{
+    const s=String(status||'').toLowerCase();
+    if(/нов/.test(s))return 10;
+    if(/квалификац/.test(s)&&!/дисквалификац/.test(s))return 20;
+    if(/предварител|оценк/.test(s))return 30;
+    if(/встреч|знакомств/.test(s))return 40;
+    if(/тз|пилот/.test(s))return 50;
+    if(/коммерческ|\bкп\b/.test(s))return 60;
+    if(/согласован/.test(s))return 70;
+    if(/рабоч.*лист|альфа/.test(s))return 80;
+    if(/договор|дкп/.test(s))return 90;
+    if(/отгруз|выдач|достав/.test(s))return 100;
+    if(/дисквалификац|неактив|отказ/.test(s))return 900;
+    return 500;
+  };
+  return [...counts.entries()]
+    .map(([name,count])=>({name,count,source:'ELMA'}))
+    .sort((a,b)=>rank(a.name)-rank(b.name)||a.name.localeCompare(b.name,'ru'));
 }
 function renderFunnel(){
   const box=$('#funnelStages'); if(!box)return;
-  const e=funnelElmaCounts(),a=alfaSnapshot();
+  const e=funnelElmaStages(),a=alfaSnapshot();
   const stages=[
-    {name:'Новые лиды',count:e.newLeads,source:'ELMA'},
-    {name:'Квалификация',count:e.qualified,source:'ELMA'},
+    ...e,
     ...((a?.stages||[]).map(x=>({name:x.name,count:Number(x.count)||0,source:'Альфа'})))
   ];
   $('#funnelElmaMeta').textContent=data.length?'ELMA: '+fmt(data.length)+' лидов':'ELMA: нет данных';
   $('#funnelAlfaMeta').textContent=a?'Альфа: '+(a.fileName||'рабочий лист')+(a.actualDate?' · '+a.actualDate:''):'Альфа: нет данных';
-  $('#funnelNotice').textContent=!data.length&&!a?'Загрузите ELMA и «Альфа · рабочий лист», чтобы построить сквозную воронку.':(!a?'Первые два этапа построены по ELMA. Для продолжения загрузите «Альфа · рабочий лист».':'');
+  $('#funnelNotice').textContent=!data.length&&!a?'Загрузите ELMA и «Альфа · рабочий лист», чтобы построить сквозную воронку.':(!a?'Показаны все этапы из ELMA. Для продолжения загрузите «Альфа · рабочий лист».':'');
   if(!stages.some(x=>x.count)){box.innerHTML='<div class="empty">Нет данных для построения воронки.</div>';return}
   const max=Math.max(1,...stages.map(x=>x.count));
   box.innerHTML=stages.map((s,i)=>{
