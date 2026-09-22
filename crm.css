@@ -92,3 +92,12 @@
 .funnel-bar.alfa{background:#2f3040;color:#fff}
 .funnel-conv{text-align:right;font-size:11px;font-weight:800;color:#667085}
 @media(max-width:760px){.funnel-head{flex-direction:column}.funnel-source-meta{justify-content:flex-start}.funnel-row{grid-template-columns:28px minmax(0,1fr) 48px}.funnel-track{height:30px}}
+
+
+.funnel-source-divider{display:flex;align-items:center;gap:10px;margin:14px 0 4px}
+.funnel-source-divider:before,.funnel-source-divider:after{content:"";height:1px;flex:1;background:#e4e7ec}
+.funnel-source-divider span{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.06em;white-space:nowrap}
+.funnel-source-divider.elma span{background:#fff5a6;color:#5d4b00;border:1px solid #f0d400}
+.funnel-source-divider.alfa span{background:#2f3040;color:#fff;border:1px solid #2f3040}
+.source-elma .funnel-step{background:#fff5a6;color:#5d4b00}
+.source-alfa .funnel-step{background:#ececf3;color:#2f3040}
