@@ -104,3 +104,11 @@ button,input{font:inherit}
 .header-projects a:hover{background:#f4f6f8;color:#101828}
 .header-projects a.active{background:#111318;border-color:#111318;color:#fff}
 @media(max-width:900px){.header-projects{width:100%}}
+
+.project-switch-card{display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:12px 14px;border:1px solid #e4e7ec;border-radius:10px;background:#fff}
+.project-switch-label{font-size:10px;color:#98a2b3;font-weight:800;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.source-project-switch{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.source-project-switch a{display:inline-flex;align-items:center;min-height:34px;padding:0 12px;border:1px solid #d0d5dd;border-radius:8px;background:#fff;text-decoration:none;color:#475467;font-size:12px;font-weight:700}
+.source-project-switch a:hover{background:#f4f6f8;color:#101828}
+.source-project-switch a.active{background:#111318;border-color:#111318;color:#fff}
+@media(max-width:700px){.project-switch-card{align-items:stretch;flex-direction:column}.source-project-switch{display:grid;grid-template-columns:1fr}.source-project-switch a{justify-content:center;text-align:center}}
