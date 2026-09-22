@@ -63,24 +63,67 @@ function funnelElmaStages(){
     .map(([name,companies])=>({name,count:companies.size,source:'ELMA'}))
     .sort((a,b)=>rank(a.name)-rank(b.name)||a.name.localeCompare(b.name,'ru'));
 }
-function renderFunnel(){
-  const box=$('#funnelStages'); if(!box)return;
-  const e=funnelElmaStages(),a=alfaSnapshot();
-  const stages=[
-    ...e,
-    ...ALFA_FUNNEL_ORDER.map(name=>{const hit=(a?.countType==='companies'?a.stages:[]).find(x=>normalizeStageName(x.name)===normalizeStageName(name));return{name,count:Number(hit?.count)||0,source:'Альфа'}})
-  ];
-  $('#funnelElmaMeta').textContent=data.length?'ELMA: воронка по уникальным компаниям':'ELMA: нет данных';
-  $('#funnelAlfaMeta').textContent=a&&a.countType==='companies'?'Альфа: '+(a.fileName||'рабочий лист')+(a.actualDate?' · '+a.actualDate:'')+' · по компаниям':'Альфа: загрузите файл заново';
-  $('#funnelNotice').textContent=!data.length&&!a?'Загрузите ELMA и «Альфа · рабочий лист», чтобы построить сквозную воронку.':(!a?'Показаны все этапы из ELMA. Для продолжения загрузите «Альфа · рабочий лист».':'');
-  if(!stages.some(x=>x.count)){box.innerHTML='<div class="empty">Нет данных для построения воронки.</div>';return}
-  const max=Math.max(1,...stages.map(x=>x.count));
+function fillSelect(el,values){
+  if(!el)return;
+  const current=el.value;
+  const opts=['',...values];
+  el.innerHTML=opts.map(v=>'<option value="'+esc(v)+'">'+(v||'Все')+'</option>').join('');
+  if(opts.includes(current))el.value=current;
+}
+function alfaFilteredSnapshot(){
+  const a=alfaSnapshot();
+  if(!a||a.countType!=='companies'||!Array.isArray(a.rows))return a;
+  const company=$('#funnelAlfaCompany')?.value||'';
+  const owner=$('#funnelAlfaOwner')?.value||'';
+  const rows=a.rows.filter(r=>(!company||r.company===company)&&(!owner||r.owner===owner));
+  const companies=new Map();
+  rows.forEach(r=>{
+    if(!r.stage||!r.company)return;
+    if(!companies.has(r.stage))companies.set(r.stage,new Set());
+    companies.get(r.stage).add(r.companyKey||r.company);
+  });
+  return {...a,stages:[...companies.entries()].map(([name,set])=>({name,count:set.size}))};
+}
+function funnelScaleStages(elmaStages,alfaStages){
+  return Math.max(1,...elmaStages.map(x=>x.count),...alfaStages.map(x=>x.count));
+}
+function renderStageRows(box,stages,max){
+  if(!box)return;
+  if(!stages.length){box.innerHTML='<div class="empty">Нет данных.</div>';return}
   box.innerHTML=stages.map((s,i)=>{
     const width=s.count<=0?0:(s.count/max*100);
     const prev=i?stages[i-1].count:null;
     const conv=prev>0?Math.round(s.count/prev*100):null;
     return '<div class="funnel-row"><div class="funnel-step">'+(i+1)+'</div><div class="funnel-main"><div class="funnel-label"><span>'+esc(s.name)+'</span><small>'+s.source+'</small></div><div class="funnel-track"><div class="funnel-bar '+(s.source==='ELMA'?'elma':'alfa')+'" style="width:'+width+'%"><b>'+fmt(s.count)+'</b></div></div></div><div class="funnel-conv">'+(conv==null?'':conv+'%')+'</div></div>';
   }).join('');
+}
+function renderFunnel(){
+  const elmaRows=data.filter(r=>{
+    const v=$('#funnelElmaVertical')?.value||'',o=$('#funnelElmaOwner')?.value||'';
+    return (!v||r.vertical===v)&&(!o||r.owner===o);
+  });
+  const original=data;
+  data=elmaRows;
+  const elmaStages=funnelElmaStages();
+  data=original;
+
+  const a=alfaFilteredSnapshot();
+  const alfaStages=ALFA_FUNNEL_ORDER.map(name=>{const hit=(a?.countType==='companies'?a.stages:[]).find(x=>normalizeStageName(x.name)===normalizeStageName(name));return{name,count:Number(hit?.count)||0,source:'Альфа'}});
+
+  fillSelect($('#funnelElmaVertical'),[...new Set(data.map(r=>r.vertical).filter(Boolean))].sort());
+  fillSelect($('#funnelElmaOwner'),[...new Set(data.map(r=>r.owner).filter(Boolean))].sort());
+  if(a?.rows){
+    fillSelect($('#funnelAlfaCompany'),[...new Set(a.rows.map(r=>r.company).filter(Boolean))].sort());
+    fillSelect($('#funnelAlfaOwner'),[...new Set(a.rows.map(r=>r.owner).filter(Boolean))].sort());
+  }
+
+  $('#funnelElmaMeta').textContent=data.length?'ELMA: воронка по уникальным компаниям':'ELMA: нет данных';
+  $('#funnelAlfaMeta').textContent=a&&a.countType==='companies'?'Альфа: '+(a.fileName||'рабочий лист')+(a.actualDate?' · '+a.actualDate:'')+' · по компаниям':'Альфа: загрузите файл заново';
+  $('#funnelNotice').textContent=!data.length&&!a?'Загрузите ELMA и «Альфа · рабочий лист», чтобы построить сквозную воронку.':'';
+
+  const max=funnelScaleStages(elmaStages,alfaStages);
+  renderStageRows($('#funnelElmaStages'),elmaStages,max);
+  renderStageRows($('#funnelAlfaStages'),alfaStages,max);
 }
 function bucketLabel(d,grain){if(grain==='day')return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});if(grain==='week')return 'Нед. '+isoWeekNumber(d)+' · с '+d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});if(grain==='month')return d.toLocaleDateString('ru-RU',{month:'short',year:'numeric'});if(grain==='quarter')return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear();return String(d.getFullYear())}
 function renderDynamics(rows){const {from,to,grain}=getDynamicsControls();const dated=rows.map(r=>({r,d:r.createdAt?new Date(r.createdAt):null})).filter(x=>x.d&&!Number.isNaN(x.d.getTime())&&(!from||x.d>=from)&&(!to||x.d<=to));const grouped=new Map();dated.forEach(x=>{const b=bucketDate(x.d,grain),k=isoDate(b);if(!grouped.has(k))grouped.set(k,{date:b,count:0});grouped.get(k).count++});const pts=[...grouped.values()].sort((a,b)=>a.date-b.date);$('#dynTotal').textContent=fmt(dated.length)+' лидов';$('#dynNote').textContent=dated.length===rows.length?'':'Без даты создания: '+fmt(rows.length-dated.length);const box=$('#dynChart');if(!pts.length){const hasCreated=rows.some(r=>r.createdAt);box.innerHTML='<div class="empty">'+(hasCreated?'Нет созданных лидов в выбранном периоде.':'В сохранённом срезе нет даты создания. Один раз замените исходный Excel, после этого динамика будет сохраняться вместе с данными.')+'</div>';return}const w=Math.max(760,pts.length*72),h=340,pad={l:46,r:18,t:20,b:56},max=Math.max(...pts.map(p=>p.count),1),stepX=(w-pad.l-pad.r)/Math.max(pts.length-1,1),y=v=>pad.t+(h-pad.t-pad.b)*(1-v/max),x=i=>pad.l+i*stepX;let path='';pts.forEach((p,i)=>{path+=(i?'L':'M')+x(i)+','+y(p.count)});const yTicks=[0,.25,.5,.75,1].map(f=>Math.round(max*f));const grid=yTicks.map(v=>'<line x1="'+pad.l+'" x2="'+(w-pad.r)+'" y1="'+y(v)+'" y2="'+y(v)+'" class="dyn-grid"/><text x="'+(pad.l-8)+'" y="'+(y(v)+4)+'" class="dyn-y" text-anchor="end">'+v+'</text>').join('');const labels=pts.map((p,i)=>'<text x="'+x(i)+'" y="'+(h-20)+'" class="dyn-x" text-anchor="middle">'+bucketLabel(p.date,grain)+'</text>').join('');const dots=pts.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.count)+'" r="4" class="dyn-dot"><title>'+bucketLabel(p.date,grain)+': '+p.count+'</title></circle>').join('');box.innerHTML='<div class="dyn-scroll"><svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" role="img" aria-label="Динамика созданных лидов">'+grid+'<path d="'+path+'" class="dyn-line"/>'+dots+labels+'</svg></div>'}
@@ -112,7 +155,7 @@ function health(r){if(!r.active)return'Неактивный';if(r.age==null)retu
 function apply(){const q=$('#fSearch').value.toLowerCase(),ss=selected('#fStatus'),vs=selected('#fVertical'),os=selected('#fOwner'),hs=selected('#fHealth'),inactiveSelected=ss.has('Неактивные / дисквалифицированные');current=data.filter(r=>(!ss.size||ss.has(r.status)||(inactiveSelected&&!r.active))&&(!vs.size||vs.has(r.vertical))&&(!os.size||os.has(r.owner))&&(!hs.size||hs.has(health(r)))&&(!q||[r.company,r.inn,r.owner,r.phone,r.email].some(x=>String(x||'').toLowerCase().includes(q))));renderOverview(current);renderAllDynamics();renderFunnel();$('#resultCount').textContent=`Показано ${fmt(current.length)} из ${fmt(data.length)}`;$('#tbody').innerHTML=current.slice(0,600).map(r=>`<tr><td class="company">${r.company}</td><td>${fmtCreated(r.createdAt)}</td><td>${r.status}</td><td>${r.vertical}</td><td>${r.owner}</td><td><span class="pill ${r.age!=null&&r.age<=30?'live':r.age>90?'stale':'mid'}">${health(r)}</span></td><td class="num">${r.age??''}</td><td>${r.task||'<span class="muted">нет</span>'}</td><td class="num">${r.fleet??''}</td><td class="num">${r.atom??''}</td><td>${r.phone||r.email?'✓':''}</td></tr>`).join('')}
 function csv(){const c=[['Компания','company'],['Статус','status'],['Вертикаль','vertical'],['Ответственный','owner'],['Дней','age'],['Задача','task'],['Автопарк','fleet'],['ATOM','atom'],['Телефон','phone'],['Email','email'],['ИНН','inn']],q=v=>'"'+String(v??'').replaceAll('"','""')+'"';const lines=[c.map(x=>q(x[0])).join(';'),...current.map(r=>c.map(x=>q(r[x[1]])).join(';'))];const b=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ATOM_B2B_CRM.csv';a.click()}
 $('#crmFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});data=parse(m);const saved=persistSnapshot(f.name);showLoadedState(f.name,false,saved.savedAt)}catch(err){$('#fileStatus').textContent='Ошибка: '+err.message;$('#fileStatus').className='statusline bad'}};
-$('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#analytics');setView('analytics')});$('#navFunnel').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#funnel');setView('funnel')});$('#navDynamics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#dynamics');setView('dynamics')});window.addEventListener('atom-alfa-updated',renderFunnel);['#dynFrom','#dynTo','#dynGrain'].forEach(id=>{const el=$(id);el.addEventListener('change',renderAllDynamics);if(el.type==='date')el.addEventListener('input',renderAllDynamics)});$('#fSearch').addEventListener('input',apply);$('#exportBtn').onclick=csv;$('#resetBtn').onclick=()=>{$('#fSearch').value='';const activeStatuses=[...new Set(data.filter(x=>x.active).map(x=>x.status))].sort(),statusOptions=[...activeStatuses,'Неактивные / дисквалифицированные'],verticalOptions=[...new Set(data.map(x=>x.vertical))].sort(),defaultVerticals=verticalOptions.filter(v=>['GR / B2G','Каршеринг','Корпоративные','Не указана'].includes(v));setupMulti('#fStatus',statusOptions,statusOptions);setupMulti('#fVertical',verticalOptions,defaultVerticals);setupMulti('#fOwner',[...new Set(data.map(x=>x.owner))].sort(),[]);setupMulti('#fHealth',['≤30 дней','31-90 дней','>90 дней','Нет даты','Неактивный'],[]);apply()};$('#clearBtn').onclick=()=>{localStorage.removeItem(SNAPSHOT_KEY);location.reload()};restoreSnapshot();setView(location.hash==='#dynamics'?'dynamics':location.hash==='#funnel'?'funnel':'analytics');
+$('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#analytics');setView('analytics')});$('#navFunnel').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#funnel');setView('funnel')});$('#navDynamics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#dynamics');setView('dynamics')});window.addEventListener('atom-alfa-updated',renderFunnel);['#funnelElmaVertical','#funnelElmaOwner','#funnelAlfaCompany','#funnelAlfaOwner'].forEach(id=>{const el=$(id);if(el)el.addEventListener('change',renderFunnel)});['#dynFrom','#dynTo','#dynGrain'].forEach(id=>{const el=$(id);el.addEventListener('change',renderAllDynamics);if(el.type==='date')el.addEventListener('input',renderAllDynamics)});$('#fSearch').addEventListener('input',apply);$('#exportBtn').onclick=csv;$('#resetBtn').onclick=()=>{$('#fSearch').value='';const activeStatuses=[...new Set(data.filter(x=>x.active).map(x=>x.status))].sort(),statusOptions=[...activeStatuses,'Неактивные / дисквалифицированные'],verticalOptions=[...new Set(data.map(x=>x.vertical))].sort(),defaultVerticals=verticalOptions.filter(v=>['GR / B2G','Каршеринг','Корпоративные','Не указана'].includes(v));setupMulti('#fStatus',statusOptions,statusOptions);setupMulti('#fVertical',verticalOptions,defaultVerticals);setupMulti('#fOwner',[...new Set(data.map(x=>x.owner))].sort(),[]);setupMulti('#fHealth',['≤30 дней','31-90 дней','>90 дней','Нет даты','Неактивный'],[]);apply()};$('#clearBtn').onclick=()=>{localStorage.removeItem(SNAPSHOT_KEY);location.reload()};restoreSnapshot();setView(location.hash==='#dynamics'?'dynamics':location.hash==='#funnel'?'funnel':'analytics');
 })();
 
 (()=>{const U='https://enlyiedwkarajvfsilel.supabase.co',K='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5',BUCKET='plan-source-files',gate=document.getElementById('authGate'),shell=document.getElementById('appShell'),st=document.getElementById('authStatus'),mail=document.getElementById('authEmail'),send=document.getElementById('authSend'),user=document.getElementById('authUserEmail'),alfaFile=document.getElementById('alfaFile'),alfaDate=document.getElementById('alfaActualDate'),alfaStatus=document.getElementById('alfaFileStatus');let sb=null;try{sb=window.supabase?.createClient(U,K,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}})}catch{}const ok=e=>/^[^@\s]+@atom\.team$/i.test(e||'');const enc=t=>{const b=new TextEncoder().encode(String(t||''));let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};const safe=n=>String(n||'file').replace(/[\\/]+/g,'_').replace(/[\u0000-\u001f\u007f]/g,'_').slice(0,160);const setAlfa=(t,cl='')=>{if(!alfaStatus)return;alfaStatus.textContent=t;alfaStatus.className='statusline'+(cl?' '+cl:'')};const show=e=>{gate.classList.add('app-hidden');shell.classList.remove('app-hidden');user.textContent=e};async function open(s){if(!s?.access_token)return false;try{const{data,error}=await sb.auth.getUser(s.access_token);if(error||!ok(data.user?.email))return false;localStorage.setItem('atom_access_token',s.access_token);if(s.refresh_token)localStorage.setItem('atom_refresh_token',s.refresh_token);show(data.user.email);return true}catch{return false}}async function boot(){if(!sb){st.textContent='Не удалось загрузить модуль входа.';return}try{const{data}=await sb.auth.getSession();if(data.session&&await open(data.session))return;const a=localStorage.getItem('atom_access_token'),r=localStorage.getItem('atom_refresh_token');if(a&&r){const x=await sb.auth.setSession({access_token:a,refresh_token:r});if(x.data.session&&await open(x.data.session))return}}catch{}st.textContent='Введите рабочую почту @atom.team. Пароль не нужен.'}send.onclick=async()=>{const e=mail.value.trim().toLowerCase();if(!ok(e)){st.textContent='Доступ разрешен только для @atom.team.';st.className='auth-status bad';return}send.disabled=true;st.textContent='Отправляю ссылку...';try{const r=await fetch(U+'/functions/v1/atom-magic-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});if(!r.ok)throw new Error('Не удалось отправить ссылку');st.textContent='Ссылка отправлена на '+e+'.';st.className='auth-status ok'}catch(err){st.textContent=err.message;st.className='auth-status bad'}finally{send.disabled=false}};mail.addEventListener('keydown',e=>{if(e.key==='Enter')send.click()});document.getElementById('authLogout').onclick=async()=>{try{await sb.auth.signOut({scope:'local'})}catch{}localStorage.removeItem('atom_access_token');localStorage.removeItem('atom_refresh_token');location.reload()};if(alfaDate){const d=new Date();alfaDate.value=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}if(alfaFile)alfaFile.addEventListener('change',async()=>{
@@ -157,7 +200,15 @@ $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics
       }
       const numbered=order.length>0&&order.every(x=>/^\s*\d+/.test(x));
       if(numbered)order.sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
-      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),stages:order.map(stage=>({name:stage,count:companies.get(stage).size}))};
+      let ownerCol=-1,ownerBest=-1;
+      header.forEach((v,i)=>{const s=String(v||'').trim(),score=(/ответствен/i.test(s)?10:0)+(/менеджер/i.test(s)?9:0)+(/продавец/i.test(s)?8:0)+(/owner/i.test(s)?7:0);if(score>ownerBest){ownerBest=score;ownerCol=i}});
+      const rows=[];
+      for(let r=headerRow+1;r<matrix.length;r++){
+        const row=matrix[r]||[],stage=String(row[statusCol]||'').trim(),companyRaw=String(row[companyCol]||'').trim(),company=normalizeCompany(companyRaw);
+        if(!stage||!company)continue;
+        rows.push({stage,company:companyRaw,companyKey:company,owner:ownerCol>=0?String(row[ownerCol]||'').trim():''});
+      }
+      const snap={fileName:file.name,actualDate:actual,savedAt:new Date().toISOString(),countType:'companies',stageHeader:String(header[statusCol]||''),companyHeader:String(header[companyCol]||''),ownerHeader:ownerCol>=0?String(header[ownerCol]||''):'',stages:order.map(stage=>({name:stage,count:companies.get(stage).size})),rows};
       localStorage.setItem('atom_b2b_alfa_funnel_snapshot_v1',JSON.stringify(snap));
       window.dispatchEvent(new CustomEvent('atom-alfa-updated'));
     }catch(parseErr){
