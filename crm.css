@@ -99,3 +99,15 @@
 .funnel-legend i{display:inline-block;width:12px;height:12px;border-radius:3px}
 .funnel-legend i.elma{background:#ffd800;border:1px solid #d8b900}
 .funnel-legend i.alfa{background:#2f3040;border:1px solid #2f3040}
+
+
+.alfa-summary-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.alfa-kpis{grid-template-columns:repeat(4,minmax(140px,1fr))}
+.alfa-summary-filters{display:flex;gap:8px;flex-wrap:wrap}
+.alfa-summary-filters input,.alfa-summary-filters select{height:34px;border:1px solid #d0d5dd;border-radius:7px;background:#fff;padding:0 9px;font-size:11px}
+.alfa-summary-filters input{min-width:220px}
+.alfa-summary-table{min-width:720px}
+.alfa-summary-table th:nth-child(1){width:45%}
+.alfa-summary-table th:nth-child(2){width:30%}
+.alfa-summary-table th:nth-child(3){width:25%}
+@media(max-width:900px){.alfa-kpis{grid-template-columns:repeat(2,1fr)}.alfa-summary-filters{width:100%}.alfa-summary-filters input,.alfa-summary-filters select{flex:1;min-width:160px}}
