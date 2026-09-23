@@ -39,7 +39,7 @@
         <a class="active" href="./bcc.html?v=auth3">Weekly Project Review</a>
       </nav>
       <div class="build-meta">
-        <span>Версия <b>v0.9.4 Shared Auth</b></span>
+        <span>Версия <b>v0.9.5 Shared Auth</b></span>
         <span>Обновлено <b id="buildUpdatedAt">—</b></span>
         <span>Ревью <b>каждый понедельник 09:30</b></span>
       </div>
@@ -77,7 +77,7 @@
 
   <script src="./bcc.js?v=0.8.2-auth3"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./shared-auth.js?v=1.1.1"></script>
+<script src="./shared-auth.js?v=1.2.0"></script>
   <script>
   (() => {
     const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
@@ -258,7 +258,7 @@
       setStatus('Отправляю ссылку...');
       localStorage.setItem(RETURN_KEY,RETURN_PATH);
       try{
-        await call(SEND_ENDPOINT,{email,redirect_to:location.origin+location.pathname});
+        await window.ATOMAuth.send(email,location.origin+'/production-and-sales-plan/');
         setStatus('Ссылка отправлена на '+email+'. Откройте последнее письмо. После входа вы автоматически вернетесь сюда.','ok');
       }catch(e){
         localStorage.removeItem(RETURN_KEY);
