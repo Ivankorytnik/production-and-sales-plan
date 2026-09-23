@@ -450,6 +450,22 @@ function overview(){
 function taskOptions(arr,current){
   return arr.map(x=>`<option ${x===current?'selected':''}>${esc(x)}</option>`).join('');
 }
+function taskStatusClass(status){
+  return {
+    'Не начато':'status-not-started',
+    'Новая':'status-new',
+    'В работе':'status-work',
+    'На контроле':'status-control',
+    'Блокер':'status-blocker',
+    'Готово':'status-done',
+    'Отложено':'status-postponed'
+  }[status]||'status-neutral';
+}
+function applyTaskStatusClass(el){
+  if(!el)return;
+  [...el.classList].filter(x=>x.startsWith('status-')).forEach(x=>el.classList.remove(x));
+  el.classList.add(taskStatusClass(el.value));
+}
 function normalizedTaskOwner(owner,owners){
   const value=String(owner||'').trim();
   if(!value)return '';
@@ -473,7 +489,7 @@ function tasks(){
     <td><b>${esc(t.title||'')}</b><span class="deadline-note">${esc(t.result||'')}</span></td>
     <td>${esc(t.project||'—')}</td>
     <td><select class="taskOwnerSelect" data-id="${t.id}" aria-label="Ответственный по задаче №${t.number||''}">${taskOwnerOptions(owners,t.owner)}</select></td>
-    <td><select class="taskStatusSelect" data-id="${t.id}" aria-label="Статус задачи №${t.number||''}">${taskOptions(TASK_STATUSES,t.status||'Новая')}</select></td>
+    <td><select class="taskStatusSelect ${taskStatusClass(t.status||'Новая')}" data-id="${t.id}" aria-label="Статус задачи №${t.number||''}">${taskOptions(TASK_STATUSES,t.status||'Новая')}</select></td>
     <td>${esc(t.startDate||'—')}</td>
     <td>${esc(t.dueDate||'—')}${weeklyTaskOverdue(t)?'<span class="deadline-note">'+badge('Просрочено','bad')+'</span>':''}</td>
     <td>${esc(t.block||'')}</td>
@@ -491,7 +507,7 @@ function tasks(){
         <label class="task-wide">Задача<input id="taskTitle" placeholder="Что должно быть сделано"></label>
         <label>Штаб<input id="taskProject" placeholder="Код штаба"></label>
         <label>Ответственный<select id="taskOwner"><option value="">Не назначен</option>${owners.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select></label>
-        <label>Статус<select id="taskStatus">${taskOptions(TASK_STATUSES,'Новая')}</select></label>
+        <label>Статус<select id="taskStatus" class="${taskStatusClass('Новая')}">${taskOptions(TASK_STATUSES,'Новая')}</select></label>
         <label>Дата с<input id="taskStartDate" type="date"></label>
         <label>Дата до<input id="taskDueDate" type="date"></label>
         <label class="task-wide">Критерий готовности<textarea id="taskResult" rows="2" placeholder="Как поймем, что задача выполнена"></textarea></label>
@@ -509,7 +525,7 @@ function resetTaskEditor(){
   const start=document.getElementById('taskStartDate'),due=document.getElementById('taskDueDate');
   if(start)start.value=localDateString(Date.now());
   if(due)due.value=localDateString(nextReviewDate().getTime());
-  const st=document.getElementById('taskStatus');if(st)st.value='Новая';
+  const st=document.getElementById('taskStatus');if(st){st.value='Новая';applyTaskStatusClass(st);}
   const v=document.getElementById('taskVertical');if(v)v.value='B2B';
   const b=document.getElementById('taskBlock');if(b)b.value='Новые задачи ревью';
   const hq=document.getElementById('taskProject');if(hq)hq.value=WEEKLY_HQ_CODE;
@@ -526,6 +542,7 @@ function openTaskEditor(id){
   document.getElementById('taskProject').value=t.project||'';
   document.getElementById('taskOwner').value=t.owner||'';
   document.getElementById('taskStatus').value=t.status||'Новая';
+  applyTaskStatusClass(document.getElementById('taskStatus'));
   document.getElementById('taskStartDate').value=t.startDate||'';
   document.getElementById('taskDueDate').value=t.dueDate||'';
   document.getElementById('taskResult').value=t.result||'';
@@ -782,7 +799,18 @@ function bind(){
   const taskCancelEdit=document.getElementById('taskCancelEdit');
   if(taskCancelEdit)taskCancelEdit.onclick=resetTaskEditor;
   document.querySelectorAll('.taskEditBtn').forEach(el=>el.onclick=()=>openTaskEditor(el.dataset.id));
-  document.querySelectorAll('.taskStatusSelect').forEach(el=>el.onchange=()=>updateTaskStatusFromTable(el.dataset.id,el.value));
+  document.querySelectorAll('.taskStatusSelect').forEach(el=>{
+    applyTaskStatusClass(el);
+    el.onchange=()=>{
+      applyTaskStatusClass(el);
+      updateTaskStatusFromTable(el.dataset.id,el.value);
+    };
+  });
+  const taskStatus=document.getElementById('taskStatus');
+  if(taskStatus){
+    applyTaskStatusClass(taskStatus);
+    taskStatus.onchange=()=>applyTaskStatusClass(taskStatus);
+  }
   document.querySelectorAll('.taskOwnerSelect').forEach(el=>el.onchange=()=>updateTaskOwnerFromTable(el.dataset.id,el.value));
   document.querySelectorAll('.taskDeleteBtn').forEach(el=>el.onclick=()=>deleteTaskFromManager(el.dataset.id));
   if(currentView==='tasks'&&!document.getElementById('taskEditId')?.value){
