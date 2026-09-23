@@ -344,6 +344,7 @@ async function bootAuth(){
   if(sharedReady?.client)sb=sharedReady.client;
   if(sharedReady?.session?.access_token&&await acceptSession(sharedReady.session))return;
   if(!window.supabase?.createClient){
+    gate.classList.remove('app-hidden');
     setAuthStatus('Не удалось загрузить модуль авторизации.','bad');
     return;
   }
@@ -357,6 +358,7 @@ async function bootAuth(){
   if(cb.error||cb.errorCode){
     const msg=decodeURIComponent((cb.errorDescription||cb.errorCode||cb.error||'Ошибка входа').replace(/\+/g,' '));
     cleanCallbackUrl();
+    gate.classList.remove('app-hidden');
     setAuthStatus('Ссылка не сработала: '+msg+'. Запросите новую ссылку.','bad');
     return;
   }
@@ -373,6 +375,7 @@ async function bootAuth(){
     if(!error&&data.session&&await acceptSession(data.session))return;
   }catch{}
   if(await restoreLegacy())return;
+  gate.classList.remove('app-hidden');
   setAuthStatus('Введите рабочую почту @atom.team. Пароль не нужен.');
 }
 async function sendLink(){
