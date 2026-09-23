@@ -171,6 +171,7 @@ function taskAssignedToMember(t,m){
 // 23.09.2026: источник задач - Google Sheet "Sales & Marketing Штаб - контроль решений".
 // Загружаются только строки, где в колонке "Признак" указано "Штаб_39".
 const WEEKLY_REVIEW_TAG='Штаб_39';
+const WEEKLY_HQ_CODE='WEEK_392026';
 const WEEKLY_START_DATE='2026-09-21';
 const WEEKLY_DUE_DATE='2026-09-28';
 const SOURCE_WEEKLY_TASKS=[
@@ -212,13 +213,14 @@ function ensureWeeklyTasks(){
       t.status=t.status||sourceStatus||'Не начато';
       t.comment=t.comment||sourceComment||'';
       t.reviewTag=WEEKLY_REVIEW_TAG;
+      t.project=WEEKLY_HQ_CODE;
       t.startDate=WEEKLY_START_DATE;
       t.dueDate=WEEKLY_DUE_DATE;
       if(!t.vertical)t.vertical='Все вертикали';
     }else{
       list.push({
         id:'t-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),
-        sourceId,number,block,vertical:'Все вертикали',project:'',title,owner:sourceOwner,
+        sourceId,number,block,vertical:'Все вертикали',project:WEEKLY_HQ_CODE,title,owner:sourceOwner,
         status:sourceStatus||'Не начато',priority:'Средний',progress:0,reviewTag:WEEKLY_REVIEW_TAG,
         startDate:WEEKLY_START_DATE,dueDate:WEEKLY_DUE_DATE,
         result:criterion,comment:sourceComment||'',createdAt:nowIso(),updatedAt:nowIso()
@@ -382,7 +384,7 @@ function tasks(){
         <label>Блок<select id="taskBlock"><option>Решения прошлого штаба</option><option>Дополнительные задачи</option><option>Новые задачи ревью</option></select></label>
         <label>Вертикаль<select id="taskVertical"><option>Все вертикали</option><option>B2B</option><option>B2G</option><option>Каршеринг</option><option>Такси</option></select></label>
         <label class="task-wide">Задача<input id="taskTitle" placeholder="Что должно быть сделано"></label>
-        <label>Проект / компания<input id="taskProject" placeholder="Проект или компания"></label>
+        <label>Штаб<input id="taskProject" placeholder="Код штаба"></label>
         <label>Ответственный<input id="taskOwner" list="taskOwnersList" placeholder="ФИО"><datalist id="taskOwnersList">${owners.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist></label>
         <label>Статус<select id="taskStatus">${taskOptions(TASK_STATUSES,'Новая')}</select></label>
         <label>Дата с<input id="taskStartDate" type="date"></label>
@@ -393,7 +395,7 @@ function tasks(){
       <div class="task-editor-actions"><button id="taskSaveBtn" class="btn primary">Создать задачу</button></div>
     </div>
     <div class="section-title"><h2>Реестр задач</h2><small>создание · изменение · удаление · контроль периода</small></div>
-    ${list.length?`<div class="table-wrap"><table class="table wide task-admin-table"><thead><tr><th>#</th><th>Задача / критерий</th><th>Проект</th><th>Ответственный</th><th>Статус</th><th>Дата с</th><th>Дата до</th><th>Блок</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Задач пока нет.</div>'}
+    ${list.length?`<div class="table-wrap"><table class="table wide task-admin-table"><thead><tr><th>#</th><th>Задача / критерий</th><th>Штаб</th><th>Ответственный</th><th>Статус</th><th>Дата с</th><th>Дата до</th><th>Блок</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Задач пока нет.</div>'}
   `;
 }
 function resetTaskEditor(){
@@ -405,6 +407,7 @@ function resetTaskEditor(){
   const st=document.getElementById('taskStatus');if(st)st.value='Новая';
   const v=document.getElementById('taskVertical');if(v)v.value='B2B';
   const b=document.getElementById('taskBlock');if(b)b.value='Новые задачи ревью';
+  const hq=document.getElementById('taskProject');if(hq)hq.value=WEEKLY_HQ_CODE;
   const title=document.getElementById('taskEditorTitle');if(title)title.textContent='Создать задачу';
   const save=document.getElementById('taskSaveBtn');if(save)save.textContent='Создать задачу';
   document.getElementById('taskCancelEdit')?.classList.add('hidden');
