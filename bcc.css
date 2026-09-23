@@ -100,3 +100,10 @@ footer{padding:16px 28px;font-size:12px;color:#6b7d7e;border-top:1px solid var(-
 .bcc-projects a{display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #466262;border-radius:8px;text-decoration:none;color:#d5eeee;font-size:12px;font-weight:700;white-space:nowrap;background:#173233}
 .bcc-projects a:hover{border-color:#7aa9aa}
 .bcc-projects a.active{background:#35d8c7;border-color:#35d8c7;color:#102526}
+
+
+/* Compact project navigation + build metadata in one desktop row */
+.header-lower-line{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;margin-top:14px;white-space:nowrap;min-width:0}
+.header-lower-line .bcc-projects{margin-top:0;flex-wrap:nowrap;flex:0 0 auto}
+.header-lower-line .build-meta{margin-top:0;flex:0 0 auto}
+@media(max-width:950px){.header-lower-line{width:100%;overflow-x:auto;padding-bottom:2px}}
