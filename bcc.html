@@ -39,7 +39,7 @@
         <a class="active" href="./bcc.html?v=auth3">Weekly Project Review</a>
       </nav>
       <div class="build-meta">
-        <span>Версия <b>v0.9.3 Shared Auth</b></span>
+        <span>Версия <b>v0.9.4 Shared Auth</b></span>
         <span>Обновлено <b id="buildUpdatedAt">—</b></span>
         <span>Ревью <b>каждый понедельник 09:30</b></span>
       </div>
@@ -77,7 +77,7 @@
 
   <script src="./bcc.js?v=0.8.2-auth3"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./shared-auth.js?v=1.1.0"></script>
+<script src="./shared-auth.js?v=1.1.1"></script>
   <script>
   (() => {
     const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
@@ -271,11 +271,6 @@
 
     sendBtn.addEventListener('click',sendLink);
     emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendLink()});
-    if(sb){
-      sb.auth.onAuthStateChange(async(event,session)=>{
-        if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&shell.classList.contains('app-hidden'))await acceptSession(session);
-      });
-    }
     bootAuth().catch(e=>{console.error(e);setStatus('Не удалось проверить доступ. Обновите страницу или запросите новую ссылку.','bad')});
   })();
   </script>
