@@ -9,7 +9,7 @@ button,input,select,textarea{font:inherit}
 .topbar{display:flex;justify-content:space-between;gap:28px;align-items:flex-start;padding:28px 36px;background:#0f2526;color:#fff;border-bottom:4px solid var(--accent)}
 .topbar h1{margin:6px 0;font-size:30px}.topbar p{margin:0;color:#bdd0d0}
 .eyebrow{font-size:12px;letter-spacing:1.3px;color:var(--accent);font-weight:700}
-.build-meta{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:#9fb6b7}.build-meta b{color:#fff}
+.build-meta{display:flex;gap:16px;flex-wrap:nowrap;margin-top:12px;font-size:12px;color:#9fb6b7;white-space:nowrap;align-items:center}.build-meta b{color:#fff}
 .header-status{display:flex;gap:10px;align-items:flex-end;flex-direction:column;min-width:270px}
 .project-progress-box{width:270px;padding:12px 14px;border:1px solid #466262;border-radius:12px;background:#173233}
 .project-progress-label{display:block;font-size:11px;color:#9fb6b7;margin-bottom:4px}.project-progress-box strong{font-size:28px}
