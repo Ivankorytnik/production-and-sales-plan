@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="auth-loading">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -9,21 +9,10 @@
   <meta http-equiv="Expires" content="0" />
   <title>АТОМ · Источники данных</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-  <link rel="stylesheet" href="./sources.css?v=1.0.2" />
+    <link rel="stylesheet" href="./auth.css?v=1.0.0" />
+<link rel="stylesheet" href="./sources.css?v=1.0.2" />
 </head>
 <body>
-<section id="authGate" class="auth-gate app-hidden">
-  <div class="auth-card">
-    <div class="auth-brand">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
-    <h1>Вход для сотрудников</h1>
-    <p>Введите рабочую почту <b>@atom.team</b>.</p>
-    <div class="auth-field"><label for="authEmail">Рабочая почта</label><input id="authEmail" type="email" autocomplete="email" placeholder="name@atom.team" /></div>
-    <div class="auth-actions"><button id="authSend" class="auth-btn" type="button">Получить ссылку на почту</button></div>
-    <div id="authStatus" class="auth-status">Проверяю текущий доступ...</div>
-    <div class="auth-note">Файлы источников не публикуются в GitHub. Они сохраняются в защищённом облачном хранилище после авторизации.</div>
-  </div>
-</section>
-
 <div id="appShell" class="app-hidden shell">
   <aside class="sidebar">
     <a class="brand" href="./index.html?v=auth3"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
@@ -127,7 +116,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./shared-auth.js?v=1.2.0"></script>
-<script src="./sources.js?v=1.4.0-standard-auth"></script>
+<script src="./auth.js?v=1.0.0"></script>
+<script src="./sources.js?v=2.0.0-unified-auth"></script>
 </body>
 </html>
