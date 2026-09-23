@@ -362,7 +362,7 @@ function taskOptions(arr,current){
 }
 function tasks(){
   const list=weeklyTasks().slice().sort((a,b)=>(a.number||9999)-(b.number||9999));
-  const owners=[...new Set(list.map(t=>t.owner).filter(Boolean))].sort();
+  const owners=b2bTeam().map(m=>m.name).filter(Boolean).sort((a,b)=>a.localeCompare(b,'ru'));
   const rows=list.map(t=>`<tr class="${weeklyTaskOverdue(t)?'task-overdue':''}">
     <td>${t.number||'—'}</td>
     <td><b>${esc(t.title||'')}</b><span class="deadline-note">${esc(t.result||'')}</span></td>
@@ -385,7 +385,7 @@ function tasks(){
         <label>Вертикаль<select id="taskVertical"><option>Все вертикали</option><option>B2B</option><option>B2G</option><option>Каршеринг</option><option>Такси</option></select></label>
         <label class="task-wide">Задача<input id="taskTitle" placeholder="Что должно быть сделано"></label>
         <label>Штаб<input id="taskProject" placeholder="Код штаба"></label>
-        <label>Ответственный<input id="taskOwner" list="taskOwnersList" placeholder="ФИО"><datalist id="taskOwnersList">${owners.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist></label>
+        <label>Ответственный<select id="taskOwner"><option value="">Не назначен</option>${owners.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select></label>
         <label>Статус<select id="taskStatus">${taskOptions(TASK_STATUSES,'Новая')}</select></label>
         <label>Дата с<input id="taskStartDate" type="date"></label>
         <label>Дата до<input id="taskDueDate" type="date"></label>
@@ -438,6 +438,9 @@ function saveTaskFromEditor(){
   if(!title){alert('Укажите задачу');return;}
   if(!startDate||!dueDate){alert('Укажите период: Дата с и Дата до');return;}
   if(dateStartMs(dueDate)<dateStartMs(startDate)){alert('Дата до не может быть раньше даты с');return;}
+  const owner=document.getElementById('taskOwner').value;
+  const allowedOwners=new Set(b2bTeam().map(m=>m.name));
+  if(owner&&!allowedOwners.has(owner)){alert('Ответственный должен быть выбран из таблицы Команда B2B');return;}
   const list=weeklyTasks();
   if(id){
     const t=list.find(x=>x.id===id);if(!t)return;
@@ -446,7 +449,7 @@ function saveTaskFromEditor(){
       vertical:document.getElementById('taskVertical').value,
       title,
       project:document.getElementById('taskProject').value.trim(),
-      owner:document.getElementById('taskOwner').value.trim(),
+      owner,
       status:document.getElementById('taskStatus').value,
       startDate,dueDate,
       result:document.getElementById('taskResult').value.trim(),
@@ -462,7 +465,7 @@ function saveTaskFromEditor(){
       vertical:document.getElementById('taskVertical').value,
       title,
       project:document.getElementById('taskProject').value.trim(),
-      owner:document.getElementById('taskOwner').value.trim(),
+      owner,
       status:document.getElementById('taskStatus').value,
       priority:'Средний',progress:0,startDate,dueDate,
       result:document.getElementById('taskResult').value.trim(),
