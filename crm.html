@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ffffff" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="stylesheet" href="./crm.css?v=1.3.9" />
@@ -22,9 +25,9 @@
 </section>
 <div id="appShell" class="app-hidden shell">
   <aside class="sidebar">
-    <a class="brand" href="./index.html"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
+    <a class="brand" href="./index.html?v=auth3"><strong>АТОМ</strong><span>КОММЕРЧЕСКИЙ ШТАБ</span></a>
     <div class="nav-title">Данные</div>
-    <nav class="project-nav"><a href="./sources.html?project=crm">Источники</a></nav>
+    <nav class="project-nav"><a href="./sources.html?project=crm&v=auth3">Источники</a></nav>
     <div class="nav-title">CRM</div>
     <nav class="page-nav"><a href="#source">Исходные данные</a><a id="navAnalytics" class="active" href="#analytics">Сводная ЭЛМА Лиды</a><a id="navAlfaSummary" href="#alfa-summary">Сводная Альфа РЛ</a><a id="navFunnel" href="#funnel">Воронка</a><a id="navDynamics" href="#dynamics">Динамика</a></nav>
 
@@ -53,7 +56,7 @@
   </aside>
   <main class="main">
     <header class="page-head">
-      <div class="page-head-left"><nav class="header-projects" aria-label="Проекты"><span class="header-projects-label">Проекты</span><a href="./index.html">S&amp;OP09 plan</a><a class="active" href="./crm.html">B2B CRM Control Center</a><a href="./bcc.html">Weekly Project Review</a></nav><h1>ATOM B2B CRM Control Center</h1><p>Состояние B2B-воронки ELMA, активность менеджеров и качество данных</p></div>
+      <div class="page-head-left"><nav class="header-projects" aria-label="Проекты"><span class="header-projects-label">Проекты</span><a href="./index.html?v=auth3">S&amp;OP09 plan</a><a class="active" href="./crm.html?v=auth3">B2B CRM Control Center</a><a href="./bcc.html?v=auth3">Weekly Project Review</a></nav><h1>ATOM B2B CRM Control Center</h1><p>Состояние B2B-воронки ELMA, активность менеджеров и качество данных</p></div>
       <div class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
     </header>
     <div id="emptyState" class="info-line">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</div>
@@ -186,6 +189,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.9.7"></script>
+<script src="./crm.js?v=1.9.8-auth3"></script>
 </body>
 </html>
