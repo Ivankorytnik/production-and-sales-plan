@@ -243,7 +243,7 @@
       setStatus('Отправляю ссылку...');
       localStorage.setItem(RETURN_KEY,RETURN_PATH);
       try{
-        await call(SEND_ENDPOINT,{email});
+        await call(SEND_ENDPOINT,{email,redirect_to:location.origin+location.pathname});
         setStatus('Ссылка отправлена на '+email+'. Откройте последнее письмо. После входа вы автоматически вернетесь сюда.','ok');
       }catch(e){
         localStorage.removeItem(RETURN_KEY);
