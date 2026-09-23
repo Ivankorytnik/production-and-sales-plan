@@ -145,3 +145,20 @@ footer{padding:16px 28px;font-size:12px;color:#6b7d7e;border-top:1px solid var(-
 .block-progress-track>div{height:100%;background:var(--accent-dark);border-radius:999px}
 @media(max-width:1100px){.overview-dashboard{grid-template-columns:1fr}}
 @media(max-width:620px){.completion-visual{grid-template-columns:1fr}.completion-donut{margin:auto}.dash-bar-row{grid-template-columns:95px 1fr 58px}.owner-load-row{grid-template-columns:1fr 80px 24px}}
+
+
+/* Task status color indication */
+.taskStatusSelect,
+#taskStatus{
+  font-weight:700;
+  border-width:1px!important;
+  transition:background-color .15s,border-color .15s,color .15s;
+}
+.taskStatusSelect.status-not-started,#taskStatus.status-not-started{background:#f1f3f4!important;border-color:#cfd5d7!important;color:#5f6b6d!important}
+.taskStatusSelect.status-new,#taskStatus.status-new{background:#eef7ff!important;border-color:#b9d9f5!important;color:#25658f!important}
+.taskStatusSelect.status-work,#taskStatus.status-work{background:#e8fbf8!important;border-color:#8adbd2!important;color:#0d625c!important}
+.taskStatusSelect.status-control,#taskStatus.status-control{background:#fff4d7!important;border-color:#e7c86e!important;color:#946a00!important}
+.taskStatusSelect.status-blocker,#taskStatus.status-blocker{background:#fdeaea!important;border-color:#e2a3a3!important;color:#a53636!important}
+.taskStatusSelect.status-done,#taskStatus.status-done{background:#e5f7ef!important;border-color:#9bd2bc!important;color:#227457!important}
+.taskStatusSelect.status-postponed,#taskStatus.status-postponed{background:#f1ecfb!important;border-color:#c9b7e8!important;color:#6a4b93!important}
+.taskStatusSelect.status-neutral,#taskStatus.status-neutral{background:#edf2f2!important;border-color:#ccdada!important;color:#587070!important}
