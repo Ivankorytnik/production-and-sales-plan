@@ -59,7 +59,7 @@
     <main id="top" class="page">
       <section class="page-heading no-print">
         <div class="heading-title-row"><h1>S&amp;OP09 plan</h1></div>
-        <nav class="header-projects" aria-label="Проекты"><span class="header-projects-label">Проекты</span><a class="active" href="./index.html">S&amp;OP09 plan</a><a href="./crm.html">B2B CRM Control Center</a><a href="https://ivankorytnik.github.io/ATOM-Business-Control-Center/">Weekly Project Review</a></nav>
+        <nav class="header-projects" aria-label="Проекты"><span class="header-projects-label">Проекты</span><a class="active" href="./index.html">S&amp;OP09 plan</a><a href="./crm.html">B2B CRM Control Center</a><a href="./bcc.html">Weekly Project Review</a></nav>
         <div class="heading-actions">
           <button id="saveSnapshotBtn" class="btn secondary" type="button">Сохранить базу</button>
           <button id="printBtn" class="btn export" type="button" disabled>↓ Выгрузить PPTX</button>
@@ -174,7 +174,7 @@
         const a=document.getElementById('updatedAt');if(a)a.textContent=t;
       }
       const returnTo=localStorage.getItem('atom_auth_return');
-      if(returnTo&&/^\/ATOM-Business-Control-Center\/$/.test(returnTo)){
+      if(returnTo&&/^\/production-and-sales-plan\/bcc\.html$/.test(returnTo)){
         localStorage.removeItem('atom_auth_return');
         location.href=returnTo;
         return;
