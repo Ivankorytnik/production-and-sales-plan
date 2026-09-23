@@ -691,11 +691,14 @@ function gantt(){
     const clippedRight=rawEnd>end;
     const clipNote=(clippedLeft||clippedRight)?' · часть периода вне 12 недель':'';
     return `<div class="gantt-row">
-      <div class="gantt-task"><b>${t.number?t.number+'. ':''}${esc(t.title)}</b><small>${esc(t.vertical||'')} · ${esc(t.project||'')} · ${esc(t.owner||'без ответственного')} · ${esc(t.status||'')}${clipNote}</small></div>
+      <div class="gantt-task"><b>${t.number?t.number+'. ':''}${esc(t.title)}</b>${clipNote?`<small>${esc(clipNote.replace(/^ · /,''))}</small>`:''}</div>
+      <div class="gantt-meta gantt-vertical">${esc(t.vertical||'—')}</div>
+      <div class="gantt-meta gantt-source">${esc(t.project||'—')}</div>
+      <div class="gantt-meta gantt-owner">${esc(t.owner||'Без ответственного')}</div>
       <div class="gantt-track">
         <div class="gantt-grid" style="background:repeating-linear-gradient(to right,transparent 0,transparent calc(${gridStep}% - 1px),var(--line) calc(${gridStep}% - 1px),var(--line) ${gridStep}%)"></div>
         ${reviewVisible?`<div class="gantt-marker" title="Следующее ревью" style="left:${reviewLeft}%"></div>`:''}
-        <div class="gantt-bar ${statusCls}" title="${esc(t.status||'Новая')}" style="left:${left}%;width:${Math.min(width,100-left)}%"></div>
+        <div class="gantt-bar ${statusCls}" title="${esc(t.status||'Новая')}" style="left:${left}%;width:${Math.min(width,100-left)}%"><span>${esc(t.status||'Новая')}</span></div>
       </div>
     </div>`;
   }).join('');
@@ -707,7 +710,7 @@ function gantt(){
       ${TASK_STATUSES.map(status=>`<span><i class="${taskStatusClass(status)}"></i>${esc(status)}</span>`).join('')}
     </div>
     <div class="gantt-wrap">
-      <div class="gantt-head"><div class="gantt-task-head">Задача</div><div class="gantt-weeks" style="grid-template-columns:repeat(12,1fr)">${weekHead}</div></div>
+      <div class="gantt-head"><div class="gantt-task-head">Задача</div><div class="gantt-col-head">Вертикаль</div><div class="gantt-col-head">Источник</div><div class="gantt-col-head">Ответственный</div><div class="gantt-weeks" style="grid-template-columns:repeat(12,1fr)">${weekHead}</div></div>
       ${rows||'<div class="empty">В выбранном 12-недельном периоде задач нет.</div>'}
     </div>
   `;
