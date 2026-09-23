@@ -93,6 +93,7 @@ const AUTO_DOD={
 
 const app=document.getElementById('app');
 let currentView='tasks';
+let taskEditorOpen=false;
 let clockTimer=null;
 let syncTimer=null;
 let hydrated=false;
@@ -521,7 +522,10 @@ function tasks(){
     <td><div class="task-actions"><button class="btn taskEditBtn" data-id="${t.id}">Изменить</button><button class="btn danger taskDeleteBtn" data-id="${t.id}">Удалить</button></div></td>
   </tr>`).join('');
   return `
-    <div class="card task-editor">
+    <div class="task-create-toolbar">
+      <button id="taskEditorToggle" class="btn primary" type="button">${taskEditorOpen?'Свернуть':'Создать задачу'}</button>
+    </div>
+    <div id="taskEditorCard" class="card task-editor ${taskEditorOpen?'':'hidden'}">
       <div class="task-editor-head"><h3 id="taskEditorTitle">Создать задачу</h3><button id="taskCancelEdit" class="btn hidden">Отменить изменение</button></div>
       <input id="taskEditId" type="hidden">
       <div class="task-form-grid">
@@ -542,7 +546,7 @@ function tasks(){
     ${list.length?`<div class="table-wrap"><table class="table wide task-admin-table"><thead><tr><th>#</th><th>Задача / критерий</th><th>Источник задачи</th><th>Ответственный</th><th>Статус</th><th>Дата с</th><th>Дата до</th><th>Блок</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Задач пока нет.</div>'}
   `;
 }
-function resetTaskEditor(){
+function resetTaskEditor(collapse=false){
   const ids=['taskEditId','taskTitle','taskProject','taskOwner','taskResult','taskComment'];
   ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const start=document.getElementById('taskStartDate'),due=document.getElementById('taskDueDate');
@@ -555,9 +559,17 @@ function resetTaskEditor(){
   const title=document.getElementById('taskEditorTitle');if(title)title.textContent='Создать задачу';
   const save=document.getElementById('taskSaveBtn');if(save)save.textContent='Создать задачу';
   document.getElementById('taskCancelEdit')?.classList.add('hidden');
+  if(collapse){
+    taskEditorOpen=false;
+    document.getElementById('taskEditorCard')?.classList.add('hidden');
+    const toggle=document.getElementById('taskEditorToggle');if(toggle)toggle.textContent='Создать задачу';
+  }
 }
 function openTaskEditor(id){
   const t=weeklyTasks().find(x=>x.id===id);if(!t)return;
+  taskEditorOpen=true;
+  document.getElementById('taskEditorCard')?.classList.remove('hidden');
+  const toggle=document.getElementById('taskEditorToggle');if(toggle)toggle.textContent='Свернуть';
   document.getElementById('taskEditId').value=t.id;
   document.getElementById('taskBlock').value=t.block||'Новые задачи ревью';
   document.getElementById('taskVertical').value=t.vertical||'B2B';
@@ -619,6 +631,7 @@ function saveTaskFromEditor(){
     });
   }
   saveSharedJson(WEEKLY_TASKS_KEY,list);
+  taskEditorOpen=false;
   render('tasks');
 }
 function updateTaskStatusFromTable(id,status){
@@ -846,6 +859,19 @@ function patchBlocker(id,key,value,rerender=false){
 
 function bind(){
 
+  const taskEditorToggle=document.getElementById('taskEditorToggle');
+  if(taskEditorToggle)taskEditorToggle.onclick=()=>{
+    taskEditorOpen=!taskEditorOpen;
+    const card=document.getElementById('taskEditorCard');
+    if(taskEditorOpen){
+      card?.classList.remove('hidden');
+      taskEditorToggle.textContent='Свернуть';
+      resetTaskEditor(false);
+    }else{
+      resetTaskEditor(true);
+    }
+  };
+
   document.querySelectorAll('.ganttColToggle').forEach(btn=>btn.onclick=()=>{
     const key=btn.dataset.ganttCol;
     if(!(key in ganttColumnState))return;
@@ -856,7 +882,7 @@ function bind(){
   const taskSaveBtn=document.getElementById('taskSaveBtn');
   if(taskSaveBtn)taskSaveBtn.onclick=saveTaskFromEditor;
   const taskCancelEdit=document.getElementById('taskCancelEdit');
-  if(taskCancelEdit)taskCancelEdit.onclick=resetTaskEditor;
+  if(taskCancelEdit)taskCancelEdit.onclick=()=>resetTaskEditor(true);
   document.querySelectorAll('.taskEditBtn').forEach(el=>el.onclick=()=>openTaskEditor(el.dataset.id));
   document.querySelectorAll('.taskStatusSelect').forEach(el=>{
     applyTaskStatusClass(el);
