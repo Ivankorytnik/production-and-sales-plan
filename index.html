@@ -121,7 +121,7 @@
   })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./shared-auth.js?v=1.1.0"></script>
+<script src="./shared-auth.js?v=1.1.1"></script>
   <script>
   (()=>{
     const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
@@ -317,12 +317,6 @@
 
     sendBtn.addEventListener('click',sendLink);
     emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendLink()});
-
-    if(sb){
-      sb.auth.onAuthStateChange(async(event,session)=>{
-        if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&shell.classList.contains('app-hidden'))await acceptSession(session);
-      });
-    }
 
     bootAuth().catch(e=>{console.error(e);setStatus('Не удалось проверить доступ. Обновите страницу или запросите новую ссылку.','bad')});
   })();
