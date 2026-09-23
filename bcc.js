@@ -141,12 +141,32 @@ const dodManual=()=>load(K.dod,{});
 const deadlineOverrides=()=>load(K.deadlines,{});
 const WEEKLY_TASKS_KEY='atom-weekly-review-tasks-v02-hq-only';
 const DELETED_TASKS_KEY='atom-weekly-review-deleted-v02-hq-only';
-const B2B_TEAM_KEY='atom-bcc-b2b-team-v01';
+const B2B_TEAM_KEY='atom-bcc-b2b-team-v02';
 const weeklyTasks=()=>load(WEEKLY_TASKS_KEY,[]);
 const deletedTaskIds=()=>load(DELETED_TASKS_KEY,[]);
 const b2bTeam=()=>load(B2B_TEAM_KEY,[]);
 const saveLocalJson=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
 const B2B_TEAM_STATUSES=['Активен','Отпуск','Пауза'];
+const B2B_TEAM_ROLES=['Админ','Пользователь'];
+const DEFAULT_B2B_TEAM=[
+  {id:'tm-kostylev',name:'Александр Костылев',email:'aleksander.kostylev@atom.team',role:'Админ',status:'Активен'},
+  {id:'tm-korytnik',name:'Иван Корытник',email:'ivan.korytnik@atom.team',role:'Админ',status:'Активен'},
+  {id:'tm-voronkevich',name:'Виталий Воронкевич',email:'vitaly.voronkevich@atom.team',role:'Пользователь',status:'Активен'},
+  {id:'tm-lisitsyn',name:'Алексей Лисицын',email:'aleksei.lisitsyn@atom.team',role:'Пользователь',status:'Активен'},
+  {id:'tm-kosylev',name:'Михаил Косылев',email:'mikhail.kiselyov@atom.team',role:'Пользователь',status:'Активен'}
+];
+function ensureB2BTeam(){
+  if(localStorage.getItem(B2B_TEAM_KEY)!==null)return;
+  saveLocalJson(B2B_TEAM_KEY,DEFAULT_B2B_TEAM);
+}
+function taskAssignedToMember(t,m){
+  const owner=String(t.owner||'').toLocaleLowerCase('ru-RU');
+  const full=String(m.name||'').trim().toLocaleLowerCase('ru-RU');
+  if(!owner||!full)return false;
+  if(owner===full)return true;
+  const first=full.split(/\s+/)[0];
+  return first.length>2&&owner.includes(first);
+}
 
 // 23.09.2026: источник задач - Google Sheet "Sales & Marketing Штаб - контроль решений".
 // Загружаются только строки, где в колонке "Признак" указано "Штаб_39".
@@ -550,15 +570,22 @@ function roadmap(){
 function team(){
   const list=b2bTeam(),taskList=weeklyTasks();
   const rows=list.map(m=>{
-    const assigned=taskList.filter(t=>t.owner===m.name&&t.status!=='Готово');
+    const assigned=taskList.filter(t=>taskAssignedToMember(t,m)&&t.status!=='Готово');
     const over=assigned.filter(weeklyTaskOverdue).length;
     const bl=assigned.filter(t=>t.status==='Блокер').length;
-    return `<tr><td><input class="teamField" data-id="${m.id}" data-key="name" value="${esc(m.name||'')}" placeholder="ФИО"></td><td><input class="teamField" data-id="${m.id}" data-key="role" value="${esc(m.role||'')}" placeholder="Роль"></td><td><input class="teamField" data-id="${m.id}" data-key="area" value="${esc(m.area||'')}" placeholder="Зона ответственности"></td><td><select class="teamField" data-id="${m.id}" data-key="status">${options(B2B_TEAM_STATUSES,m.status||'Активен')}</select></td><td>${assigned.length}</td><td>${over}</td><td>${bl}</td><td><button class="btn danger delTeamMember" data-id="${m.id}">Удалить</button></td></tr>`;
+    return `<tr>
+      <td><input class="teamField" data-id="${m.id}" data-key="name" value="${esc(m.name||'')}" placeholder="ФИО"></td>
+      <td><input class="teamField" data-id="${m.id}" data-key="email" type="email" value="${esc(m.email||'')}" placeholder="E-mail"></td>
+      <td><select class="teamField" data-id="${m.id}" data-key="role">${options(B2B_TEAM_ROLES,m.role||'Пользователь')}</select></td>
+      <td><select class="teamField" data-id="${m.id}" data-key="status">${options(B2B_TEAM_STATUSES,m.status||'Активен')}</select></td>
+      <td>${assigned.length}</td><td>${over}</td><td>${bl}</td>
+      <td><button class="btn danger delTeamMember" data-id="${m.id}">Удалить</button></td>
+    </tr>`;
   }).join('');
   return `<div class="section-title"><h2>Команда B2B</h2><small>нагрузка считается из задач Weekly Review</small></div>
-    <div class="card"><h3 style="margin-top:0">Добавить сотрудника</h3><div class="form-grid"><input id="tmName" placeholder="ФИО"><input id="tmRole" placeholder="Роль / должность"><input id="tmArea" placeholder="Зона ответственности"><select id="tmStatus">${B2B_TEAM_STATUSES.map(x=>`<option>${x}</option>`).join('')}</select><button id="addTeamMember" class="btn primary">Добавить</button></div></div>
+    <div class="card"><h3 style="margin-top:0">Добавить сотрудника</h3><div class="form-grid"><input id="tmName" placeholder="ФИО"><input id="tmEmail" type="email" placeholder="E-mail"><select id="tmRole">${B2B_TEAM_ROLES.map(x=>`<option>${x}</option>`).join('')}</select><select id="tmStatus">${B2B_TEAM_STATUSES.map(x=>`<option>${x}</option>`).join('')}</select><button id="addTeamMember" class="btn primary">Добавить</button></div></div>
     <div class="section-title"><h2>Состав команды</h2><small>${list.length} сотрудников</small></div>
-    ${list.length?`<div class="table-wrap"><table class="table"><thead><tr><th>Сотрудник</th><th>Роль</th><th>Зона ответственности</th><th>Статус</th><th>Открыто</th><th>Просрочено</th><th>Блокеры</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Сотрудники пока не добавлены.</div>'}`;
+    ${list.length?`<div class="table-wrap"><table class="table"><thead><tr><th>ФИО</th><th>E-mail</th><th>Роль</th><th>Статус</th><th>Открыто</th><th>Просрочено</th><th>Блокеры</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Сотрудники пока не добавлены.</div>'}`;
 }
 
 function modules(){
@@ -682,12 +709,14 @@ function bind(){
   const addTeam=document.getElementById('addTeamMember');
   if(addTeam)addTeam.onclick=()=>{
     const name=document.getElementById('tmName').value.trim();
-    const role=document.getElementById('tmRole').value.trim();
-    const area=document.getElementById('tmArea').value.trim();
+    const email=document.getElementById('tmEmail').value.trim();
+    const role=document.getElementById('tmRole').value;
     const status=document.getElementById('tmStatus').value;
     if(!name){alert('Укажите сотрудника');return;}
+    if(!email){alert('Укажите E-mail');return;}
     const list=b2bTeam();
-    list.push({id:'tm-'+Date.now().toString(36),name,role,area,status});
+    if(list.some(m=>String(m.email||'').toLowerCase()===email.toLowerCase())){alert('Сотрудник с таким E-mail уже есть');return;}
+    list.push({id:'tm-'+Date.now().toString(36),name,email,role,status});
     saveLocalJson(B2B_TEAM_KEY,list);
     render('team');
   };
@@ -822,6 +851,7 @@ window.startAtomBccApp=()=>{
   if(appBooted)return;
   appBooted=true;
   ensureWeeklyTasks();
+  ensureB2BTeam();
   updateBuildTimestamp();
   render();
   hydrate();
