@@ -269,4 +269,4 @@ $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics
   }finally{
     alfaFile.disabled=false;
   }
-});sb?.auth.onAuthStateChange(async(ev,s)=>{if((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED')&&s)await open(s)});boot()})();
+});boot()})();
