@@ -336,6 +336,7 @@ function setSync(text,state='ok'){
   if(!el)return;
   el.textContent=text;
   el.style.background=state==='error'?'#5b2d2d':state==='work'?'#5b4a20':'#173233';
+  el.style.color=state==='error'?'#ffffff':state==='work'?'#fff7d6':'#d5eeee';
 }
 function syncOkLabel(){return 'Синхронизировано '+new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'}).format(new Date());}
 
