@@ -121,6 +121,7 @@
   })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+<script src="./shared-auth.js?v=1.0.0"></script>
   <script>
   (()=>{
     const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
@@ -260,6 +261,7 @@
     }
 
     async function bootAuth(){
+      if(window.ATOM_AUTH_READY)await window.ATOM_AUTH_READY;
       const cb=callbackParams();
       if(cb.error||cb.errorCode){
         const msg=decodeURIComponent((cb.errorDescription||cb.errorCode||cb.error||'Ошибка входа').replace(/\+/g,' '));
