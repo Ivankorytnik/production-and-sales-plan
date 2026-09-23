@@ -92,7 +92,12 @@ const AUTO_DOD={
 };
 
 const app=document.getElementById('app');
-let currentView='tasks';
+const BCC_VIEWS=['overview','tasks','gantt','team','issues'];
+function viewFromHash(){
+  const view=location.hash.replace(/^#/,'');
+  return BCC_VIEWS.includes(view)?view:'tasks';
+}
+let currentView=viewFromHash();
 let taskEditorOpen=false;
 let clockTimer=null;
 let syncTimer=null;
@@ -341,16 +346,18 @@ function setSync(text,state='ok'){
 }
 function syncOkLabel(){return 'Синхронизировано '+new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'}).format(new Date());}
 
-function render(view=currentView){
-  currentView=view;
-  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+function render(view=currentView,updateHash=false){
+  const safeView=BCC_VIEWS.includes(view)?view:'tasks';
+  currentView=safeView;
+  if(updateHash&&location.hash!=='#'+safeView)history.pushState(null,'','#'+safeView);
+  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('active',b.dataset.view===safeView));
   const views={overview,tasks,gantt,team,issues};
-  app.innerHTML=(views[view]||overview)();
+  app.innerHTML=(views[safeView]||tasks)();
   bind();
   updateHeader();
   updateClock();
 }
-document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>render(btn.dataset.view)));
+document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>render(btn.dataset.view,true)));
 
 function overview(){
   const tasks=weeklyTasks();
@@ -1085,6 +1092,7 @@ async function pullRemote(){
 
 let appBooted=false;
 window.addEventListener('storage',e=>{if(appBooted&&CLOUD_KEYS.includes(e.key))render(currentView);});
+window.addEventListener('hashchange',()=>{if(appBooted)render(viewFromHash(),false);});
 window.startAtomBccApp=()=>{
   if(appBooted)return;
   appBooted=true;
@@ -1092,7 +1100,8 @@ window.startAtomBccApp=()=>{
   ensureB2BTeam();
   normalizeCurrentTaskOwners(false);
   updateBuildTimestamp();
-  render();
+  currentView=viewFromHash();
+  render(currentView,false);
   hydrate();
   setInterval(pullRemote,15000);
 };
