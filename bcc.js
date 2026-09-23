@@ -527,7 +527,7 @@ function tasks(){
         <label>Блок<select id="taskBlock"><option>Решения прошлого штаба</option><option>Дополнительные задачи</option><option>Новые задачи ревью</option></select></label>
         <label>Вертикаль<select id="taskVertical"><option>Все вертикали</option><option>B2B</option><option>B2G</option><option>Каршеринг</option><option>Такси</option></select></label>
         <label class="task-wide">Задача<input id="taskTitle" placeholder="Что должно быть сделано"></label>
-        <label>Штаб<input id="taskProject" placeholder="Код штаба"></label>
+        <label>Источник<input id="taskProject" placeholder="WEEK_NNГГГГ"></label>
         <label>Ответственный<select id="taskOwner"><option value="">Не назначен</option>${owners.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select></label>
         <label>Статус<select id="taskStatus" class="${taskStatusClass('Новая')}">${taskOptions(TASK_STATUSES,'Новая')}</select></label>
         <label>Дата с<input id="taskStartDate" type="date"></label>
@@ -550,7 +550,7 @@ function resetTaskEditor(){
   const st=document.getElementById('taskStatus');if(st){st.value='Новая';applyTaskStatusClass(st);}
   const v=document.getElementById('taskVertical');if(v)v.value='B2B';
   const b=document.getElementById('taskBlock');if(b)b.value='Новые задачи ревью';
-  const hq=document.getElementById('taskProject');if(hq)hq.value=WEEKLY_HQ_CODE;
+  const source=document.getElementById('taskProject');if(source)source.value=currentWeekSourceCode();
   const title=document.getElementById('taskEditorTitle');if(title)title.textContent='Создать задачу';
   const save=document.getElementById('taskSaveBtn');if(save)save.textContent='Создать задачу';
   document.getElementById('taskCancelEdit')?.classList.add('hidden');
@@ -657,6 +657,10 @@ function isoWeekNumber(date){
   d.setUTCDate(d.getUTCDate()+4-day);
   const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
   return Math.ceil((((d-yearStart)/86400000)+1)/7);
+}
+function currentWeekSourceCode(date=new Date()){
+  const week=String(isoWeekNumber(date)).padStart(2,'0');
+  return 'WEEK_'+week+date.getFullYear();
 }
 function gantt(){
   const allTasks=weeklyTasks().filter(t=>t.startDate&&t.dueDate);
