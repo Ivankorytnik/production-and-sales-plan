@@ -328,14 +328,67 @@ document.querySelectorAll('.nav').forEach(btn=>btn.addEventListener('click',()=>
 
 function overview(){
   const tasks=weeklyTasks();
+  const total=tasks.length;
   const done=weeklyDoneCount();
   const open=weeklyOpenCount();
   const overdue=tasks.filter(weeklyTaskOverdue);
   const taskBlockers=tasks.filter(t=>t.status==='Блокер');
   const allBlockers=taskBlockers.length;
+  const completion=total?Math.round(done/total*100):0;
+  const today=localDateString(Date.now());
+  const next3=localDateString(Date.now()+3*86400000);
+  const dueSoon=tasks.filter(t=>t.status!=='Готово'&&t.dueDate&&t.dueDate>=today&&t.dueDate<=next3&&!weeklyTaskOverdue(t));
+
   const attention=[];
-  overdue.forEach(t=>attention.push({title:`Просрочена задача: ${t.title}`,note:`${t.vertical||''} · ${t.project||''} · срок ${t.dueDate||'—'}`,type:'bad'}));
+  overdue.forEach(t=>attention.push({title:`Просрочена задача: ${t.title}`,note:`${t.owner||'Ответственный не указан'} · ${t.project||''} · срок ${t.dueDate||'—'}`,type:'bad'}));
   taskBlockers.forEach(t=>attention.push({title:`Блокер по задаче: ${t.title}`,note:`${t.owner||'Ответственный не указан'} · ${t.project||''}`,type:'bad'}));
+  dueSoon.forEach(t=>attention.push({title:`Срок в ближайшие 3 дня: ${t.title}`,note:`${t.owner||'Ответственный не указан'} · срок ${t.dueDate||'—'}`,type:'work'}));
+
+  const statusOrder=['Не начато','Новая','В работе','На контроле','Блокер','Готово','Отложено'];
+  const statusRows=statusOrder.map(status=>{
+    const count=tasks.filter(t=>t.status===status).length;
+    if(!count)return '';
+    const pct=total?Math.round(count/total*100):0;
+    const type=status==='Готово'?'ok':status==='Блокер'?'bad':['В работе','На контроле'].includes(status)?'work':'neutral';
+    return `<div class="dash-bar-row">
+      <div class="dash-bar-label">${statusBadge(status)}</div>
+      <div class="dash-bar-track"><div class="dash-bar-fill ${type}" style="width:${pct}%"></div></div>
+      <div class="dash-bar-value">${count} · ${pct}%</div>
+    </div>`;
+  }).join('');
+
+  const activeTeam=b2bTeam().filter(m=>m.status==='Активен');
+  const ownerNames=activeTeam.map(m=>m.name).filter(Boolean);
+  const ownerStats=activeTeam.map(m=>{
+    const memberTasks=tasks.filter(t=>normalizedTaskOwner(t.owner,ownerNames)===m.name);
+    const memberOpen=memberTasks.filter(t=>t.status!=='Готово').length;
+    const memberDone=memberTasks.filter(t=>t.status==='Готово').length;
+    const memberOverdue=memberTasks.filter(weeklyTaskOverdue).length;
+    return {name:m.name,total:memberTasks.length,open:memberOpen,done:memberDone,overdue:memberOverdue};
+  });
+  const maxOwner=Math.max(1,...ownerStats.map(x=>x.open));
+  const ownerRows=ownerStats.map(x=>{
+    const pct=Math.round(x.open/maxOwner*100);
+    return `<div class="owner-load-row">
+      <div class="owner-load-name"><b>${esc(x.name)}</b><small>${x.done} готово${x.overdue?' · '+x.overdue+' просрочено':''}</small></div>
+      <div class="owner-load-track"><div style="width:${pct}%"></div></div>
+      <div class="owner-load-value">${x.open}</div>
+    </div>`;
+  }).join('');
+  const unassigned=tasks.filter(t=>!normalizedTaskOwner(t.owner,ownerNames)).length;
+
+  const blocks=[...new Set(tasks.map(t=>t.block||'Без блока'))];
+  const blockRows=blocks.map(block=>{
+    const blockTasks=tasks.filter(t=>(t.block||'Без блока')===block);
+    const blockDone=blockTasks.filter(t=>t.status==='Готово').length;
+    const pct=blockTasks.length?Math.round(blockDone/blockTasks.length*100):0;
+    const blockOverdue=blockTasks.filter(weeklyTaskOverdue).length;
+    return `<div class="block-progress-row">
+      <div class="block-progress-head"><b>${esc(block)}</b><span>${blockDone}/${blockTasks.length} · ${pct}%${blockOverdue?' · просрочено '+blockOverdue:''}</span></div>
+      <div class="block-progress-track"><div style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
   return `
     <div class="project-start-card">
       <div>
@@ -346,21 +399,53 @@ function overview(){
       <div>
         <div class="label">Открытые задачи</div>
         <div class="project-timer">${open}</div>
-        <div class="start-meta">из ${tasks.length} задач</div>
+        <div class="start-meta">из ${total} задач</div>
       </div>
-      <a class="btn primary" href="./weekly-review.html">Открыть задачи</a>
+      <button class="btn primary" onclick="render('tasks')">Открыть задачи</button>
     </div>
+
     <div class="grid">
-      <div class="card kpi"><div class="label">Выполнение задач</div><div class="value">${weeklyProgress()}%</div>${progress(weeklyProgress())}<div class="sub">готово ${done} из ${tasks.length}</div></div>
-      <div class="card kpi"><div class="label">Просрочено</div><div class="value">${overdue.length}</div><div class="sub">требуют решения до следующего ревью</div></div>
-      <div class="card kpi"><div class="label">Блокеры</div><div class="value">${allBlockers}</div><div class="sub">задачи + отдельный реестр</div></div>
-      <div class="card kpi"><div class="label">Команда B2B</div><div class="value">${b2bTeam().length}</div><div class="sub">сотрудников в рабочем списке</div></div>
+      <div class="card kpi"><div class="label">Выполнение задач</div><div class="value">${completion}%</div>${progress(completion)}<div class="sub">готово ${done} из ${total}</div></div>
+      <div class="card kpi"><div class="label">Просрочено</div><div class="value">${overdue.length}</div><div class="sub">требуют решения</div></div>
+      <div class="card kpi"><div class="label">Блокеры</div><div class="value">${allBlockers}</div><div class="sub">задач в статусе «Блокер»</div></div>
+      <div class="card kpi"><div class="label">Срок ≤ 3 дней</div><div class="value">${dueSoon.length}</div><div class="sub">контроль ближайших сроков</div></div>
     </div>
+
+    <div class="section-title"><h2>Дашборд задач</h2><small>${WEEKLY_HQ_CODE} · ${WEEKLY_START_DATE}–${WEEKLY_DUE_DATE}</small></div>
+    <div class="overview-dashboard">
+      <div class="card dashboard-card completion-card">
+        <div class="dashboard-card-head"><div><h3>Выполнение</h3><small>готово / всего</small></div><b>${done} / ${total}</b></div>
+        <div class="completion-visual">
+          <div class="completion-donut" style="--pct:${completion}"><div><strong>${completion}%</strong><span>готово</span></div></div>
+          <div class="completion-stats">
+            <div><span>Открыто</span><b>${open}</b></div>
+            <div><span>Просрочено</span><b>${overdue.length}</b></div>
+            <div><span>Блокеры</span><b>${allBlockers}</b></div>
+            <div><span>Не назначено</span><b>${unassigned}</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card dashboard-card">
+        <div class="dashboard-card-head"><div><h3>Статусы задач</h3><small>распределение текущего штаба</small></div></div>
+        <div class="dash-bars">${statusRows||'<div class="empty">Нет данных по статусам.</div>'}</div>
+      </div>
+
+      <div class="card dashboard-card">
+        <div class="dashboard-card-head"><div><h3>Нагрузка команды B2B</h3><small>открытые задачи по ответственным</small></div></div>
+        <div class="owner-load">${ownerRows||'<div class="empty">Команда не заполнена.</div>'}</div>
+      </div>
+
+      <div class="card dashboard-card">
+        <div class="dashboard-card-head"><div><h3>Готовность по блокам</h3><small>доля выполненных задач</small></div></div>
+        <div class="block-progress-list">${blockRows||'<div class="empty">Нет данных по блокам.</div>'}</div>
+      </div>
+    </div>
+
     <div class="section-title"><h2>Требует внимания</h2><small>${attention.length?'текущие отклонения':'отклонений нет'}</small></div>
-    ${attention.length?`<div class="attention-list">${attention.slice(0,12).map(a=>`<div class="attention-item"><div><b>${esc(a.title)}</b><small>${esc(a.note)}</small></div>${badge(a.type==='bad'?'Требует действия':'Контроль',a.type)}</div>`).join('')}</div>`:'<div class="empty">Просроченных задач и активных блокеров сейчас нет.</div>'}
+    ${attention.length?`<div class="attention-list">${attention.slice(0,12).map(a=>`<div class="attention-item"><div><b>${esc(a.title)}</b><small>${esc(a.note)}</small></div>${badge(a.type==='bad'?'Требует действия':'Контроль',a.type)}</div>`).join('')}</div>`:'<div class="empty">Просроченных задач, блокеров и ближайших критичных сроков сейчас нет.</div>'}
   `;
 }
-
 
 function taskOptions(arr,current){
   return arr.map(x=>`<option ${x===current?'selected':''}>${esc(x)}</option>`).join('');
