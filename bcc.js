@@ -98,6 +98,7 @@ let syncTimer=null;
 let hydrated=false;
 let pushing=false;
 const pendingKeys=new Set();
+const ganttColumnState={vertical:false,source:false,owner:false};
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const load=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}};
@@ -671,6 +672,15 @@ function gantt(){
     const s=dateStartMs(t.startDate),e=dateEndMs(t.dueDate);
     return e>=start&&s<end;
   });
+  const metaColumns=[
+    {key:'vertical',label:'Вертикаль',width:125},
+    {key:'source',label:'Источник',width:145},
+    {key:'owner',label:'Ответственный',width:180}
+  ];
+  const visibleMeta=metaColumns.filter(c=>ganttColumnState[c.key]);
+  const gridTemplate=['300px',...visibleMeta.map(c=>c.width+'px'),'minmax(820px,1fr)'].join(' ');
+  const minWidth=300+visibleMeta.reduce((sum,c)=>sum+c.width,0)+820;
+  const gridStyle=`grid-template-columns:${gridTemplate};min-width:${minWidth}px`;
   const weekHead=Array.from({length:weeks},(_,i)=>{
     const d=new Date(start+i*7*86400000);
     const week=isoWeekNumber(d);
@@ -690,11 +700,11 @@ function gantt(){
     const clippedLeft=rawStart<start;
     const clippedRight=rawEnd>end;
     const clipNote=(clippedLeft||clippedRight)?' · часть периода вне 12 недель':'';
-    return `<div class="gantt-row">
+    return `<div class="gantt-row" style="${gridStyle}">
       <div class="gantt-task"><b>${t.number?t.number+'. ':''}${esc(t.title)}</b>${clipNote?`<small>${esc(clipNote.replace(/^ · /,''))}</small>`:''}</div>
-      <div class="gantt-meta gantt-vertical">${esc(t.vertical||'—')}</div>
-      <div class="gantt-meta gantt-source">${esc(t.project||'—')}</div>
-      <div class="gantt-meta gantt-owner">${esc(t.owner||'Без ответственного')}</div>
+      ${ganttColumnState.vertical?`<div class="gantt-meta gantt-vertical">${esc(t.vertical||'—')}</div>`:''}
+      ${ganttColumnState.source?`<div class="gantt-meta gantt-source">${esc(t.project||'—')}</div>`:''}
+      ${ganttColumnState.owner?`<div class="gantt-meta gantt-owner">${esc(t.owner||'Без ответственного')}</div>`:''}
       <div class="gantt-track">
         <div class="gantt-grid" style="background:repeating-linear-gradient(to right,transparent 0,transparent calc(${gridStep}% - 1px),var(--line) calc(${gridStep}% - 1px),var(--line) ${gridStep}%)"></div>
         ${reviewVisible?`<div class="gantt-marker" title="Следующее ревью" style="left:${reviewLeft}%"></div>`:''}
@@ -706,11 +716,21 @@ function gantt(){
   return `
     <div class="section-title"><h2>Диаграмма Ганта по задачам</h2><small>12 недель · ${tasks.length} задач в периоде</small></div>
     <div class="callout"><b>Горизонт:</b> 12 недель от текущей недели. Красная вертикальная линия показывает следующее ревью в понедельник 09:30.${hiddenCount?` За пределами горизонта: ${hiddenCount} задач.`:''}</div>
+    <div class="gantt-column-controls">
+      <span>Показать столбцы:</span>
+      ${metaColumns.map(c=>`<button type="button" class="btn ganttColToggle ${ganttColumnState[c.key]?'active':''}" data-gantt-col="${c.key}" aria-pressed="${ganttColumnState[c.key]?'true':'false'}"><b>${ganttColumnState[c.key]?'−':'+'}</b> ${c.label}</button>`).join('')}
+    </div>
     <div class="gantt-status-legend">
       ${TASK_STATUSES.map(status=>`<span><i class="${taskStatusClass(status)}"></i>${esc(status)}</span>`).join('')}
     </div>
     <div class="gantt-wrap">
-      <div class="gantt-head"><div class="gantt-task-head">Задача</div><div class="gantt-col-head">Вертикаль</div><div class="gantt-col-head">Источник</div><div class="gantt-col-head">Ответственный</div><div class="gantt-weeks" style="grid-template-columns:repeat(12,1fr)">${weekHead}</div></div>
+      <div class="gantt-head" style="${gridStyle}">
+        <div class="gantt-task-head">Задача</div>
+        ${ganttColumnState.vertical?'<div class="gantt-col-head">Вертикаль</div>':''}
+        ${ganttColumnState.source?'<div class="gantt-col-head">Источник</div>':''}
+        ${ganttColumnState.owner?'<div class="gantt-col-head">Ответственный</div>':''}
+        <div class="gantt-weeks" style="grid-template-columns:repeat(12,1fr)">${weekHead}</div>
+      </div>
       ${rows||'<div class="empty">В выбранном 12-недельном периоде задач нет.</div>'}
     </div>
   `;
@@ -825,6 +845,13 @@ function patchBlocker(id,key,value,rerender=false){
 }
 
 function bind(){
+
+  document.querySelectorAll('.ganttColToggle').forEach(btn=>btn.onclick=()=>{
+    const key=btn.dataset.ganttCol;
+    if(!(key in ganttColumnState))return;
+    ganttColumnState[key]=!ganttColumnState[key];
+    render('gantt');
+  });
 
   const taskSaveBtn=document.getElementById('taskSaveBtn');
   if(taskSaveBtn)taskSaveBtn.onclick=saveTaskFromEditor;
