@@ -50,13 +50,18 @@ const setAuthStatus=(text,type='')=>{authStatus.textContent=text;authStatus.clas
 const setCloud=(text,type='')=>{cloudStatus.textContent=text;cloudStatus.className='cloud-status'+(type?' '+type:'')};
 const setMessage=(text,type='')=>{uploadMessage.textContent=text;uploadMessage.className='message'+(type?' '+type:'')};
 
+const SHARED_AUTH_KEY='atom-global-auth-v1';
+function readSharedAuth(){try{return JSON.parse(localStorage.getItem(SHARED_AUTH_KEY)||'{}')}catch{return {}}}
 function saveLegacy(access,refresh){
   if(access)localStorage.setItem('atom_access_token',access);
   if(refresh)localStorage.setItem('atom_refresh_token',refresh);
+  const prev=readSharedAuth();
+  localStorage.setItem(SHARED_AUTH_KEY,JSON.stringify({access_token:access||prev.access_token||'',refresh_token:refresh||prev.refresh_token||'',updated_at:Date.now()}));
 }
 function clearLegacy(){
   localStorage.removeItem('atom_access_token');
   localStorage.removeItem('atom_refresh_token');
+  localStorage.removeItem(SHARED_AUTH_KEY);
 }
 function cleanCallbackUrl(){
   const url=new URL(location.href);
@@ -312,8 +317,9 @@ async function acceptSession(session){
   }
 }
 async function restoreLegacy(){
-  const access=localStorage.getItem('atom_access_token');
-  const refresh=localStorage.getItem('atom_refresh_token');
+  const shared=readSharedAuth();
+  const access=localStorage.getItem('atom_access_token')||shared.access_token||'';
+  const refresh=localStorage.getItem('atom_refresh_token')||shared.refresh_token||'';
   if(!access&&!refresh)return false;
   if(access&&refresh){
     try{
