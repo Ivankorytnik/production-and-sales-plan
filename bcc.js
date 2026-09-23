@@ -9,7 +9,10 @@ const K={
   dod:PREFIX+'dod',
   deadlines:PREFIX+'stage-deadlines'
 };
-const CLOUD_KEYS=Object.values(K);
+const WEEKLY_TASKS_KEY='atom-weekly-review-tasks-v02-hq-only';
+const DELETED_TASKS_KEY='atom-weekly-review-deleted-v02-hq-only';
+const B2B_TEAM_KEY='atom-bcc-b2b-team-v02';
+const CLOUD_KEYS=[...Object.values(K),WEEKLY_TASKS_KEY,DELETED_TASKS_KEY,B2B_TEAM_KEY];
 const LOCAL_META_KEY='atom-bcc-local-meta-v03';
 
 const STAGE_STATUSES=['Не начато','Подготовка','В работе','Ожидание','На согласовании','Блокер','Завершено'];
@@ -139,13 +142,11 @@ const moduleStatuses=()=>load(K.modules,{});
 const blockers=()=>load(K.blockers,[]);
 const dodManual=()=>load(K.dod,{});
 const deadlineOverrides=()=>load(K.deadlines,{});
-const WEEKLY_TASKS_KEY='atom-weekly-review-tasks-v02-hq-only';
-const DELETED_TASKS_KEY='atom-weekly-review-deleted-v02-hq-only';
-const B2B_TEAM_KEY='atom-bcc-b2b-team-v02';
 const weeklyTasks=()=>load(WEEKLY_TASKS_KEY,[]);
 const deletedTaskIds=()=>load(DELETED_TASKS_KEY,[]);
 const b2bTeam=()=>load(B2B_TEAM_KEY,[]);
 const saveLocalJson=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
+const saveSharedJson=(key,value)=>saveJson(key,value);
 const B2B_TEAM_STATUSES=['Активен','Отпуск','Пауза'];
 const B2B_TEAM_ROLES=['Админ','Пользователь'];
 const DEFAULT_B2B_TEAM=[
@@ -156,8 +157,9 @@ const DEFAULT_B2B_TEAM=[
   {id:'tm-kosylev',name:'Михаил Косылев',email:'mikhail.kiselyov@atom.team',role:'Пользователь',status:'Активен'}
 ];
 function ensureB2BTeam(){
-  if(localStorage.getItem(B2B_TEAM_KEY)!==null)return;
+  if(localStorage.getItem(B2B_TEAM_KEY)!==null)return false;
   saveLocalJson(B2B_TEAM_KEY,DEFAULT_B2B_TEAM);
+  return true;
 }
 function taskAssignedToMember(t,m){
   const owner=String(t.owner||'').toLocaleLowerCase('ru-RU');
@@ -197,8 +199,9 @@ const SOURCE_WEEKLY_TASKS=[
 localStorage.removeItem('atom-weekly-review-tasks-v01');
 localStorage.removeItem('atom-weekly-review-deleted-v01');
 
-function ensureWeeklyTasks(){
+function ensureWeeklyTasks(sync=false){
   const list=weeklyTasks();
+  const before=JSON.stringify(list);
   list.forEach(t=>{
     ['block','title','result','owner','comment'].forEach(key=>{
       if(typeof t[key]==='string')t[key]=t[key].replace(/AMAR/g,'Омар (Авеню)');
@@ -233,7 +236,27 @@ function ensureWeeklyTasks(){
     }
   });
   list.sort((a,b)=>(a.number||9999)-(b.number||9999));
-  saveLocalJson(WEEKLY_TASKS_KEY,list);
+  const changed=before!==JSON.stringify(list);
+  if(changed){
+    (sync?saveSharedJson:saveLocalJson)(WEEKLY_TASKS_KEY,list);
+  }
+  return changed;
+}
+function normalizeCurrentTaskOwners(sync=false){
+  const names=b2bTeam().map(m=>m.name).filter(Boolean);
+  if(!names.length)return false;
+  const list=weeklyTasks();
+  let changed=false;
+  list.forEach(t=>{
+    const normalized=normalizedTaskOwner(t.owner,names);
+    if((t.owner||'')!==normalized){
+      t.owner=normalized;
+      t.updatedAt=nowIso();
+      changed=true;
+    }
+  });
+  if(changed)(sync?saveSharedJson:saveLocalJson)(WEEKLY_TASKS_KEY,list);
+  return changed;
 }
 const weeklyTaskOverdue=t=>t&&t.status!=='Готово'&&t.dueDate&&Date.now()>dateEndMs(t.dueDate);
 const weeklyDoneCount=()=>weeklyTasks().filter(t=>t.status==='Готово').length;
@@ -595,7 +618,7 @@ function saveTaskFromEditor(){
       createdAt:nowIso(),updatedAt:nowIso()
     });
   }
-  saveLocalJson(WEEKLY_TASKS_KEY,list);
+  saveSharedJson(WEEKLY_TASKS_KEY,list);
   render('tasks');
 }
 function updateTaskStatusFromTable(id,status){
@@ -603,7 +626,7 @@ function updateTaskStatusFromTable(id,status){
   const t=list.find(x=>x.id===id);if(!t)return;
   t.status=status;
   t.updatedAt=nowIso();
-  saveLocalJson(WEEKLY_TASKS_KEY,list);
+  saveSharedJson(WEEKLY_TASKS_KEY,list);
   render('tasks');
 }
 function updateTaskOwnerFromTable(id,owner){
@@ -613,7 +636,7 @@ function updateTaskOwnerFromTable(id,owner){
   const t=list.find(x=>x.id===id);if(!t)return;
   t.owner=owner;
   t.updatedAt=nowIso();
-  saveLocalJson(WEEKLY_TASKS_KEY,list);
+  saveSharedJson(WEEKLY_TASKS_KEY,list);
   render('tasks');
 }
 
@@ -623,9 +646,9 @@ function deleteTaskFromManager(id){
   if(t.sourceId){
     const deleted=new Set(deletedTaskIds());
     deleted.add(t.sourceId);
-    saveLocalJson(DELETED_TASKS_KEY,[...deleted]);
+    saveSharedJson(DELETED_TASKS_KEY,[...deleted]);
   }
-  saveLocalJson(WEEKLY_TASKS_KEY,list.filter(x=>x.id!==id));
+  saveSharedJson(WEEKLY_TASKS_KEY,list.filter(x=>x.id!==id));
   render('tasks');
 }
 
@@ -870,7 +893,7 @@ function bind(){
     const list=b2bTeam();
     if(list.some(m=>String(m.email||'').toLowerCase()===email.toLowerCase())){alert('Сотрудник с таким E-mail уже есть');return;}
     list.push({id:'tm-'+Date.now().toString(36),name,email,role,status});
-    saveLocalJson(B2B_TEAM_KEY,list);
+    saveSharedJson(B2B_TEAM_KEY,list);
     render('team');
   };
 
@@ -879,13 +902,13 @@ function bind(){
     const m=list.find(x=>x.id===el.dataset.id);
     if(!m)return;
     m[el.dataset.key]=el.value.trim();
-    saveLocalJson(B2B_TEAM_KEY,list);
+    saveSharedJson(B2B_TEAM_KEY,list);
     render('team');
   });
 
   document.querySelectorAll('.delTeamMember').forEach(el=>el.onclick=()=>{
     if(!confirm('Удалить сотрудника из списка?'))return;
-    saveLocalJson(B2B_TEAM_KEY,b2bTeam().filter(m=>m.id!==el.dataset.id));
+    saveSharedJson(B2B_TEAM_KEY,b2bTeam().filter(m=>m.id!==el.dataset.id));
     render('team');
   });
 
@@ -973,7 +996,9 @@ async function hydrate(){
     hydrated=true;
     if(pendingKeys.size)await pushPending();
     else setSync(syncOkLabel());
-    if(changed)render(currentView);
+    const weeklyChanged=ensureWeeklyTasks(true);
+    const ownersChanged=normalizeCurrentTaskOwners(true);
+    if(changed||weeklyChanged||ownersChanged)render(currentView);
   }catch(e){
     console.error('BCC sync hydrate failed',e);hydrated=true;setSync('Локальный режим','error');
   }
@@ -991,7 +1016,8 @@ async function pullRemote(){
         setFromRemote(r.key,r.value,r.updated_at);
       }
     });
-    if(changed)render(currentView);
+    const ownersChanged=normalizeCurrentTaskOwners(true);
+    if(changed||ownersChanged)render(currentView);
     setSync(syncOkLabel());
   }catch(e){
     console.error('BCC sync pull failed',e);setSync('Локальный режим','error');
@@ -1003,8 +1029,9 @@ window.addEventListener('storage',e=>{if(appBooted&&CLOUD_KEYS.includes(e.key))r
 window.startAtomBccApp=()=>{
   if(appBooted)return;
   appBooted=true;
-  ensureWeeklyTasks();
+  ensureWeeklyTasks(false);
   ensureB2BTeam();
+  normalizeCurrentTaskOwners(false);
   updateBuildTimestamp();
   render();
   hydrate();
