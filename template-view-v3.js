@@ -398,7 +398,7 @@ function uniqueCompanyCount(items){
 }
 function b2bGroupRow(groupKey,label,metric,historyKey,count,months,collapsed){
   const small=count?`${count} ${companyWord(count)} · ${collapsed?'Показать':'Скрыть'}`:'нет компаний';
-  return `<tr class="b2b-group-row${collapsed?' b2b-group-collapsed':''}" data-b2b-group-toggle="${esc(groupKey)}" data-history-metric="${esc(historyKey)}" tabindex="0" role="button" aria-expanded="${collapsed?'false':'true'}"><td></td><td class="project-name b2b-group-name"><strong style="color:#3B1D5A!important;font-weight:800!important;font-style:italic!important">${esc(label)}</strong><small>${small}</small></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
+  return `<tr class="b2b-group-row${collapsed?' b2b-group-collapsed':''}" data-b2b-group-toggle="${esc(groupKey)}" data-history-metric="${esc(historyKey)}" tabindex="0" role="button" aria-expanded="${collapsed?'false':'true'}"><td></td><td class="project-name b2b-group-name"><strong style="color:#067647!important;font-weight:800!important;font-style:italic!important">${esc(label)}</strong><small>${small}</small></td><td class="dash-total" data-history-cell="total">${dot(metricTotal(metric))}</td>${months.map(m=>`<td class="dash-num" data-history-month="${esc(m)}">${dot(metric?.months?.[m]||0)}</td>`).join('')}</tr>`;
 }
 function renderControls(model){
   const halfOptions=['H1','H2'].map(h=>`<option value="${h}"${h===periodState.key?' selected':''}>${PERIODS[h].label}</option>`).join('');
