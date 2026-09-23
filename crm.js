@@ -285,4 +285,4 @@ if(alfaDate){const d=new Date();alfaDate.value=[d.getFullYear(),String(d.getMont
   }finally{
     alfaFile.disabled=false;
   }
-});boot()})();
+});})();
