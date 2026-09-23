@@ -39,7 +39,7 @@
         <a class="active" href="./bcc.html?v=auth3">Weekly Project Review</a>
       </nav>
       <div class="build-meta">
-        <span>Версия <b>v0.9.0 Shared Auth</b></span>
+        <span>Версия <b>v0.9.1 Shared Auth</b></span>
         <span>Обновлено <b id="buildUpdatedAt">—</b></span>
         <span>Ревью <b>каждый понедельник 09:30</b></span>
       </div>
@@ -216,7 +216,11 @@
     }
 
     async function bootAuth(){
-      if(window.ATOM_AUTH_READY)await window.ATOM_AUTH_READY;
+      const sharedReady=window.ATOM_AUTH_READY?await window.ATOM_AUTH_READY:null;
+      if(sharedReady?.client)sb=sharedReady.client;
+      if(sharedReady?.session?.access_token){
+        if(await acceptSession(sharedReady.session))return;
+      }
       const cb=callbackParams();
       if(cb.error||cb.errorCode){
         const msg=decodeURIComponent((cb.errorDescription||cb.errorCode||cb.error||'Ошибка входа').replace(/\\+/g,' '));
