@@ -46,7 +46,7 @@
   </style>
 </head>
 <body>
-  <section id="authGate" class="auth-gate">
+  <section id="authGate" class="auth-gate app-hidden">
     <div class="auth-card">
       <div class="auth-brand">АТОМ · КОММЕРЧЕСКИЙ ШТАБ</div>
       <h1>Вход для сотрудников</h1>
@@ -121,7 +121,7 @@
   })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./shared-auth.js?v=1.0.1"></script>
+<script src="./shared-auth.js?v=1.0.2"></script>
   <script>
   (()=>{
     const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
@@ -191,9 +191,9 @@
       }
     }
 
-    let sb=null;
+    let sb=window.ATOMSharedSupabase||null;
     try{
-      if(window.supabase?.createClient){
+      if(!sb&&window.supabase?.createClient){
         sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}});
       }
     }catch(e){console.error('Supabase init failed',e)}
@@ -270,6 +270,7 @@
       if(cb.error||cb.errorCode){
         const msg=decodeURIComponent((cb.errorDescription||cb.errorCode||cb.error||'Ошибка входа').replace(/\+/g,' '));
         cleanCallbackUrl();
+        gate.classList.remove('app-hidden');
         setStatus('Ссылка не сработала: '+msg+'. Запросите новую ссылку.','bad');
         return;
       }
@@ -294,6 +295,7 @@
       }
 
       if(await restoreLegacy())return;
+      gate.classList.remove('app-hidden');
       setStatus('Введите рабочую почту @atom.team. Пароль не нужен.');
     }
 
