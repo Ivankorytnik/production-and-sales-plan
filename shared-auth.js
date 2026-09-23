@@ -123,7 +123,17 @@ async function restore(){
   return null;
 }
 
-const ready=restore();
+const ready=restore().then(result=>{
+  if(result){
+    const next=localStorage.getItem('atom-auth-next');
+    const onRoot=location.pathname==='/production-and-sales-plan/'||location.pathname==='/production-and-sales-plan/index.html';
+    if(next&&onRoot&&/^\/production-and-sales-plan\/(?:crm\.html|bcc\.html|sources\.html)/.test(next)){
+      localStorage.removeItem('atom-auth-next');
+      setTimeout(()=>location.replace(next),0);
+    }
+  }
+  return result;
+});
 window.ATOM_AUTH_READY=ready;
 
 window.ATOMAuth={
