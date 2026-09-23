@@ -365,6 +365,21 @@ function overview(){
 function taskOptions(arr,current){
   return arr.map(x=>`<option ${x===current?'selected':''}>${esc(x)}</option>`).join('');
 }
+function normalizedTaskOwner(owner,owners){
+  const value=String(owner||'').trim();
+  if(!value)return '';
+  if(owners.includes(value))return value;
+  const lower=value.toLocaleLowerCase('ru-RU');
+  return owners.find(name=>{
+    const first=String(name||'').trim().split(/\s+/)[0].toLocaleLowerCase('ru-RU');
+    return first.length>2&&lower.includes(first);
+  })||'';
+}
+function taskOwnerOptions(owners,current){
+  const selected=normalizedTaskOwner(current,owners);
+  return `<option value="" ${selected?'':'selected'}>Не назначен</option>`+
+    owners.map(o=>`<option value="${esc(o)}" ${o===selected?'selected':''}>${esc(o)}</option>`).join('');
+}
 function tasks(){
   const list=weeklyTasks().slice().sort((a,b)=>(a.number||9999)-(b.number||9999));
   const owners=b2bTeam().map(m=>m.name).filter(Boolean).sort((a,b)=>a.localeCompare(b,'ru'));
@@ -372,7 +387,7 @@ function tasks(){
     <td>${t.number||'—'}</td>
     <td><b>${esc(t.title||'')}</b><span class="deadline-note">${esc(t.result||'')}</span></td>
     <td>${esc(t.project||'—')}</td>
-    <td>${esc(t.owner||'—')}</td>
+    <td><select class="taskOwnerSelect" data-id="${t.id}" aria-label="Ответственный по задаче №${t.number||''}">${taskOwnerOptions(owners,t.owner)}</select></td>
     <td><select class="taskStatusSelect" data-id="${t.id}" aria-label="Статус задачи №${t.number||''}">${taskOptions(TASK_STATUSES,t.status||'Новая')}</select></td>
     <td>${esc(t.startDate||'—')}</td>
     <td>${esc(t.dueDate||'—')}${weeklyTaskOverdue(t)?'<span class="deadline-note">'+badge('Просрочено','bad')+'</span>':''}</td>
@@ -485,6 +500,16 @@ function updateTaskStatusFromTable(id,status){
   const list=weeklyTasks();
   const t=list.find(x=>x.id===id);if(!t)return;
   t.status=status;
+  t.updatedAt=nowIso();
+  saveLocalJson(WEEKLY_TASKS_KEY,list);
+  render('tasks');
+}
+function updateTaskOwnerFromTable(id,owner){
+  const allowed=new Set(b2bTeam().map(m=>m.name).filter(Boolean));
+  if(owner&&!allowed.has(owner))return;
+  const list=weeklyTasks();
+  const t=list.find(x=>x.id===id);if(!t)return;
+  t.owner=owner;
   t.updatedAt=nowIso();
   saveLocalJson(WEEKLY_TASKS_KEY,list);
   render('tasks');
@@ -673,6 +698,7 @@ function bind(){
   if(taskCancelEdit)taskCancelEdit.onclick=resetTaskEditor;
   document.querySelectorAll('.taskEditBtn').forEach(el=>el.onclick=()=>openTaskEditor(el.dataset.id));
   document.querySelectorAll('.taskStatusSelect').forEach(el=>el.onchange=()=>updateTaskStatusFromTable(el.dataset.id,el.value));
+  document.querySelectorAll('.taskOwnerSelect').forEach(el=>el.onchange=()=>updateTaskOwnerFromTable(el.dataset.id,el.value));
   document.querySelectorAll('.taskDeleteBtn').forEach(el=>el.onclick=()=>deleteTaskFromManager(el.dataset.id));
   if(currentView==='tasks'&&!document.getElementById('taskEditId')?.value){
     const start=document.getElementById('taskStartDate');
