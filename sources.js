@@ -340,6 +340,7 @@ async function restoreLegacy(){
   return false;
 }
 async function bootAuth(){
+  if(window.ATOM_AUTH_READY)await window.ATOM_AUTH_READY;
   if(!window.supabase?.createClient){
     setAuthStatus('Не удалось загрузить модуль авторизации.','bad');
     return;
