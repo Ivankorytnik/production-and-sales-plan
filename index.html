@@ -173,6 +173,12 @@
         const t=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
         const a=document.getElementById('updatedAt');if(a)a.textContent=t;
       }
+      const returnTo=localStorage.getItem('atom_auth_return');
+      if(returnTo&&/^\/ATOM-Business-Control-Center\/$/.test(returnTo)){
+        localStorage.removeItem('atom_auth_return');
+        location.href=returnTo;
+        return;
+      }
     }
 
     let sb=null;
