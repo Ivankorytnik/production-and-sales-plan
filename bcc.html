@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="theme-color" content="#0f2526">
+  <title>ATOM BCC | Weekly Project Review</title>
+  <link rel="stylesheet" href="./bcc.css?v=0.8.0">
+</head>
+<body>
+  <section id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <div class="auth-brand">АТОМ · WEEKLY PROJECT REVIEW</div>
+      <h1>Вход для сотрудников</h1>
+      <p>Введите рабочую почту <b>@atom.team</b>. Мы отправим одноразовую ссылку для входа.</p>
+      <div class="auth-field">
+        <label for="authEmail">Рабочая почта</label>
+        <input id="authEmail" type="email" autocomplete="email" placeholder="name@atom.team">
+      </div>
+      <div class="auth-actions"><button id="authSend" class="auth-btn" type="button">Получить ссылку на почту</button></div>
+      <div id="authStatus" class="auth-status">Проверяю текущий доступ...</div>
+      <div class="auth-note">Пароль не нужен. После перехода по одноразовой ссылке вы автоматически вернетесь в Weekly Project Review.</div>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-hidden">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">АТОМ · BUSINESS CONTROL CENTER</div>
+      <h1>Weekly Project Review</h1>
+      <p>Контроль проектов B2B · B2G · Каршеринг · Такси</p>
+      <nav class="bcc-projects" aria-label="Проекты">
+        <span>Проекты</span>
+        <a href="./index.html">S&amp;OP09 plan</a>
+        <a href="./crm.html">B2B CRM Control Center</a>
+        <a class="active" href="./bcc.html">Weekly Project Review</a>
+      </nav>
+      <div class="build-meta">
+        <span>Версия <b>v0.8.0 Integrated</b></span>
+        <span>Обновлено <b id="buildUpdatedAt">—</b></span>
+        <span>Ревью <b>каждый понедельник 09:30</b></span>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="project-progress-box">
+        <span class="project-progress-label">Выполнение задач</span>
+        <strong id="headerProgress">0%</strong>
+        <div class="header-progress-track"><div id="headerProgressBar"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="warning">
+    <b>Тестовый публичный контур.</b> Не размещайте конфиденциальные данные АО «КАМА» и персональные данные сотрудников.
+  </div>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <button class="nav" data-view="overview">Обзор</button>
+      <button class="nav active" data-view="tasks">Задачи</button>
+      <button class="nav" data-view="gantt">Диаграмма Ганта</button>
+      <button class="nav" data-view="team">Команда B2B</button>
+      <button class="nav" data-view="issues">Блокеры</button>
+      <div class="sidebar-sync">
+        <div class="status-pill" id="syncPill">Синхронизация...</div>
+        <div id="authUserBox" class="auth-user sidebar-auth-user"></div>
+      </div>
+    </aside>
+    <section class="content"><div id="app"></div></section>
+  </main>
+
+  <footer>ATOM BCC · Weekly Project Review · B2B / B2G / Каршеринг / Такси.</footer>
+  </div>
+
+  <script src="./bcc.js?v=0.8.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+  <script>
+  (() => {
+    const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
+    const SUPABASE_KEY='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5';
+    const SEND_ENDPOINT=SUPABASE_URL+'/functions/v1/atom-magic-auth';
+    const AUTH_ENDPOINT=SUPABASE_URL+'/functions/v1/atom-auth';
+    const RETURN_KEY='atom_auth_return';
+    const RETURN_PATH='/production-and-sales-plan/bcc.html';
+    const gate=document.getElementById('authGate');
+    const shell=document.getElementById('appShell');
+    const status=document.getElementById('authStatus');
+    const emailEl=document.getElementById('authEmail');
+    const sendBtn=document.getElementById('authSend');
+    const userBox=document.getElementById('authUserBox');
+    const domainOk=email=>/^[^@\\s]+@atom\\.team$/i.test(String(email||'').trim());
+    const setStatus=(text,type='')=>{status.textContent=text;status.className='auth-status'+(type?' '+type:'')};
+    const saveLegacy=(access,refresh)=>{if(access)localStorage.setItem('atom_access_token',access);if(refresh)localStorage.setItem('atom_refresh_token',refresh)};
+    const clearLegacy=()=>{localStorage.removeItem('atom_access_token');localStorage.removeItem('atom_refresh_token')};
+    const cleanCallbackUrl=()=>{
+      const url=new URL(location.href);
+      ['access_token','refresh_token','expires_in','expires_at','token_type','type','error','error_code','error_description','code'].forEach(k=>url.searchParams.delete(k));
+      url.hash='';
+      history.replaceState(null,'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams.toString():''));
+    };
+    const callbackParams=()=>{
+      const q=new URLSearchParams(location.search);
+      const h=new URLSearchParams(location.hash.replace(/^#/,''));
+      const get=k=>h.get(k)||q.get(k)||'';
+      return {access:get('access_token'),refresh:get('refresh_token'),error:get('error'),errorCode:get('error_code'),errorDescription:get('error_description')};
+    };
+    async function call(url,body){
+      const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      let data={};
+      try{data=await r.json()}catch{}
+      if(!r.ok){
+        const raw=data.error||data.msg||'Ошибка авторизации';
+        let msg=raw;
+        if(typeof raw==='string'&&raw.trim().startsWith('{')){try{const parsed=JSON.parse(raw);msg=parsed.msg||parsed.message||parsed.error||raw}catch{}}
+        throw new Error(String(msg));
+      }
+      return data;
+    }
+    function openApp(email){
+      gate.classList.add('app-hidden');
+      shell.classList.remove('app-hidden');
+      localStorage.removeItem(RETURN_KEY);
+      if(userBox){
+        userBox.replaceChildren();
+        const e=document.createElement('span');e.className='auth-user-email';e.textContent=email;
+        const b=document.createElement('button');b.className='auth-logout';b.type='button';b.textContent='Выйти';
+        b.addEventListener('click',async()=>{
+          try{if(sb)await sb.auth.signOut({scope:'local'})}catch{}
+          clearLegacy();
+          window.ATOMSupabase=null;window.ATOMAuthUser=null;
+          location.href=location.pathname;
+        });
+        userBox.append(e,b);
+      }
+      if(typeof window.startAtomBccApp==='function')window.startAtomBccApp();
+    }
+
+    let sb=null;
+    try{
+      if(window.supabase?.createClient){
+        sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+          auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}
+        });
+      }
+    }catch(e){console.error('Supabase init failed',e)}
+
+    async function acceptSession(session){
+      if(!session?.access_token)return false;
+      let email='';let user=null;
+      try{
+        if(sb){
+          const {data,error}=await sb.auth.getUser(session.access_token);
+          if(error)throw error;
+          user=data.user||null;
+          email=String(user?.email||'').toLowerCase();
+        }else{
+          const d=await call(AUTH_ENDPOINT,{action:'check',access_token:session.access_token});
+          if(!d.allowed)return false;
+          email=String(d.email||'').toLowerCase();
+        }
+      }catch(e){console.error('Session validation failed',e);return false}
+      if(!domainOk(email)){
+        try{if(sb)await sb.auth.signOut({scope:'local'})}catch{}
+        clearLegacy();
+        setStatus('Доступ разрешен только для адресов @atom.team.','bad');
+        return false;
+      }
+      saveLegacy(session.access_token,session.refresh_token);
+      cleanCallbackUrl();
+      openApp(email);
+      if(sb&&user){
+        window.ATOMSupabase=sb;
+        window.ATOMAuthUser=user;
+        document.dispatchEvent(new CustomEvent('atom-auth-ready',{detail:{client:sb,user}}));
+      }
+      return true;
+    }
+
+    async function restoreLegacy(){
+      const access=localStorage.getItem('atom_access_token');
+      const refresh=localStorage.getItem('atom_refresh_token');
+      if(!access&&!refresh)return false;
+      if(sb&&access&&refresh){
+        try{
+          const {data,error}=await sb.auth.setSession({access_token:access,refresh_token:refresh});
+          if(!error&&data.session&&await acceptSession(data.session))return true;
+        }catch{}
+      }
+      if(access){
+        try{
+          const d=await call(AUTH_ENDPOINT,{action:'check',access_token:access});
+          if(d.allowed){openApp(d.email);return true}
+        }catch{}
+      }
+      if(refresh){
+        try{
+          const d=await call(AUTH_ENDPOINT,{action:'refresh',refresh_token:refresh});
+          saveLegacy(d.access_token,d.refresh_token);
+          openApp(d.email);
+          return true;
+        }catch{}
+      }
+      clearLegacy();
+      return false;
+    }
+
+    async function bootAuth(){
+      const cb=callbackParams();
+      if(cb.error||cb.errorCode){
+        const msg=decodeURIComponent((cb.errorDescription||cb.errorCode||cb.error||'Ошибка входа').replace(/\\+/g,' '));
+        cleanCallbackUrl();
+        setStatus('Ссылка не сработала: '+msg+'. Запросите новую ссылку.','bad');
+        return;
+      }
+      setStatus(cb.access?'Завершаю вход...':'Проверяю текущий доступ...');
+      if(sb){
+        try{
+          if(cb.access&&cb.refresh){
+            const {data,error}=await sb.auth.setSession({access_token:cb.access,refresh_token:cb.refresh});
+            if(!error&&data.session&&await acceptSession(data.session))return;
+          }
+          const {data,error}=await sb.auth.getSession();
+          if(!error&&data.session&&await acceptSession(data.session))return;
+        }catch(e){console.error('Supabase session restore failed',e)}
+      }
+      if(cb.access){
+        try{
+          const d=await call(AUTH_ENDPOINT,{action:'check',access_token:cb.access});
+          if(d.allowed){saveLegacy(cb.access,cb.refresh);cleanCallbackUrl();openApp(d.email);return}
+        }catch(e){console.error('Callback token check failed',e)}
+      }
+      if(await restoreLegacy())return;
+      setStatus('Введите рабочую почту @atom.team. Пароль не нужен.');
+    }
+
+    async function sendLink(){
+      const email=emailEl.value.trim().toLowerCase();
+      if(!domainOk(email)){setStatus('Доступ разрешен только для адресов @atom.team.','bad');return}
+      sendBtn.disabled=true;
+      setStatus('Отправляю ссылку...');
+      localStorage.setItem(RETURN_KEY,RETURN_PATH);
+      try{
+        await call(SEND_ENDPOINT,{email});
+        setStatus('Ссылка отправлена на '+email+'. Откройте последнее письмо. После входа вы автоматически вернетесь сюда.','ok');
+      }catch(e){
+        localStorage.removeItem(RETURN_KEY);
+        const m=String(e.message||e);
+        if(m==='domain_not_allowed')setStatus('Доступ разрешен только для @atom.team.','bad');
+        else if(/rate limit|over_email_send_rate_limit/i.test(m))setStatus('Лимит отправки писем Supabase. Используйте последнее полученное письмо или повторите позже.','bad');
+        else setStatus(m,'bad');
+      }finally{sendBtn.disabled=false}
+    }
+
+    sendBtn.addEventListener('click',sendLink);
+    emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendLink()});
+    if(sb){
+      sb.auth.onAuthStateChange(async(event,session)=>{
+        if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&shell.classList.contains('app-hidden'))await acceptSession(session);
+      });
+    }
+    bootAuth().catch(e=>{console.error(e);setStatus('Не удалось проверить доступ. Обновите страницу или запросите новую ссылку.','bad')});
+  })();
+  </script>
+</body>
+</html>
