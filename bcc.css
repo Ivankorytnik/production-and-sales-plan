@@ -162,3 +162,25 @@ footer{padding:16px 28px;font-size:12px;color:#6b7d7e;border-top:1px solid var(-
 .taskStatusSelect.status-done,#taskStatus.status-done{background:#e5f7ef!important;border-color:#9bd2bc!important;color:#227457!important}
 .taskStatusSelect.status-postponed,#taskStatus.status-postponed{background:#f1ecfb!important;border-color:#c9b7e8!important;color:#6a4b93!important}
 .taskStatusSelect.status-neutral,#taskStatus.status-neutral{background:#edf2f2!important;border-color:#ccdada!important;color:#587070!important}
+
+
+/* Gantt uses the same colors as task statuses */
+.gantt-bar.status-not-started{background:#aeb8ba}
+.gantt-bar.status-new{background:#7fb9e8}
+.gantt-bar.status-work{background:#35d8c7}
+.gantt-bar.status-control{background:#d7a22e}
+.gantt-bar.status-blocker{background:#d95c5c}
+.gantt-bar.status-done{background:#2f9b75}
+.gantt-bar.status-postponed{background:#8e6bb8}
+.gantt-bar.status-neutral{background:#91a7a8}
+.gantt-status-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:0 0 12px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:10px;font-size:11px;color:var(--muted)}
+.gantt-status-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.gantt-status-legend i{display:inline-block;width:18px;height:8px;border-radius:999px}
+.gantt-status-legend i.status-not-started{background:#aeb8ba}
+.gantt-status-legend i.status-new{background:#7fb9e8}
+.gantt-status-legend i.status-work{background:#35d8c7}
+.gantt-status-legend i.status-control{background:#d7a22e}
+.gantt-status-legend i.status-blocker{background:#d95c5c}
+.gantt-status-legend i.status-done{background:#2f9b75}
+.gantt-status-legend i.status-postponed{background:#8e6bb8}
+.gantt-status-legend i.status-neutral{background:#91a7a8}
