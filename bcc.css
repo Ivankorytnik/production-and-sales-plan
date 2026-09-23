@@ -9,8 +9,8 @@ button,input,select,textarea{font:inherit}
 .topbar{display:flex;justify-content:space-between;gap:28px;align-items:flex-start;padding:28px 36px;background:#0f2526;color:#fff;border-bottom:4px solid var(--accent)}
 .topbar h1{margin:6px 0;font-size:30px}.topbar p{margin:0;color:#bdd0d0}
 .eyebrow{font-size:12px;letter-spacing:1.3px;color:var(--accent);font-weight:700}
-.build-meta{display:flex;gap:16px;flex-wrap:nowrap;margin-top:12px;font-size:12px;color:#9fb6b7;white-space:nowrap;align-items:center}.build-meta b{color:#fff}
-.header-status{display:flex;gap:10px;align-items:flex-end;flex-direction:column;min-width:270px}
+.build-meta{display:flex;gap:16px;flex-wrap:nowrap;font-size:12px;color:#9fb6b7;white-space:nowrap;align-items:center;justify-content:flex-end;text-align:right}.build-meta b{color:#fff}
+.header-status{display:flex;gap:12px;align-items:flex-end;flex-direction:column;min-width:520px;margin-left:auto}
 .project-progress-box{width:270px;padding:12px 14px;border:1px solid #466262;border-radius:12px;background:#173233}
 .project-progress-label{display:block;font-size:11px;color:#9fb6b7;margin-bottom:4px}.project-progress-box strong{font-size:28px}
 .header-progress-track{height:7px;margin-top:9px;background:#29494a;border-radius:999px;overflow:hidden}.header-progress-track>div{height:100%;width:0;background:var(--accent);transition:.25s}
@@ -42,7 +42,7 @@ button,input,select,textarea{font:inherit}
 .gantt-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}.gantt-head,.gantt-row{display:grid;grid-template-columns:260px minmax(820px,1fr);min-width:1080px}.gantt-head{background:#f1f6f6;border-bottom:1px solid var(--line);font-size:11px;color:#53696a;font-weight:700}.gantt-task-head{padding:12px 14px;border-right:1px solid var(--line)}.gantt-weeks{display:grid;grid-template-columns:repeat(13,1fr)}.gantt-week{padding:12px 4px;text-align:center;border-right:1px solid var(--line)}.gantt-row{min-height:60px;border-bottom:1px solid var(--line)}.gantt-row:last-child{border-bottom:0}.gantt-task{padding:10px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:13px}.gantt-task small{color:var(--muted);font-size:11px}.gantt-track{position:relative;min-height:60px}.gantt-grid{position:absolute;inset:0;background:repeating-linear-gradient(to right,transparent 0,transparent calc(7.6923% - 1px),var(--line) calc(7.6923% - 1px),var(--line) 7.6923%)}.gantt-bar{position:absolute;top:17px;height:24px;background:var(--accent-dark);border-radius:6px;z-index:2}.gantt-extension{position:absolute;top:17px;height:24px;background:#d7a22e;border-radius:0 6px 6px 0;z-index:3}.gantt-marker{position:absolute;top:11px;width:2px;height:36px;background:#b94a4a;z-index:4}.gantt-footer{display:flex;gap:24px;flex-wrap:wrap;margin-top:12px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--muted)}
 .deadline-cell{min-width:145px}.deadline-note{display:block;margin-top:5px;font-size:11px;color:var(--muted)}
 footer{padding:16px 28px;font-size:12px;color:#6b7d7e;border-top:1px solid var(--line);background:#fff}
-@media(max-width:950px){.topbar{flex-direction:column}.header-status{width:100%;align-items:flex-start}.project-progress-box{width:min(100%,330px)}.layout{grid-template-columns:1fr}.sidebar{display:flex;overflow:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px}.nav{min-width:165px;margin:0}.nav-sep{display:none}.grid,.grid.two{grid-template-columns:repeat(2,1fr)}.project-start-card{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:950px){.topbar{flex-direction:column}.header-status{width:100%;min-width:0;align-items:flex-start;margin-left:0}.header-status .build-meta{justify-content:flex-start;text-align:left;overflow-x:auto;max-width:100%}.project-progress-box{width:min(100%,330px)}.layout{grid-template-columns:1fr}.sidebar{display:flex;overflow:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px}.nav{min-width:165px;margin:0}.nav-sep{display:none}.grid,.grid.two{grid-template-columns:repeat(2,1fr)}.project-start-card{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.topbar{padding:20px}.warning{padding:10px 20px}.content{padding:16px}.grid,.grid.two{grid-template-columns:1fr}.project-start-card{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.form-grid textarea{grid-column:auto}.attention-item{flex-direction:column}}
 
 .hidden{display:none!important}
@@ -105,5 +105,4 @@ footer{padding:16px 28px;font-size:12px;color:#6b7d7e;border-top:1px solid var(-
 /* Compact project navigation + build metadata in one desktop row */
 .header-lower-line{display:flex;align-items:center;gap:16px;flex-wrap:nowrap;margin-top:14px;white-space:nowrap;min-width:0}
 .header-lower-line .bcc-projects{margin-top:0;flex-wrap:nowrap;flex:0 0 auto}
-.header-lower-line .build-meta{margin-top:0;flex:0 0 auto}
 @media(max-width:950px){.header-lower-line{width:100%;overflow-x:auto;padding-bottom:2px}}
