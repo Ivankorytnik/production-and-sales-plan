@@ -15,6 +15,7 @@ const LOCAL_META_KEY='atom-bcc-local-meta-v03';
 const STAGE_STATUSES=['Не начато','Подготовка','В работе','Ожидание','На согласовании','Блокер','Завершено'];
 const MODULE_STATUSES=['Не начато','Проектирование','Разработка','Тестирование','Пилот','Готово','Блокер'];
 const BLOCKER_STATUSES=['Открыт','В работе','Ожидаем ответ','На эскалации','Решен','Закрыт'];
+const TASK_STATUSES=['Новая','В работе','На контроле','Блокер','Готово','Отложено'];
 const SEVERITY=['Низкая','Средняя','Высокая','Критическая'];
 const PROGRESS={
   'Не начато':0,'Подготовка':10,'Проектирование':20,'В работе':45,'Разработка':45,
@@ -308,7 +309,7 @@ function tasks(){
     <td><b>${esc(t.title||'')}</b><span class="deadline-note">${esc(t.result||'')}</span></td>
     <td>${esc(t.project||'—')}</td>
     <td>${esc(t.owner||'—')}</td>
-    <td>${statusBadge(t.status)}</td>
+    <td><select class="taskStatusSelect" data-id="${t.id}" aria-label="Статус задачи №${t.number||''}">${taskOptions(TASK_STATUSES,t.status||'Новая')}</select></td>
     <td>${esc(t.startDate||'—')}</td>
     <td>${esc(t.dueDate||'—')}${weeklyTaskOverdue(t)?'<span class="deadline-note">'+badge('Просрочено','bad')+'</span>':''}</td>
     <td>${esc(t.block||'')}</td>
@@ -326,7 +327,7 @@ function tasks(){
         <label class="task-wide">Задача<input id="taskTitle" placeholder="Что должно быть сделано"></label>
         <label>Проект / компания<input id="taskProject" placeholder="Проект или компания"></label>
         <label>Ответственный<input id="taskOwner" list="taskOwnersList" placeholder="ФИО"><datalist id="taskOwnersList">${owners.map(o=>`<option value="${esc(o)}"></option>`).join('')}</datalist></label>
-        <label>Статус<select id="taskStatus">${taskOptions(['Новая','В работе','На контроле','Блокер','Готово','Отложено'],'Новая')}</select></label>
+        <label>Статус<select id="taskStatus">${taskOptions(TASK_STATUSES,'Новая')}</select></label>
         <label>Дата с<input id="taskStartDate" type="date"></label>
         <label>Дата до<input id="taskDueDate" type="date"></label>
         <label class="task-wide">Критерий готовности<textarea id="taskResult" rows="2" placeholder="Как поймем, что задача выполнена"></textarea></label>
@@ -412,6 +413,15 @@ function saveTaskFromEditor(){
   saveLocalJson(WEEKLY_TASKS_KEY,list);
   render('tasks');
 }
+function updateTaskStatusFromTable(id,status){
+  const list=weeklyTasks();
+  const t=list.find(x=>x.id===id);if(!t)return;
+  t.status=status;
+  t.updatedAt=nowIso();
+  saveLocalJson(WEEKLY_TASKS_KEY,list);
+  render('tasks');
+}
+
 function deleteTaskFromManager(id){
   const list=weeklyTasks(),t=list.find(x=>x.id===id);if(!t)return;
   if(!confirm(`Удалить задачу «${t.title}»?`))return;
@@ -587,6 +597,7 @@ function bind(){
   const taskCancelEdit=document.getElementById('taskCancelEdit');
   if(taskCancelEdit)taskCancelEdit.onclick=resetTaskEditor;
   document.querySelectorAll('.taskEditBtn').forEach(el=>el.onclick=()=>openTaskEditor(el.dataset.id));
+  document.querySelectorAll('.taskStatusSelect').forEach(el=>el.onchange=()=>updateTaskStatusFromTable(el.dataset.id,el.value));
   document.querySelectorAll('.taskDeleteBtn').forEach(el=>el.onclick=()=>deleteTaskFromManager(el.dataset.id));
   if(currentView==='tasks'&&!document.getElementById('taskEditId')?.value){
     const start=document.getElementById('taskStartDate');
