@@ -384,7 +384,7 @@ async function sendLink(){
   sendBtn.disabled=true;
   setAuthStatus('Отправляю ссылку...');
   try{
-    await call(SEND_ENDPOINT,{email});
+    await window.ATOMAuth.send(email,location.origin+'/production-and-sales-plan/');
     setAuthStatus('Ссылка отправлена на '+email+'. Откройте последнее письмо и нажмите ссылку для входа.','ok');
   }catch(e){
     const m=String(e.message||e);
