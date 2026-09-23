@@ -521,7 +521,6 @@ function tasks(){
     <td><div class="task-actions"><button class="btn taskEditBtn" data-id="${t.id}">Изменить</button><button class="btn danger taskDeleteBtn" data-id="${t.id}">Удалить</button></div></td>
   </tr>`).join('');
   return `
-    <div class="callout"><b>Период задачи:</b> «Дата с» определяет начало работы, «Дата до» — контрольный срок. Диаграмма Ганта строится из этих двух дат.</div>
     <div class="card task-editor">
       <div class="task-editor-head"><h3 id="taskEditorTitle">Создать задачу</h3><button id="taskCancelEdit" class="btn hidden">Отменить изменение</button></div>
       <input id="taskEditId" type="hidden">
