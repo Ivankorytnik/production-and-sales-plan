@@ -1,10 +1,6 @@
 (()=>{
 'use strict';
 
-const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
-const SUPABASE_KEY='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5';
-const SEND_ENDPOINT=SUPABASE_URL+'/functions/v1/atom-magic-auth';
-const AUTH_ENDPOINT=SUPABASE_URL+'/functions/v1/atom-auth';
 const CLOUD_BUCKET='plan-source-files';
 const PREFIX='registry__';
 const PROJECTS={
@@ -16,11 +12,6 @@ const activeProject=Object.prototype.hasOwnProperty.call(PROJECTS,requestedProje
 const projectMeta=PROJECTS[activeProject];
 
 const $=id=>document.getElementById(id);
-const gate=$('authGate');
-const shell=$('appShell');
-const authStatus=$('authStatus');
-const emailEl=$('authEmail');
-const sendBtn=$('authSend');
 const userEmail=$('authUserEmail');
 const logoutBtn=$('authLogout');
 const cloudStatus=$('cloudStatus');
@@ -41,54 +32,13 @@ const uploadProjectTitle=$('uploadProjectTitle');
 const registryProjectTitle=$('registryProjectTitle');
 const sourcesHomeLink=$('sourcesHomeLink');
 
-let sb=null;
-let currentUser=null;
+let sb=window.ATOMSupabase||null;
+let currentUser=window.ATOMAuthUser||null;
 let busy=false;
 
-const domainOk=email=>/^[^@\s]+@atom\.team$/i.test(String(email||'').trim());
-const setAuthStatus=(text,type='')=>{authStatus.textContent=text;authStatus.className='auth-status'+(type?' '+type:'')};
 const setCloud=(text,type='')=>{cloudStatus.textContent=text;cloudStatus.className='cloud-status'+(type?' '+type:'')};
 const setMessage=(text,type='')=>{uploadMessage.textContent=text;uploadMessage.className='message'+(type?' '+type:'')};
 
-const SHARED_AUTH_KEY='atom-global-auth-v1';
-function readSharedAuth(){try{return JSON.parse(localStorage.getItem(SHARED_AUTH_KEY)||'{}')}catch{return {}}}
-function saveLegacy(access,refresh){
-  if(access)localStorage.setItem('atom_access_token',access);
-  if(refresh)localStorage.setItem('atom_refresh_token',refresh);
-  const prev=readSharedAuth();
-  localStorage.setItem(SHARED_AUTH_KEY,JSON.stringify({access_token:access||prev.access_token||'',refresh_token:refresh||prev.refresh_token||'',updated_at:Date.now()}));
-}
-function clearLegacy(){
-  localStorage.removeItem('atom_access_token');
-  localStorage.removeItem('atom_refresh_token');
-  localStorage.removeItem(SHARED_AUTH_KEY);
-}
-function cleanCallbackUrl(){
-  const url=new URL(location.href);
-  ['access_token','refresh_token','expires_in','expires_at','token_type','type','error','error_code','error_description','code'].forEach(k=>url.searchParams.delete(k));
-  url.hash='';
-  history.replaceState(null,'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams.toString():''));
-}
-function callbackParams(){
-  const q=new URLSearchParams(location.search);
-  const h=new URLSearchParams(location.hash.replace(/^#/,''));
-  const get=k=>h.get(k)||q.get(k)||'';
-  return {access:get('access_token'),refresh:get('refresh_token'),error:get('error'),errorCode:get('error_code'),errorDescription:get('error_description')};
-}
-async function call(url,body){
-  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  let data={};
-  try{data=await r.json()}catch{}
-  if(!r.ok){
-    const raw=data.error||data.msg||'Ошибка авторизации';
-    let msg=raw;
-    if(typeof raw==='string'&&raw.trim().startsWith('{')){
-      try{const parsed=JSON.parse(raw);msg=parsed.msg||parsed.message||parsed.error||raw}catch{}
-    }
-    throw new Error(String(msg));
-  }
-  return data;
-}
 function formatRuDate(iso){
   const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m?m[3]+'.'+m[2]+'.'+m[1]:'';
@@ -287,114 +237,14 @@ async function deleteEntry(entry,button){
   }
 }
 
-function openApp(user){
-  currentUser=user;
-  gate.classList.add('app-hidden');
-  shell.classList.remove('app-hidden');
-  userEmail.textContent=user.email||'';
-  refreshRegistry();
+function connectAuth(auth){
+  if(auth?.client)sb=auth.client;
+  if(auth?.user)currentUser=auth.user;
+  if(userEmail&&currentUser?.email)userEmail.textContent=currentUser.email;
+  if(sb&&currentUser)refreshRegistry();
 }
-async function acceptSession(session){
-  if(!session?.access_token)return false;
-  try{
-    const {data,error}=await sb.auth.getUser(session.access_token);
-    if(error)throw error;
-    const user=data.user;
-    const email=String(user?.email||'').toLowerCase();
-    if(!domainOk(email)){
-      await sb.auth.signOut({scope:'local'}).catch(()=>{});
-      clearLegacy();
-      setAuthStatus('Доступ разрешён только для адресов @atom.team.','bad');
-      return false;
-    }
-    saveLegacy(session.access_token,session.refresh_token);
-    cleanCallbackUrl();
-    openApp(user);
-    return true;
-  }catch(e){
-    console.error('Session validation failed',e);
-    return false;
-  }
-}
-async function restoreLegacy(){
-  const shared=readSharedAuth();
-  const access=localStorage.getItem('atom_access_token')||shared.access_token||'';
-  const refresh=localStorage.getItem('atom_refresh_token')||shared.refresh_token||'';
-  if(!access&&!refresh)return false;
-  if(access&&refresh){
-    try{
-      const {data,error}=await sb.auth.setSession({access_token:access,refresh_token:refresh});
-      if(!error&&data.session&&await acceptSession(data.session))return true;
-    }catch{}
-  }
-  if(access){
-    try{
-      const d=await call(AUTH_ENDPOINT,{action:'check',access_token:access});
-      if(d.allowed){
-        const {data}=await sb.auth.getUser(access);
-        if(data?.user){openApp(data.user);return true}
-      }
-    }catch{}
-  }
-  clearLegacy();
-  return false;
-}
-async function bootAuth(){
-  const sharedReady=window.ATOM_AUTH_READY?await window.ATOM_AUTH_READY:null;
-  if(sharedReady?.client)sb=sharedReady.client;
-  if(sharedReady?.session?.access_token&&await acceptSession(sharedReady.session))return;
-  if(!window.supabase?.createClient){
-    gate.classList.remove('app-hidden');
-    setAuthStatus('Не удалось загрузить модуль авторизации.','bad');
-    return;
-  }
-  if(!sb){
-    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
-      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}
-    });
-  }
-
-  const cb=callbackParams();
-  if(cb.error||cb.errorCode){
-    const msg=decodeURIComponent((cb.errorDescription||cb.errorCode||cb.error||'Ошибка входа').replace(/\+/g,' '));
-    cleanCallbackUrl();
-    gate.classList.remove('app-hidden');
-    setAuthStatus('Ссылка не сработала: '+msg+'. Запросите новую ссылку.','bad');
-    return;
-  }
-  setAuthStatus(cb.access?'Завершаю вход...':'Проверяю текущий доступ...');
-
-  if(cb.access&&cb.refresh){
-    try{
-      const {data,error}=await sb.auth.setSession({access_token:cb.access,refresh_token:cb.refresh});
-      if(!error&&data.session&&await acceptSession(data.session))return;
-    }catch{}
-  }
-  try{
-    const {data,error}=await sb.auth.getSession();
-    if(!error&&data.session&&await acceptSession(data.session))return;
-  }catch{}
-  if(await restoreLegacy())return;
-  gate.classList.remove('app-hidden');
-  setAuthStatus('Введите рабочую почту @atom.team. Пароль не нужен.');
-}
-async function sendLink(){
-  const email=emailEl.value.trim().toLowerCase();
-  if(!domainOk(email)){setAuthStatus('Доступ разрешён только для адресов @atom.team.','bad');return}
-  sendBtn.disabled=true;
-  setAuthStatus('Отправляю ссылку...');
-  try{
-    await window.ATOMAuth.send(email,location.origin+'/production-and-sales-plan/');
-    setAuthStatus('Ссылка отправлена на '+email+'. Откройте последнее письмо и нажмите ссылку для входа.','ok');
-  }catch(e){
-    const m=String(e.message||e);
-    if(m==='domain_not_allowed')setAuthStatus('Доступ разрешён только для @atom.team.','bad');
-    else if(/rate limit|over_email_send_rate_limit/i.test(m))setAuthStatus('Лимит отправки писем Supabase. Используйте уже полученное последнее письмо или повторите позже.','bad');
-    else setAuthStatus(m,'bad');
-  }finally{
-    sendBtn.disabled=false;
-  }
-}
+document.addEventListener('atom-auth-ready',e=>connectAuth(e.detail));
+if(window.ATOMSupabase&&window.ATOMAuthUser)connectAuth({client:window.ATOMSupabase,user:window.ATOMAuthUser});
 
 const today=new Date();
 actualDate.value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
@@ -407,13 +257,6 @@ sourceFile.addEventListener('change',()=>{
   updatePreview();
 });
 uploadBtn.addEventListener('click',uploadSource);
-sendBtn.addEventListener('click',sendLink);
-emailEl.addEventListener('keydown',e=>{if(e.key==='Enter')sendLink()});
-logoutBtn.addEventListener('click',async()=>{
-  try{if(sb)await sb.auth.signOut({scope:'local'})}catch{}
-  clearLegacy();
-  location.href=location.pathname+'?project='+activeProject;
-});
 
 function applyProjectUi(){
   document.title='АТОМ · Источники · '+projectMeta.title;
@@ -430,5 +273,4 @@ function applyProjectUi(){
 }
 applyProjectUi();
 updatePreview();
-bootAuth().catch(e=>{console.error(e);setAuthStatus('Не удалось проверить доступ. Обновите страницу или запросите новую ссылку.','bad')});
 })();
