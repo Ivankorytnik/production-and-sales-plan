@@ -516,7 +516,7 @@ function tasks(){
       <div class="task-editor-actions"><button id="taskSaveBtn" class="btn primary">Создать задачу</button></div>
     </div>
     <div class="section-title"><h2>Реестр задач</h2><small>создание · изменение · удаление · контроль периода</small></div>
-    ${list.length?`<div class="table-wrap"><table class="table wide task-admin-table"><thead><tr><th>#</th><th>Задача / критерий</th><th>Штаб</th><th>Ответственный</th><th>Статус</th><th>Дата с</th><th>Дата до</th><th>Блок</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Задач пока нет.</div>'}
+    ${list.length?`<div class="table-wrap"><table class="table wide task-admin-table"><thead><tr><th>#</th><th>Задача / критерий</th><th>Источник задачи</th><th>Ответственный</th><th>Статус</th><th>Дата с</th><th>Дата до</th><th>Блок</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Задач пока нет.</div>'}
   `;
 }
 function resetTaskEditor(){
