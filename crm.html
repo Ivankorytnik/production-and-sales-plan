@@ -74,10 +74,9 @@
         <div class="card kpi live"><div class="label">Живой контур ≤30 дней</div><div id="kLive" class="value">0</div><div class="foot">по последней значимой дате</div></div>
         <div class="card kpi stale"><div class="label">Просрочены &gt;1 дня</div><div id="kStale" class="value">0</div><div class="foot">требуют ревизии</div></div>
       </section>
-      <section class="section grid2"><div class="card panel"><div class="panel-title">Воронка по статусам</div><div id="statusBars"></div></div><div class="card panel"><div class="panel-title">База по вертикалям</div><div id="verticalBars"></div></div></section>
-      <section class="section grid2">
+      <section class="section"><div class="card panel"><div class="panel-title">Воронка по статусам</div><div id="statusBars"></div></div></section>
+      <section class="section">
         <div class="card panel"><div class="panel-title">Нагрузка и состояние по ответственным</div><table class="owners"><thead><tr><th>Ответственный</th><th class="num">Лидов</th><th class="num">≤30</th><th class="num">&gt;1</th><th class="num">С задачей</th></tr></thead><tbody id="owners"></tbody></table></div>
-        <div class="card panel"><div class="panel-title">Качество данных выборки</div><div id="quality" class="quality"></div><div class="footer">Для прогноза продаж критичны количество ATOM, ближайшая задача, сумма сделки и плановая дата договора/отгрузки.</div></div>
       </section>
       <section class="section card">
         <div class="table-head"><span id="resultCount" class="result-count"></span><div class="legend"><span><i class="dot live"></i>≤30 дней</span><span><i class="dot mid"></i>31-90 дней</span><span><i class="dot stale"></i>&gt;90 дней</span></div></div>
@@ -187,6 +186,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-<script src="./crm.js?v=1.9.6"></script>
+<script src="./crm.js?v=1.9.7"></script>
 </body>
 </html>
