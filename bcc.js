@@ -660,7 +660,7 @@ function gantt(){
     const s=Math.max(rawStart,start),e=Math.min(rawEnd,end);
     const left=Math.max(0,(s-start)/(end-start)*100);
     const width=Math.max(.8,(e-s)/(end-start)*100);
-    const cls=t.status==='Блокер'?'background:#b94a4a;':t.status==='Готово'?'background:#2f9b75;':'';
+    const statusCls=taskStatusClass(t.status||'Новая');
     const clippedLeft=rawStart<start;
     const clippedRight=rawEnd>end;
     const clipNote=(clippedLeft||clippedRight)?' · часть периода вне 12 недель':'';
@@ -669,7 +669,7 @@ function gantt(){
       <div class="gantt-track">
         <div class="gantt-grid" style="background:repeating-linear-gradient(to right,transparent 0,transparent calc(${gridStep}% - 1px),var(--line) calc(${gridStep}% - 1px),var(--line) ${gridStep}%)"></div>
         ${reviewVisible?`<div class="gantt-marker" title="Следующее ревью" style="left:${reviewLeft}%"></div>`:''}
-        <div class="gantt-bar" style="left:${left}%;width:${Math.min(width,100-left)}%;${cls}"></div>
+        <div class="gantt-bar ${statusCls}" title="${esc(t.status||'Новая')}" style="left:${left}%;width:${Math.min(width,100-left)}%"></div>
       </div>
     </div>`;
   }).join('');
@@ -677,6 +677,9 @@ function gantt(){
   return `
     <div class="section-title"><h2>Диаграмма Ганта по задачам</h2><small>12 недель · ${tasks.length} задач в периоде</small></div>
     <div class="callout"><b>Горизонт:</b> 12 недель от текущей недели. Красная вертикальная линия показывает следующее ревью в понедельник 09:30.${hiddenCount?` За пределами горизонта: ${hiddenCount} задач.`:''}</div>
+    <div class="gantt-status-legend">
+      ${TASK_STATUSES.map(status=>`<span><i class="${taskStatusClass(status)}"></i>${esc(status)}</span>`).join('')}
+    </div>
     <div class="gantt-wrap">
       <div class="gantt-head"><div class="gantt-task-head">Задача</div><div class="gantt-weeks" style="grid-template-columns:repeat(12,1fr)">${weekHead}</div></div>
       ${rows||'<div class="empty">В выбранном 12-недельном периоде задач нет.</div>'}
