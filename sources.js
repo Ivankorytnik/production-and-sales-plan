@@ -340,14 +340,18 @@ async function restoreLegacy(){
   return false;
 }
 async function bootAuth(){
-  if(window.ATOM_AUTH_READY)await window.ATOM_AUTH_READY;
+  const sharedReady=window.ATOM_AUTH_READY?await window.ATOM_AUTH_READY:null;
+  if(sharedReady?.client)sb=sharedReady.client;
+  if(sharedReady?.session?.access_token&&await acceptSession(sharedReady.session))return;
   if(!window.supabase?.createClient){
     setAuthStatus('Не удалось загрузить модуль авторизации.','bad');
     return;
   }
-  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
-    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}
-  });
+  if(!sb){
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit',storageKey:'atom-sales-plan-auth'}
+    });
+  }
 
   const cb=callbackParams();
   if(cb.error||cb.errorCode){
