@@ -46,21 +46,25 @@ footer{padding:16px 28px;font-size:12px;color:#6b7d7e;border-top:1px solid var(-
 @media(max-width:620px){.topbar{padding:20px}.warning{padding:10px 20px}.content{padding:16px}.grid,.grid.two{grid-template-columns:1fr}.project-start-card{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.form-grid textarea{grid-column:auto}.attention-item{flex-direction:column}}
 
 .hidden{display:none!important}
-.task-editor{margin-bottom:18px}
-.task-editor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.task-editor-head h3{margin:0;font-size:18px}
-.task-form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.task-form-grid label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:700;color:var(--muted)}
-.task-form-grid input,.task-form-grid select,.task-form-grid textarea{width:100%;border:1px solid #ccdada;border-radius:8px;padding:9px;background:#fff;color:var(--text)}
-.task-form-grid textarea{resize:vertical}
+.task-editor{margin-bottom:12px;padding:12px 14px}
+.task-editor-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.task-editor-head h3{margin:0;font-size:16px}
+.task-form-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px 10px}
+.task-form-grid label{display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;color:var(--muted)}
+.task-form-grid input,.task-form-grid select,.task-form-grid textarea{width:100%;min-height:32px;border:1px solid #ccdada;border-radius:7px;padding:6px 8px;background:#fff;color:var(--text);font-size:12px}
+.task-form-grid textarea{resize:vertical;min-height:36px;max-height:64px}
 .task-form-grid .task-wide{grid-column:span 2}
-.task-editor-actions{display:flex;justify-content:flex-end;margin-top:14px}
+.task-form-grid label:nth-child(3){grid-column:span 4}
+.task-form-grid label:nth-child(9),.task-form-grid label:nth-child(10){grid-column:span 3}
+.task-editor-actions{display:flex;justify-content:flex-end;margin-top:8px}
+.task-editor-actions .btn{padding:8px 12px}
 .task-actions{display:flex;gap:6px;white-space:nowrap}
 .task-admin-table td:nth-child(2){min-width:320px}
 .task-admin-table td:nth-child(3){min-width:170px}
 .task-admin-table td:nth-child(4){min-width:170px}
 .task-overdue{background:#fff7f6}
-@media(max-width:950px){.task-form-grid{grid-template-columns:1fr 1fr}.task-form-grid .task-wide{grid-column:1/-1}}
+@media(max-width:1200px){.task-form-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.task-form-grid label:nth-child(3){grid-column:span 2}.task-form-grid label:nth-child(9),.task-form-grid label:nth-child(10){grid-column:span 2}}
+@media(max-width:950px){.task-form-grid{grid-template-columns:1fr 1fr}.task-form-grid .task-wide,.task-form-grid label:nth-child(3),.task-form-grid label:nth-child(9),.task-form-grid label:nth-child(10){grid-column:1/-1}}
 @media(max-width:620px){.task-form-grid{grid-template-columns:1fr}.task-form-grid .task-wide{grid-column:auto}.task-actions{flex-direction:column}}
 
 .gantt-week{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
