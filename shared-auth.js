@@ -61,6 +61,11 @@ window.ATOMSharedSupabase=client;
 
 async function validate(session){
   if(!session?.access_token)return null;
+  const localUser=session.user||null;
+  if(domainOk(localUser?.email)){
+    persist(session);
+    return {client,session,user:localUser};
+  }
   try{
     const {data,error}=await client.auth.getUser(session.access_token);
     if(error)throw error;
@@ -135,7 +140,14 @@ window.ATOMAuth={
   async send(email,redirectTo){
     email=String(email||'').trim().toLowerCase();
     if(!domainOk(email))throw new Error('domain_not_allowed');
-    return post(SEND_ENDPOINT,{email,redirect_to:redirectTo||location.href.split('#')[0]});
+    const redirect=redirectTo||location.origin+'/production-and-sales-plan/';
+    localStorage.setItem('atom-auth-next',location.pathname+location.search);
+    const {data,error}=await client.auth.signInWithOtp({
+      email,
+      options:{shouldCreateUser:true,emailRedirectTo:redirect}
+    });
+    if(error)throw error;
+    return data;
   },
   async signOut(){
     try{await client.auth.signOut({scope:'local'})}catch{}
