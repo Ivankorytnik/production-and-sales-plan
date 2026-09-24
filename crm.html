@@ -271,12 +271,24 @@
         <div id="statusTransitionNote" class="dynamics-note"></div>
         <div id="statusTransitionChart" class="dynamics-chart"></div>
       </section>
+
+      <section class="section card dynamics-panel">
+        <div class="dynamics-head">
+          <div>
+            <div class="panel-title">Динамика поступления обращений</div>
+            <div class="dynamics-subtitle">Источник: файл «Обращения Элма» · по дате создания обращения</div>
+          </div>
+          <div id="requestsDynTotalPage" class="dynamics-total"></div>
+        </div>
+        <div id="requestsDynNotePage" class="dynamics-note"></div>
+        <div id="requestsDynChartPage" class="dynamics-chart"></div>
+      </section>
     </section>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="./auth.js?v=1.1.0"></script>
-<script src="./crm.js?v=3.4.2-clean-codes"></script>
+<script src="./crm.js?v=3.5.0-requests-dynamics"></script>
 </body>
 </html>
