@@ -277,8 +277,9 @@ function requestChart(rows,createdField,opts={}){
   const ticks=[0,.25,.5,.75,1].map(f=>Math.round(max*f));
   const grid=ticks.map(v=>'<line x1="'+pad.l+'" x2="'+(w-pad.r)+'" y1="'+y(v)+'" y2="'+y(v)+'" class="dyn-grid"/><text x="'+(pad.l-8)+'" y="'+(y(v)+4)+'" class="dyn-y" text-anchor="end">'+v+'</text>').join('');
   const dots=pts.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.count)+'" r="4" class="dyn-dot"><title>Нед. '+isoWeekNumber(p.date)+': '+p.count+'</title></circle>').join('');
+  const valueLabels=pts.map((p,i)=>'<text x="'+x(i)+'" y="'+Math.max(14,y(p.count)-10)+'" class="dyn-value-label" text-anchor="middle">'+p.count+'</text>').join('');
   const labels=pts.map((p,i)=>'<text x="'+x(i)+'" y="'+(h-20)+'" class="dyn-x" text-anchor="middle">Нед. '+isoWeekNumber(p.date)+'</text>').join('');
-  box.innerHTML='<div class="dyn-scroll"><svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">'+grid+'<path d="'+path+'" class="dyn-line"/>'+dots+labels+'</svg></div>';
+  box.innerHTML='<div class="dyn-scroll"><svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">'+grid+'<path d="'+path+'" class="dyn-line"/>'+dots+valueLabels+labels+'</svg></div>';
 }
 function renderRequestsDynamicsPage(){
   const s=requestsSnapshot(),rows=s?.rows||[],f=resolveRequestFields(s||{});
