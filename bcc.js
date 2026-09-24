@@ -1075,9 +1075,8 @@ async function hydrate(){
     hydrated=true;
     if(pendingKeys.size)await pushPending();
     else setSync(syncOkLabel());
-    const weeklyChanged=ensureWeeklyTasks(true);
     const ownersChanged=normalizeCurrentTaskOwners(true);
-    if(changed||weeklyChanged||ownersChanged)render(currentView);
+    if(changed||ownersChanged)render(currentView);
   }catch(e){
     console.error('BCC sync hydrate failed',e);hydrated=true;setSync('Локальный режим','error');
   }
@@ -1109,7 +1108,6 @@ window.addEventListener('hashchange',()=>{if(appBooted)render(viewFromHash(),fal
 window.startAtomBccApp=()=>{
   if(appBooted)return;
   appBooted=true;
-  ensureWeeklyTasks(false);
   ensureB2BTeam();
   normalizeCurrentTaskOwners(false);
   updateBuildTimestamp();
