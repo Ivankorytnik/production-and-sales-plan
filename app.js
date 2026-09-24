@@ -305,7 +305,7 @@ async function buildReport({scroll=false,reason='manual'}={}){
     if(E.printBtn)E.printBtn.disabled=false;
     if(E.excelBtn)E.excelBtn.disabled=false;
     if(E.approveCheck)E.approveCheck.checked=true;
-    if(E.parseLog)E.parseLog.textContent=`Данные актуальны. Используются сохраненные файлы: ${S.salesFile.name} и ${S.templateFile.name}.`;
+    if(E.parseLog){const checks=Array.isArray(S.model?.checks)?S.model.checks:[];E.parseLog.textContent=checks.length?`Данные сформированы, но найдены контрольные расхождения (${checks.length}): ${checks.slice(0,3).map(x=>x.message).join(' | ')}${checks.length>3?' | ...':''}`:`Данные актуальны. Используются сохраненные файлы: ${S.salesFile.name} и ${S.templateFile.name}.`;}
     if(scroll)E.reportSection?.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(err){
     if(E.parseLog)E.parseLog.textContent=`Не удалось обновить таблицу: ${err.message||String(err)}`;
