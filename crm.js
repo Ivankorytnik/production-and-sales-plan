@@ -259,13 +259,16 @@ function resolveRequestFields(s){
 function requestIsClosed(status){return /(закрыт|заверш|выполн|решен|решён|отмен|отказ|архив|closed|done|completed|resolved)/i.test(String(status||''))}
 function requestValues(rows,field){return field?[...new Set(rows.map(r=>cleanRequestText(r[field])).filter(Boolean))]:[]}
 function requestCounts(rows,field,emptyLabel='Не указано'){const o={};if(!field)return o;rows.forEach(r=>{const v=cleanRequestText(r[field])||emptyLabel;o[v]=(o[v]||0)+1});return o}
-function requestChart(rows,createdField){
-  const box=$('#requestsDynChart'),note=$('#requestsDynNote');if(!box)return;
-  if(!createdField){box.innerHTML='<div class="empty">Колонка даты создания не найдена.</div>';note.textContent='';$('#requestsDynTotal').textContent='';return}
+function requestChart(rows,createdField,opts={}){
+  const chartId=opts.chartId||'#requestsDynChart',noteId=opts.noteId||'#requestsDynNote',totalId=opts.totalId||'#requestsDynTotal';
+  const box=$(chartId),note=$(noteId),total=$(totalId);if(!box)return;
+  if(!createdField){box.innerHTML='<div class="empty">Колонка даты создания не найдена.</div>';if(note)note.textContent='';if(total)total.textContent='';return}
   const grouped=new Map();let missing=0;
   rows.forEach(r=>{const d=requestDate(r[createdField]);if(!d){missing++;return}const b=startOfWeek(d),k=isoDate(b);if(!grouped.has(k))grouped.set(k,{date:b,count:0});grouped.get(k).count++});
-  const pts=[...grouped.values()].sort((a,b)=>a.date-b.date);$('#requestsDynTotal').textContent=fmt(rows.length-missing)+' обращений';note.textContent=missing?'Без даты создания: '+fmt(missing):'';
-  if(!pts.length){box.innerHTML='<div class="empty">Нет обращений с датой создания в выбранной выборке.</div>';return}
+  const pts=[...grouped.values()].sort((a,b)=>a.date-b.date);
+  if(total)total.textContent=fmt(rows.length-missing)+' обращений';
+  if(note)note.textContent=missing?'Без даты создания: '+fmt(missing):'';
+  if(!pts.length){box.innerHTML='<div class="empty">Нет обращений с датой создания.</div>';return}
   const w=Math.max(760,pts.length*72),h=330,pad={l:46,r:18,t:20,b:56},max=Math.max(...pts.map(p=>p.count),1),step=(w-pad.l-pad.r)/Math.max(pts.length-1,1),x=i=>pad.l+i*step,y=v=>pad.t+(h-pad.t-pad.b)*(1-v/max);
   let path='';pts.forEach((p,i)=>path+=(i?'L':'M')+x(i)+','+y(p.count));
   const ticks=[0,.25,.5,.75,1].map(f=>Math.round(max*f));
@@ -273,6 +276,10 @@ function requestChart(rows,createdField){
   const dots=pts.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.count)+'" r="4" class="dyn-dot"><title>Нед. '+isoWeekNumber(p.date)+': '+p.count+'</title></circle>').join('');
   const labels=pts.map((p,i)=>'<text x="'+x(i)+'" y="'+(h-20)+'" class="dyn-x" text-anchor="middle">Нед. '+isoWeekNumber(p.date)+'</text>').join('');
   box.innerHTML='<div class="dyn-scroll"><svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">'+grid+'<path d="'+path+'" class="dyn-line"/>'+dots+labels+'</svg></div>';
+}
+function renderRequestsDynamicsPage(){
+  const s=requestsSnapshot(),rows=s?.rows||[],f=resolveRequestFields(s||{});
+  requestChart(rows,f.created,{chartId:'#requestsDynChartPage',noteId:'#requestsDynNotePage',totalId:'#requestsDynTotalPage'});
 }
 function renderRequestsSummary(){
   const s=requestsSnapshot(),rows=s?.rows||[],headers=s?.headers||[],f=resolveRequestFields(s||{});
@@ -412,7 +419,7 @@ function setView(view){
   $('#navFunnel').classList.toggle('active',funnel);
   $('#navAlfaSummary').classList.toggle('active',alfaSummary);
   $('#navRequestsSummary').classList.toggle('active',requestsSummary);
-  if(dynamics)renderAllDynamics();
+  if(dynamics){renderAllDynamics();renderRequestsDynamicsPage();}
   if(funnel)renderFunnel();
   if(alfaSummary)renderAlfaSummary();
   if(requestsSummary)renderRequestsSummary();
@@ -441,8 +448,8 @@ function restoreRequests(){
   requestsStatus.className='statusline ok';
   return true
 }
-requestsFile.onchange=async e=>{const f=e.target.files[0];if(!f)return;requestsStatus.textContent='Читаю файл...';try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}),snap=parseRequests(m,f.name);snap.fields=resolveRequestFields(snap);localStorage.setItem(REQUESTS_SNAPSHOT_KEY,JSON.stringify(snap));requestsStatus.textContent='Готово: '+f.name+' · '+fmt(snap.rows.length)+' обращений. Данные сохранены в браузере.';requestsStatus.className='statusline ok';requestsClear.disabled=false;renderRequestsSummary();if(location.hash==='#requests-summary')setView('requests-summary')}catch(err){requestsStatus.textContent='Ошибка: '+err.message;requestsStatus.className='statusline bad'}finally{requestsFile.value=''}};
-requestsClear.onclick=()=>{localStorage.removeItem(REQUESTS_SNAPSHOT_KEY);requestsStatus.textContent='Файл не загружен.';requestsStatus.className='statusline';requestsClear.disabled=true;renderRequestsSummary()};
+requestsFile.onchange=async e=>{const f=e.target.files[0];if(!f)return;requestsStatus.textContent='Читаю файл...';try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}),snap=parseRequests(m,f.name);snap.fields=resolveRequestFields(snap);localStorage.setItem(REQUESTS_SNAPSHOT_KEY,JSON.stringify(snap));requestsStatus.textContent='Готово: '+f.name+' · '+fmt(snap.rows.length)+' обращений. Данные сохранены в браузере.';requestsStatus.className='statusline ok';requestsClear.disabled=false;renderRequestsSummary();renderRequestsDynamicsPage();if(location.hash==='#requests-summary')setView('requests-summary')}catch(err){requestsStatus.textContent='Ошибка: '+err.message;requestsStatus.className='statusline bad'}finally{requestsFile.value=''}};
+requestsClear.onclick=()=>{localStorage.removeItem(REQUESTS_SNAPSHOT_KEY);requestsStatus.textContent='Файл не загружен.';requestsStatus.className='statusline';requestsClear.disabled=true;renderRequestsSummary();renderRequestsDynamicsPage()};
 ['#requestsSearch','#requestsStatusFilter','#requestsOwnerFilter','#requestsSourceFilter','#requestsTypeFilter','#requestsFrom','#requestsTo'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',renderRequestsSummary);el.addEventListener('change',renderRequestsSummary)}});
 const requestsSearchClear=$('#requestsSearchClear');if(requestsSearchClear)requestsSearchClear.addEventListener('click',()=>{$('#requestsSearch').value='';renderRequestsSummary();$('#requestsSearch').focus()});
 restoreRequests();
