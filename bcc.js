@@ -220,17 +220,17 @@ function ensureWeeklyTasks(sync=false){
     if(deleted.has(sourceId))return;
     let t=list.find(x=>x.sourceId===sourceId||String(x.title||'').trim()===title);
     if(t){
-      t.sourceId=sourceId;
-      t.number=number;
-      t.block=block;
+      t.sourceId=t.sourceId||sourceId;
+      if(t.number==null)t.number=number;
+      t.block=t.block||block;
       t.result=t.result||criterion;
       t.owner=t.owner||sourceOwner;
       t.status=t.status||sourceStatus||'Не начато';
       t.comment=t.comment||sourceComment||'';
-      t.reviewTag=WEEKLY_REVIEW_TAG;
-      t.project=WEEKLY_HQ_CODE;
-      t.startDate=WEEKLY_START_DATE;
-      t.dueDate=WEEKLY_DUE_DATE;
+      t.reviewTag=t.reviewTag||WEEKLY_REVIEW_TAG;
+      t.project=t.project||WEEKLY_HQ_CODE;
+      t.startDate=t.startDate||WEEKLY_START_DATE;
+      t.dueDate=t.dueDate||WEEKLY_DUE_DATE;
       if(!t.vertical)t.vertical='Все вертикали';
     }else{
       list.push({
@@ -269,6 +269,13 @@ const weeklyTaskOverdue=t=>t&&t.status!=='Готово'&&t.dueDate&&Date.now()>d
 const weeklyDoneCount=()=>weeklyTasks().filter(t=>t.status==='Готово').length;
 const weeklyOpenCount=()=>weeklyTasks().filter(t=>t.status!=='Готово').length;
 const weeklyProgress=()=>weeklyTasks().length?Math.round(weeklyDoneCount()/weeklyTasks().length*100):0;
+function weeklyWindow(){
+  const tasks=weeklyTasks();
+  const starts=tasks.map(t=>t.startDate).filter(Boolean).sort();
+  const dues=tasks.map(t=>t.dueDate).filter(Boolean).sort();
+  const project=tasks.find(t=>t.project)?.project||WEEKLY_HQ_CODE;
+  return{project,start:starts[0]||WEEKLY_START_DATE,due:dues[dues.length-1]||WEEKLY_DUE_DATE};
+}
 function nextReviewDate(){
   const now=new Date(),d=new Date(now);
   d.setHours(9,30,0,0);
@@ -444,7 +451,7 @@ function overview(){
       <div class="card kpi"><div class="label">Срок ≤ 3 дней</div><div class="value">${dueSoon.length}</div><div class="sub">контроль ближайших сроков</div></div>
     </div>
 
-    <div class="section-title"><h2>Дашборд задач</h2><small>${WEEKLY_HQ_CODE} · ${WEEKLY_START_DATE}–${WEEKLY_DUE_DATE}</small></div>
+    <div class="section-title"><h2>Дашборд задач</h2><small>${weeklyWindow().project} · ${weeklyWindow().start}–${weeklyWindow().due}</small></div>
     <div class="overview-dashboard">
       <div class="card dashboard-card completion-card">
         <div class="dashboard-card-head"><div><h3>Выполнение</h3><small>готово / всего</small></div><b>${done} / ${total}</b></div>
