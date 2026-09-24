@@ -96,6 +96,16 @@ function requestHeaderKey(v){
 function requestHeaderLabel(v){
   return normalizeRequestHeader(v).replace(/\s*\[[^\]]+\]\s*$/,'').trim();
 }
+function cleanRequestText(v){
+  return String(v??'')
+    .replace(/\s*\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\]\s*/gi,' ')
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,' ')
+    .replace(/\s{2,}/g,' ')
+    .replace(/\s+([,;:.])/g,'$1')
+    .replace(/([,;])\s*([,;])+/g,'$1')
+    .replace(/^[,;\s]+|[,;\s]+$/g,'')
+    .trim();
+}
 function requestHeaderScore(row){
   let filled=0,hints=0,keys=0,dataLike=0,longText=0;
   (row||[]).forEach(v=>{
@@ -247,8 +257,8 @@ function resolveRequestFields(s){
 }
 
 function requestIsClosed(status){return /(закрыт|заверш|выполн|решен|решён|отмен|отказ|архив|closed|done|completed|resolved)/i.test(String(status||''))}
-function requestValues(rows,field){return field?[...new Set(rows.map(r=>String(r[field]||'').trim()).filter(Boolean))]:[]}
-function requestCounts(rows,field,emptyLabel='Не указано'){const o={};if(!field)return o;rows.forEach(r=>{const v=String(r[field]||'').trim()||emptyLabel;o[v]=(o[v]||0)+1});return o}
+function requestValues(rows,field){return field?[...new Set(rows.map(r=>cleanRequestText(r[field])).filter(Boolean))]:[]}
+function requestCounts(rows,field,emptyLabel='Не указано'){const o={};if(!field)return o;rows.forEach(r=>{const v=cleanRequestText(r[field])||emptyLabel;o[v]=(o[v]||0)+1});return o}
 function requestChart(rows,createdField){
   const box=$('#requestsDynChart'),note=$('#requestsDynNote');if(!box)return;
   if(!createdField){box.innerHTML='<div class="empty">Колонка даты создания не найдена.</div>';note.textContent='';$('#requestsDynTotal').textContent='';return}
@@ -282,10 +292,10 @@ function renderRequestsSummary(){
   const fromV=$('#requestsFrom')?.value||'',toV=$('#requestsTo')?.value||'',from=fromV?new Date(fromV+'T00:00:00'):null,to=toV?new Date(toV+'T23:59:59'):null;
 
   const filtered=rows.filter(r=>{
-    if(sf&&String(r[f.status]??'').trim()!==sf)return false;
-    if(of&&String(r[f.owner]??'').trim()!==of)return false;
-    if(src&&String(r[f.source]??'').trim()!==src)return false;
-    if(tf&&String(r[f.type]??'').trim()!==tf)return false;
+    if(sf&&cleanRequestText(r[f.status])!==sf)return false;
+    if(of&&cleanRequestText(r[f.owner])!==of)return false;
+    if(src&&cleanRequestText(r[f.source])!==src)return false;
+    if(tf&&cleanRequestText(r[f.type])!==tf)return false;
     if(from||to){
       const d=f.created?requestDate(r[f.created]):null;
       if(!d)return false;
@@ -293,15 +303,15 @@ function renderRequestsSummary(){
       if(to&&d>to)return false;
     }
     if(q){
-      const hay=headers.map(h=>String(r[h]??'')).join(' | ').toLowerCase();
+      const hay=headers.map(h=>cleanRequestText(r[h])).join(' | ').toLowerCase();
       if(!hay.includes(q))return false;
     }
     return true;
   });
 
-  const open=f.status?filtered.filter(r=>!requestIsClosed(r[f.status])).length:0;
+  const open=f.status?filtered.filter(r=>!requestIsClosed(cleanRequestText(r[f.status]))).length:0;
   const closed=f.status?filtered.length-open:0;
-  const unassigned=f.owner?filtered.filter(r=>!String(r[f.owner]??'').trim()).length:0;
+  const unassigned=f.owner?filtered.filter(r=>!cleanRequestText(r[f.owner])).length:0;
   const cutoff=new Date();cutoff.setHours(0,0,0,0);cutoff.setDate(cutoff.getDate()-6);
   const d7=f.created?filtered.filter(r=>{const d=requestDate(r[f.created]);return d&&d>=cutoff}).length:0;
 
@@ -325,7 +335,7 @@ function renderRequestsSummary(){
   const priority=[f.id,f.created,f.title,f.status,f.type,f.source,f.owner,f.client,f.phone,f.email].filter(Boolean);
   const visible=[...new Set([...priority,...headers])];
   $('#requestsSummaryHead').innerHTML=visible.length?'<tr>'+visible.map(h=>'<th>'+esc(requestHeaderLabel(h)||h)+'</th>').join('')+'</tr>':'';
-  $('#requestsSummaryBody').innerHTML=filtered.slice(0,1500).map(r=>'<tr>'+visible.map(h=>'<td>'+esc(r[h])+'</td>').join('')+'</tr>').join('');
+  $('#requestsSummaryBody').innerHTML=filtered.slice(0,1500).map(r=>'<tr>'+visible.map(h=>'<td>'+esc(cleanRequestText(r[h]))+'</td>').join('')+'</tr>').join('');
   $('#requestsSummaryEmpty').classList.toggle('hidden',rows.length>0);
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
