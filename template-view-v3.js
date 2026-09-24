@@ -179,7 +179,26 @@ function parseWorkbook(buf){
     }
     return null;
   })();
-  return{sheetName,metrics,verticals,clients:clientRows,sourceDate,parserVersion:PARSER_VERSION};
+  const checks=[];
+  const checkYear=(key,label)=>{
+    const metric=metrics[key];
+    if(!metric?.found||!metric.yearFound)return;
+    const monthSum=sumMonths(metric);
+    const diff=Number(metric.year||0)-monthSum;
+    if(Math.abs(diff)>0.5)checks.push({level:'warn',code:'year-month-mismatch',label,message:`${label}: Итого 2026 ${fmt(metric.year)} не равно сумме месяцев ${fmt(monthSum)} (разница ${fmt(diff)}).`});
+  };
+  ['production','shipPlan','shipped','corp','contractsB2B','bookedB2B','contractsB2G','contractsB2C','bookedTotal','booked','free'].forEach(key=>checkYear(key,metrics[key]?.label||key));
+  const components=[metrics.contractsB2B,metrics.bookedB2B,metrics.contractsB2G,metrics.contractsB2C].filter(x=>x?.found);
+  if(metrics.bookedTotal?.found&&components.length){
+    for(const month of MONTH_NAMES){
+      const componentTotal=components.reduce((sum,x)=>sum+Number(x.months?.[month]||0),0);
+      const stated=Number(metrics.bookedTotal.months?.[month]||0);
+      if(Math.abs(stated-componentTotal)>0.5){
+        checks.push({level:'warn',code:'booking-balance-mismatch',label:month,message:`${month}: «Контракты / Забронировано ВСЕГО» ${fmt(stated)} не равно сумме B2B/B2G/B2C ${fmt(componentTotal)} (разница ${fmt(stated-componentTotal)}).`});
+      }
+    }
+  }
+  return{sheetName,metrics,verticals,clients:clientRows,sourceDate,parserVersion:PARSER_VERSION,checks};
 }
 
 function parseSmmtWorkbook(buf){
