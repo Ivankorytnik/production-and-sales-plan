@@ -59,6 +59,7 @@
       <div id="leadHeaderActions" class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
     </header>
     <div id="emptyState" class="info-line">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</div>
+    <div id="dashboard" class="dashboard hidden">
     <section id="globalFilters" class="section card filter-panel hidden">
       <div class="filters">
         <div class="field"><label>Поиск</label><input id="fSearch" placeholder="Компания, ИНН, контакт, телефон..." /></div>
@@ -69,7 +70,6 @@
         <div class="field"><label>Свежесть</label><div id="fHealth" class="multi-select" data-placeholder="Все"></div></div>
       </div>
     </section>
-    <div id="dashboard" class="dashboard hidden">
       <section class="section kpis">
         <div class="card kpi"><div class="label">Всего лидов</div><div id="kTotal" class="value">0</div><div class="foot">полная выгрузка</div></div>
         <div class="card kpi"><div class="label">Формально активные</div><div id="kActive" class="value">0</div><div class="foot">без дисквалифицированных</div></div>
@@ -277,6 +277,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="./auth.js?v=1.1.0"></script>
-<script src="./crm.js?v=3.2.1-requests-ui"></script>
+<script src="./crm.js?v=3.2.2-requests-ui"></script>
 </body>
 </html>
