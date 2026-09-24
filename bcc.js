@@ -1017,8 +1017,14 @@ function updateClock(){
 }
 
 async function api(method,params='',body){
+  let session=window.ATOMAuthSession||null;
+  if(!session&&window.ATOMAuth?.getSession)session=await window.ATOMAuth.getSession();
+  const token=session?.access_token||'';
+  if(!token)throw new Error('Нет активной авторизации');
   const r=await fetch(`${API}?table=ca_sync_state${params?'&'+params:''}`,{
-    method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined
+    method,
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:body?JSON.stringify(body):undefined
   });
   if(!r.ok)throw new Error(await r.text());
   const text=await r.text();return text?JSON.parse(text):null;
