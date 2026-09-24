@@ -56,7 +56,8 @@ function toExportModel(model){
     name:x.name||x.displayName||'',
     displayName:x.displayName||x.name||'',
     product:x.product||'',
-    vertical:x.vertical||''
+    vertical:x.vertical||'',
+    b2bGroup:x.b2bGroup||''
   }));
   return{
     production:normalizeMetric(model.metrics?.production),
@@ -64,8 +65,14 @@ function toExportModel(model){
     shippedActual:normalizeMetric(model.metrics?.shipped),
     clientShipPlan:normalizeMetric(model.metrics?.clientShipPlan),
     corp:normalizeMetric(model.metrics?.corp),
+    contractsB2B:normalizeMetric(model.metrics?.contractsB2B),
+    bookedB2B:normalizeMetric(model.metrics?.bookedB2B),
+    contractsB2G:normalizeMetric(model.metrics?.contractsB2G),
+    contractsB2C:normalizeMetric(model.metrics?.contractsB2C),
+    bookedTotal:normalizeMetric(model.metrics?.bookedTotal),
     booked:normalizeMetric(model.metrics?.booked),
-    free:null,
+    free:normalizeMetric(model.metrics?.free),
+    smmt:normalizeMetric(model.smmt),
     verticals:{
       B2B:normalizeMetric(model.verticals?.B2B),
       B2C:normalizeMetric(model.verticals?.B2C),
@@ -148,7 +155,12 @@ function metricForLabel(label,m){
   if(/передано.*корп|корпоративн.*парк/.test(s))return m.corp;
   if((/забронировано/.test(s)&&(/клиент|автомоб|атом|erp|ерп|всего/.test(s)))&&!/\bb2[bcg]\b/.test(s))return m.booked;
   if(/^забронировано$/.test(s))return m.booked;
-  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return null;
+  if(/контракт.*b2b/.test(s))return m.contractsB2B;
+  if(/бронирован.*b2b|забронирован.*b2b|бронь.*b2b/.test(s))return m.bookedB2B;
+  if(/контракт.*b2g/.test(s))return m.contractsB2G;
+  if(/контракт.*b2c/.test(s))return m.contractsB2C;
+  if(/контракт.*забронирован.*всего|забронирован.*контракт.*всего/.test(s))return m.bookedTotal;
+  if(/свободн.*сток|доступно.*конец|^доступно$/.test(s))return m.free;
   if(/итого\s*b2b|контракты.*забронировано.*b2b|^b2b$/.test(s))return m.verticals.B2B;
   if(/итого\s*b2c|контракты.*забронировано.*b2c|^b2c$/.test(s))return m.verticals.B2C;
   if(/итого\s*b2g|контракты.*забронировано.*b2g|^b2g$/.test(s))return m.verticals.B2G;
@@ -182,12 +194,15 @@ function rebuildBalanceTable(tbl,m){
   const anyTemplate=trs[info.headerRow+1];
   if(!anyTemplate)return 0;
   const desired=[
-    ['План производства',m.production,/план производства/],
-    ['План отгрузки с завода',m.shipPlan,/план отгрузк.*завод|отгрузк.*завод.*план/],
-    ['Отгружено автомобилей',m.shippedActual,/отгружено.*автомоб|отгрузка.*завод.*факт|отгружено.*авто/],
-    ['Доступно для отгрузки клиенту-план',m.clientShipPlan,/отгрузка\s+клиенту\s+план|план\s+отгрузки\s+клиенту/],
-    ['Передано в корпоративный парк АТОМ',m.corp,/передано.*корп|корпоративн.*парк/],
-    ['Забронировано клиентами',m.booked,/забронировано/]
+    ['План СММТ',m.smmt,/план сммт/],
+    ['План производства 2026 S&OP09',m.production,/план производства/],
+    ['В корпоративный парк АТОМ / инженерам',m.corp,/передано.*корп|корпоративн.*парк|инженер/],
+    ['Контракты B2B',m.contractsB2B,/контракт.*b2b/],
+    ['Бронирование B2B',m.bookedB2B,/бронирован.*b2b|забронирован.*b2b|бронь.*b2b/],
+    ['Контракты B2G',m.contractsB2G,/контракт.*b2g/],
+    ['Контракты B2C',m.contractsB2C,/контракт.*b2c/],
+    ['Контракты / Забронировано ВСЕГО',m.bookedTotal,/контракт.*забронирован.*всего|забронирован.*контракт.*всего/],
+    ['Доступно а.м. на конец месяца',m.free,/свободн.*сток|доступно.*конец|^доступно$/]
   ];
   const findTemplate=re=>{
     for(const [label,tr] of Object.entries(existing)){if(re.test(label))return tr}
@@ -246,7 +261,7 @@ function groupClientCompanies(items){
   const groups=new Map();
   for(const item of items||[]){
     const label=companyLabel(item);
-    const key=`${item.vertical||''}|${k(label)}`;
+    const key=`${item.vertical||''}|${item.b2bGroup||''}|${k(label)}`;
     if(!groups.has(key))groups.set(key,{label,items:[]});
     groups.get(key).items.push(item);
   }
@@ -283,10 +298,19 @@ function rebuildDistributionTable(tbl,m){
     parent.appendChild(tr);
   };
   append(summaryTemplate,'B2B','Итого B2B',m.verticals.B2B);
-  const b2b=groupClientCompanies((m.clientRows||[]).filter(x=>x.vertical==='B2B'&&annual(x)>0));
-  b2b.forEach((company,i)=>{
-    const template=detailTemplates.length?detailTemplates[i%detailTemplates.length]:summaryTemplate;
-    append(template,'',company.label,company.metric);
+  const b2bGroups=[
+    {key:'booked',label:'Бронирование B2B',metric:m.bookedB2B},
+    {key:'contracts',label:'Контракты B2B',metric:m.contractsB2B}
+  ];
+  b2bGroups.forEach(group=>{
+    const items=(m.clientRows||[]).filter(x=>x.vertical==='B2B'&&x.b2bGroup===group.key);
+    if(!group.metric?.found&&!items.length)return;
+    append(detailTemplates[0]||summaryTemplate,'',group.label,group.metric);
+    const companies=groupClientCompanies(items);
+    companies.forEach((company,i)=>{
+      const template=detailTemplates.length?detailTemplates[(i+1)%detailTemplates.length]:summaryTemplate;
+      append(template,'',company.label,company.metric);
+    });
   });
 
   if(m.verticals.B2G?.found&&annual(m.verticals.B2G)>0){
@@ -364,7 +388,7 @@ async function exportPptx(){
     const out=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(out);
-    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.7.1.pptx';
+    a.download='ATOM_OnePage_'+new Date().toISOString().slice(0,10)+'_v2.8.0.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
     if(log)log.textContent=`PPTX пересобран из S&OP09 plan. Производство ${disp(annual(m.production))}, план отгрузки клиенту ${disp(annual(m.clientShipPlan))}, B2B ${disp(annual(m.verticals.B2B))}, B2C ${disp(annual(m.verticals.B2C))}, всего ${disp(annual(m.booked))}.`;
   }catch(e){
