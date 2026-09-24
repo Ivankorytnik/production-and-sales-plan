@@ -85,36 +85,85 @@ function renderAlfaSummary(){
   }
 }
 function requestsSnapshot(){try{const raw=localStorage.getItem(REQUESTS_SNAPSHOT_KEY);if(!raw)return null;const s=JSON.parse(raw);return s&&Array.isArray(s.rows)?s:null}catch{return null}}
-function requestField(headers,patterns){
-  let best=-1,score=-1;
-  headers.forEach((h,i)=>{const s=String(h||'').toLowerCase().replace(/ё/g,'е').trim();patterns.forEach((p,rank)=>{if(p.test(s)){const v=(patterns.length-rank)*10-Math.min(s.length,80)/100;if(v>score){score=v;best=i}}})});
+function normalizeRequestHeader(v){
+  return String(v||'').replace(/\s+/g,' ').trim();
+}
+function requestHeaderKey(v){
+  const s=normalizeRequestHeader(v);
+  const m=s.match(/\[([^\]]+)\]\s*$/);
+  return m?m[1].toLowerCase():s.toLowerCase();
+}
+function requestHeaderLabel(v){
+  return normalizeRequestHeader(v).replace(/\s*\[[^\]]+\]\s*$/,'').trim();
+}
+function requestHeaderScore(row){
+  let filled=0,hints=0,keys=0,dataLike=0,longText=0;
+  (row||[]).forEach(v=>{
+    const s=normalizeRequestHeader(v);
+    if(!s)return;
+    filled++;
+    if(/\[[^\]]+\]\s*$/.test(s))keys++;
+    if(/статус|дата|создан|обращ|ответствен|исполнител|менеджер|канал|источник|тема|тип|категор|клиент|компан|телефон|почт|email|номер|id|автор|владел/i.test(s))hints++;
+    if(/^\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(s)||/^\+?\d[\d\s()+-]{6,}$/.test(s))dataLike++;
+    if(s.length>90)longText++;
+  });
+  return hints*20+keys*12+filled*2-dataLike*14-longText*4;
+}
+function detectRequestHeaderRow(matrix){
+  let bestRow=0,bestScore=-Infinity;
+  const limit=Math.min(matrix.length,50);
+  for(let r=0;r<limit;r++){
+    const score=requestHeaderScore(matrix[r]||[]);
+    if(score>bestScore){bestScore=score;bestRow=r}
+  }
+  return bestRow;
+}
+function requestField(headers,patterns,keyPatterns=[]){
+  let best=-1,score=-Infinity;
+  headers.forEach((h,i)=>{
+    const raw=normalizeRequestHeader(h),label=requestHeaderLabel(raw).toLowerCase().replace(/ё/g,'е'),key=requestHeaderKey(raw);
+    patterns.forEach((p,rank)=>{if(p.test(label)){const v=200-rank*10-Math.min(label.length,100)/100;if(v>score){score=v;best=i}}});
+    keyPatterns.forEach((p,rank)=>{if(p.test(key)){const v=300-rank*10;if(v>score){score=v;best=i}}});
+  });
   return best;
 }
-function requestFieldName(headers,patterns){const i=requestField(headers,patterns);return i>=0?headers[i]:''}
+function requestFieldName(headers,patterns,keyPatterns=[]){const i=requestField(headers,patterns,keyPatterns);return i>=0?headers[i]:''}
 function parseRequests(matrix,fileName){
-  let headerRow=0,best=-1;
-  for(let r=0;r<Math.min(matrix.length,30);r++){
-    const row=matrix[r]||[],filled=row.filter(v=>String(v||'').trim()).length,text=row.filter(v=>/[A-Za-zА-Яа-яЁё]/.test(String(v||''))).length;
-    const hints=row.filter(v=>/(статус|дата|обращ|ответствен|исполнител|канал|источник|тема|тип|номер|id)/i.test(String(v||''))).length;
-    const score=filled+text*2+hints*8;if(score>best){best=score;headerRow=r}
+  const headerRow=detectRequestHeaderRow(matrix);
+  const rawRow=matrix[headerRow]||[];
+  let lastCol=-1;
+  for(let i=0;i<rawRow.length;i++){
+    const hasHeader=normalizeRequestHeader(rawRow[i]);
+    const hasData=matrix.slice(headerRow+1,Math.min(matrix.length,headerRow+80)).some(r=>normalizeRequestHeader((r||[])[i]));
+    if(hasHeader||hasData)lastCol=i;
   }
-  const rawHeaders=(matrix[headerRow]||[]).map((v,i)=>String(v||'').trim()||('Колонка '+(i+1)));
-  const seen={};const headers=rawHeaders.map(h=>{seen[h]=(seen[h]||0)+1;return seen[h]>1?h+' '+seen[h]:h});
-  const rows=matrix.slice(headerRow+1).filter(r=>r.some(v=>String(v||'').trim())).map(r=>{const o={};headers.forEach((h,i)=>o[h]=r[i]??'');return o});
+  if(lastCol<0)throw new Error('Не удалось определить колонки файла');
+  const sourceHeaders=rawRow.slice(0,lastCol+1).map((v,i)=>normalizeRequestHeader(v)||('Колонка '+(i+1)));
+  const seen={};
+  const headers=sourceHeaders.map(h=>{seen[h]=(seen[h]||0)+1;return seen[h]>1?h+' '+seen[h]:h});
+  const rows=[];
+  for(let ri=headerRow+1;ri<matrix.length;ri++){
+    const r=(matrix[ri]||[]).slice(0,lastCol+1);
+    const values=r.map(v=>String(v??'').trim());
+    if(!values.some(Boolean))continue;
+    const looksHeaderAgain=values.filter((v,i)=>v&&requestHeaderLabel(v)===requestHeaderLabel(sourceHeaders[i])).length;
+    if(looksHeaderAgain>=Math.max(2,Math.floor(headers.length*.35)))continue;
+    const o={};headers.forEach((h,i)=>o[h]=r[i]??'');rows.push(o);
+  }
   const fields={
-    id:requestFieldName(headers,[/^номер$/i,/номер.*обращ/i,/^id$/i,/идентификатор/i,/код.*обращ/i]),
-    title:requestFieldName(headers,[/^тема$/i,/тема.*обращ/i,/название.*обращ/i,/наименование.*обращ/i,/^название$/i,/subject/i]),
-    status:requestFieldName(headers,[/^статус$/i,/статус.*обращ/i,/состояни/i,/этап/i,/status/i]),
-    owner:requestFieldName(headers,[/^ответствен/i,/ответствен.*фио/i,/исполнител/i,/назначен/i,/владел/i,/owner/i]),
-    source:requestFieldName(headers,[/^источник$/i,/источник.*обращ/i,/^канал$/i,/канал.*обращ/i,/source/i]),
-    type:requestFieldName(headers,[/^тип$/i,/тип.*обращ/i,/категор/i,/классификац/i,/вид.*обращ/i,/направлен/i]),
-    created:requestFieldName(headers,[/^дата создания$/i,/дата.*создан/i,/создан.*дата/i,/дата.*обращ/i,/created/i]),
-    closed:requestFieldName(headers,[/дата.*закрыт/i,/закрыт.*дата/i,/дата.*заверш/i,/completed/i,/closed/i]),
-    client:requestFieldName(headers,[/^клиент$/i,/компан/i,/контрагент/i,/организац/i,/фио.*клиент/i,/заявител/i]),
-    phone:requestFieldName(headers,[/телефон/i,/phone/i]),
-    email:requestFieldName(headers,[/e-?mail/i,/электрон.*почт/i,/почта/i])
+    id:requestFieldName(headers,[/^номер$/i,/номер.*обращ/i,/идентификатор/i,/код.*обращ/i,/^id$/i],[/(^|_)(id|number|num)$/i,/request.*id|appeal.*id/i]),
+    title:requestFieldName(headers,[/^тема$/i,/тема.*обращ/i,/название.*обращ/i,/наименование.*обращ/i,/^название$/i,/subject/i],[/subject|title|theme|topic/i]),
+    status:requestFieldName(headers,[/^статус$/i,/статус.*обращ/i,/состояни/i,/этап/i,/status/i],[/status/i]),
+    owner:requestFieldName(headers,[/^ответствен/i,/ответствен.*фио/i,/исполнител/i,/назначен/i,/менеджер/i,/куратор/i,/владел/i,/owner/i],[/owner|responsible|assignee|executor|manager/i]),
+    source:requestFieldName(headers,[/^источник$/i,/источник.*обращ/i,/^канал$/i,/канал.*обращ/i,/откуда/i,/source/i],[/source|channel|origin/i]),
+    type:requestFieldName(headers,[/^тип$/i,/тип.*обращ/i,/категор/i,/классификац/i,/вид.*обращ/i,/направлен/i],[/type|category|kind|class/i]),
+    created:requestFieldName(headers,[/^дата создания$/i,/дата.*создан/i,/создан.*дата/i,/дата.*обращ/i,/created/i],[/createdat|created_at|creationdate|created/i]),
+    closed:requestFieldName(headers,[/дата.*закрыт/i,/закрыт.*дата/i,/дата.*заверш/i,/completed/i,/closed/i],[/closedat|completedat|resolvedat|closed|completed/i]),
+    client:requestFieldName(headers,[/^клиент$/i,/компан/i,/контрагент/i,/организац/i,/фио.*клиент/i,/заявител/i],[/client|company|customer|applicant/i]),
+    phone:requestFieldName(headers,[/телефон/i,/phone/i],[/phone|mobile|tel/i]),
+    email:requestFieldName(headers,[/e-?mail/i,/электрон.*почт/i,/почта/i],[/email|mail/i])
   };
-  return{version:2,fileName,savedAt:new Date().toISOString(),headers,rows,fields};
+  return{version:3,fileName,savedAt:new Date().toISOString(),headerRow,headers,rows,fields};
 }
 function requestDate(v){if(!v)return null;const s=String(v).trim(),m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;const d=new Date(y,+m[2]-1,+m[1]);return Number.isNaN(d.getTime())?null:d}const d=new Date(s);return Number.isNaN(d.getTime())?null:d}
 function requestIsClosed(status){return /(закрыт|заверш|выполн|решен|решён|отмен|отказ|архив|closed|done|completed|resolved)/i.test(String(status||''))}
@@ -137,27 +186,66 @@ function requestChart(rows,createdField){
 }
 function renderRequestsSummary(){
   const s=requestsSnapshot(),rows=s?.rows||[],headers=s?.headers||[],f=s?.fields||{};
-  $('#requestsSummaryMeta').textContent=s?'Файл: '+s.fileName+' · сохранено '+new Date(s.savedAt).toLocaleString('ru-RU'):'Загрузите файл «Обращения Элма».';
-  const statuses=requestValues(rows,f.status),owners=requestValues(rows,f.owner),sources=requestValues(rows,f.source),types=requestValues(rows,f.type);
-  fillSimpleSelect($('#requestsStatusFilter'),statuses.sort(),'Все статусы');fillSimpleSelect($('#requestsOwnerFilter'),owners.sort(),'Все ответственные');fillSimpleSelect($('#requestsSourceFilter'),sources.sort(),'Все каналы');fillSimpleSelect($('#requestsTypeFilter'),types.sort(),'Все типы');
-  const q=String($('#requestsSearch')?.value||'').toLowerCase(),sf=$('#requestsStatusFilter')?.value||'',of=$('#requestsOwnerFilter')?.value||'',src=$('#requestsSourceFilter')?.value||'',tf=$('#requestsTypeFilter')?.value||'',fromV=$('#requestsFrom')?.value||'',toV=$('#requestsTo')?.value||'';
-  const from=fromV?new Date(fromV+'T00:00:00'):null,to=toV?new Date(toV+'T23:59:59'):null;
+  $('#requestsSummaryMeta').textContent=s?'Файл: '+s.fileName+' · строк данных: '+fmt(rows.length)+' · заголовок Excel: строка '+fmt((s.headerRow??0)+1):'Загрузите файл «Обращения Элма».';
+
+  const statuses=requestValues(rows,f.status).sort((a,b)=>a.localeCompare(b,'ru'));
+  const owners=requestValues(rows,f.owner).sort((a,b)=>a.localeCompare(b,'ru'));
+  const sources=requestValues(rows,f.source).sort((a,b)=>a.localeCompare(b,'ru'));
+  const types=requestValues(rows,f.type).sort((a,b)=>a.localeCompare(b,'ru'));
+  fillSimpleSelect($('#requestsStatusFilter'),statuses,'Все статусы');
+  fillSimpleSelect($('#requestsOwnerFilter'),owners,'Все ответственные');
+  fillSimpleSelect($('#requestsSourceFilter'),sources,'Все каналы');
+  fillSimpleSelect($('#requestsTypeFilter'),types,'Все типы');
+
+  const q=String($('#requestsSearch')?.value||'').trim().toLowerCase();
+  const sf=$('#requestsStatusFilter')?.value||'',of=$('#requestsOwnerFilter')?.value||'',src=$('#requestsSourceFilter')?.value||'',tf=$('#requestsTypeFilter')?.value||'';
+  const fromV=$('#requestsFrom')?.value||'',toV=$('#requestsTo')?.value||'',from=fromV?new Date(fromV+'T00:00:00'):null,to=toV?new Date(toV+'T23:59:59'):null;
+
   const filtered=rows.filter(r=>{
-    const d=f.created?requestDate(r[f.created]):null;
-    return(!sf||String(r[f.status]||'')===sf)&&(!of||String(r[f.owner]||'')===of)&&(!src||String(r[f.source]||'')===src)&&(!tf||String(r[f.type]||'')===tf)&&(!from||!d||d>=from)&&(!to||!d||d<=to)&&(!q||headers.some(h=>String(r[h]||'').toLowerCase().includes(q)));
+    if(sf&&String(r[f.status]??'').trim()!==sf)return false;
+    if(of&&String(r[f.owner]??'').trim()!==of)return false;
+    if(src&&String(r[f.source]??'').trim()!==src)return false;
+    if(tf&&String(r[f.type]??'').trim()!==tf)return false;
+    if(from||to){
+      const d=f.created?requestDate(r[f.created]):null;
+      if(!d)return false;
+      if(from&&d<from)return false;
+      if(to&&d>to)return false;
+    }
+    if(q){
+      const hay=headers.map(h=>String(r[h]??'')).join(' | ').toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    return true;
   });
-  const open=filtered.filter(r=>!requestIsClosed(f.status?r[f.status]:'')).length,closed=filtered.length-open,unassigned=f.owner?filtered.filter(r=>!String(r[f.owner]||'').trim()).length:filtered.length;
+
+  const open=f.status?filtered.filter(r=>!requestIsClosed(r[f.status])).length:0;
+  const closed=f.status?filtered.length-open:0;
+  const unassigned=f.owner?filtered.filter(r=>!String(r[f.owner]??'').trim()).length:0;
   const cutoff=new Date();cutoff.setHours(0,0,0,0);cutoff.setDate(cutoff.getDate()-6);
   const d7=f.created?filtered.filter(r=>{const d=requestDate(r[f.created]);return d&&d>=cutoff}).length:0;
-  $('#rKTotal').textContent=fmt(filtered.length);$('#rKOpen').textContent=fmt(open);$('#rKClosed').textContent=fmt(closed);$('#rKUnassigned').textContent=fmt(unassigned);$('#rK7d').textContent=fmt(d7);$('#rKSources').textContent=fmt(requestValues(filtered,f.source).length);
-  bars('#requestsStatusBars',requestCounts(filtered,f.status));bars('#requestsSourceBars',requestCounts(filtered,f.source));bars('#requestsTypeBars',requestCounts(filtered,f.type));bars('#requestsOwnerBars',requestCounts(filtered,f.owner,'Без ответственного'));
+
+  $('#rKTotal').textContent=fmt(filtered.length);
+  $('#rKOpen').textContent=f.status?fmt(open):'—';
+  $('#rKClosed').textContent=f.status?fmt(closed):'—';
+  $('#rKUnassigned').textContent=f.owner?fmt(unassigned):'—';
+  $('#rK7d').textContent=f.created?fmt(d7):'—';
+  $('#rKSources').textContent=f.source?fmt(requestValues(filtered,f.source).length):'—';
+
+  bars('#requestsStatusBars',requestCounts(filtered,f.status));
+  bars('#requestsSourceBars',requestCounts(filtered,f.source));
+  bars('#requestsTypeBars',requestCounts(filtered,f.type));
+  bars('#requestsOwnerBars',requestCounts(filtered,f.owner,'Без ответственного'));
   requestChart(filtered,f.created);
+
   $('#requestsResultCount').textContent=rows.length?'Показано '+fmt(filtered.length)+' из '+fmt(rows.length):'Нет данных';
-  const map=[['Статус',f.status],['Дата',f.created],['Ответственный',f.owner],['Канал',f.source],['Тип',f.type]].filter(x=>x[1]).map(x=>x[0]+': '+x[1]).join(' · ');
-  $('#requestsFieldMap').textContent=map||'Ключевые поля не распознаны';
-  const priority=[f.id,f.created,f.title,f.status,f.type,f.source,f.owner,f.client,f.phone,f.email].filter(Boolean),ordered=[...new Set([...priority,...headers])],visible=ordered.slice(0,12);
-  $('#requestsSummaryHead').innerHTML=visible.length?'<tr>'+visible.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr>':'';
-  $('#requestsSummaryBody').innerHTML=filtered.slice(0,1200).map(r=>'<tr>'+visible.map(h=>'<td>'+esc(r[h])+'</td>').join('')+'</tr>').join('');
+  const map=[['Статус',f.status],['Дата',f.created],['Ответственный',f.owner],['Канал',f.source],['Тип',f.type]].map(x=>x[0]+': '+(x[1]||'не найдено')).join(' · ');
+  $('#requestsFieldMap').textContent=map;
+
+  const priority=[f.id,f.created,f.title,f.status,f.type,f.source,f.owner,f.client,f.phone,f.email].filter(Boolean);
+  const visible=[...new Set([...priority,...headers])];
+  $('#requestsSummaryHead').innerHTML=visible.length?'<tr>'+visible.map(h=>'<th>'+esc(requestHeaderLabel(h)||h)+'</th>').join('')+'</tr>':'';
+  $('#requestsSummaryBody').innerHTML=filtered.slice(0,1500).map(r=>'<tr>'+visible.map(h=>'<td>'+esc(r[h])+'</td>').join('')+'</tr>').join('');
   $('#requestsSummaryEmpty').classList.toggle('hidden',rows.length>0);
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -253,7 +341,7 @@ function apply(){const q=$('#fSearch').value.toLowerCase(),ss=selected('#fStatus
 function csv(){const c=[['Компания','company'],['Статус','status'],['Вертикаль','vertical'],['Ответственный','owner'],['Дней','age'],['Задача','task'],['Автопарк','fleet'],['ATOM','atom'],['Телефон','phone'],['Email','email'],['ИНН','inn']],q=v=>'"'+String(v??'').replaceAll('"','""')+'"';const lines=[c.map(x=>q(x[0])).join(';'),...current.map(r=>c.map(x=>q(r[x[1]])).join(';'))];const b=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ATOM_B2B_CRM.csv';a.click()}
 $('#crmFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});data=parse(m);const saved=persistSnapshot(f.name);showLoadedState(f.name,false,saved.savedAt)}catch(err){$('#fileStatus').textContent='Ошибка: '+err.message;$('#fileStatus').className='statusline bad'}};
 $('#dynFrom').value='2026-09-01';$('#dynTo').value='2026-12-31';$('#navAnalytics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#analytics');setView('analytics')});$('#navRequestsSummary').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#requests-summary');setView('requests-summary')});$('#navAlfaSummary').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#alfa-summary');setView('alfa-summary')});$('#navFunnel').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#funnel');setView('funnel')});$('#navDynamics').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#dynamics');setView('dynamics')});window.addEventListener('atom-alfa-updated',()=>{renderFunnel();renderAlfaSummary()});['#alfaSearch','#alfaStageFilter','#alfaOwnerFilter'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',renderAlfaSummary);el.addEventListener('change',renderAlfaSummary)}});['#dynFrom','#dynTo','#dynGrain'].forEach(id=>{const el=$(id);el.addEventListener('change',renderAllDynamics);if(el.type==='date')el.addEventListener('input',renderAllDynamics)});$('#fSearch').addEventListener('input',apply);$('#exportBtn').onclick=csv;$('#resetBtn').onclick=()=>{$('#fSearch').value='';const activeStatuses=[...new Set(data.filter(x=>x.active).map(x=>x.status))].sort(),statusOptions=[...activeStatuses,'Неактивные / дисквалифицированные'],verticalOptions=[...new Set(data.map(x=>x.vertical))].sort(),defaultVerticals=verticalOptions.filter(v=>['GR / B2G','Каршеринг','Корпоративные','Не указана'].includes(v));setupMulti('#fStatus',statusOptions,statusOptions);setupMulti('#fVertical',verticalOptions,defaultVerticals);setupMulti('#fSource',[...new Set(data.map(x=>x.source||'Заливка'))].sort(),[]);setupMulti('#fOwner',[...new Set(data.map(x=>x.owner))].sort(),[]);setupMulti('#fHealth',['≤30 дней','31-90 дней','>90 дней','Нет даты','Неактивный'],[]);apply()};const requestsFile=$('#requestsFile'),requestsStatus=$('#requestsFileStatus'),requestsClear=$('#requestsClearBtn');
-function restoreRequests(){const s=requestsSnapshot();if(!s)return false;requestsStatus.textContent='Восстановлен последний сохранённый файл: '+s.fileName;requestsStatus.className='statusline ok';requestsClear.disabled=false;if(!s.fields){requestsStatus.textContent+=' · перезагрузите Excel один раз для новой логики сводной.'}return true}
+function restoreRequests(){const s=requestsSnapshot();if(!s)return false;requestsClear.disabled=false;if((s.version||0)<3){requestsStatus.textContent='Перезагрузите файл «Обращения Элма»: обновлена логика разбора таблицы.';requestsStatus.className='statusline bad';return false}requestsStatus.textContent='Восстановлен файл: '+s.fileName+' · '+fmt(s.rows.length)+' обращений';requestsStatus.className='statusline ok';return true}
 requestsFile.onchange=async e=>{const f=e.target.files[0];if(!f)return;requestsStatus.textContent='Читаю файл...';try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}),snap=parseRequests(m,f.name);localStorage.setItem(REQUESTS_SNAPSHOT_KEY,JSON.stringify(snap));requestsStatus.textContent='Готово: '+f.name+' · '+fmt(snap.rows.length)+' обращений. Данные сохранены в браузере.';requestsStatus.className='statusline ok';requestsClear.disabled=false;renderRequestsSummary();if(location.hash==='#requests-summary')setView('requests-summary')}catch(err){requestsStatus.textContent='Ошибка: '+err.message;requestsStatus.className='statusline bad'}finally{requestsFile.value=''}};
 requestsClear.onclick=()=>{localStorage.removeItem(REQUESTS_SNAPSHOT_KEY);requestsStatus.textContent='Файл не загружен.';requestsStatus.className='statusline';requestsClear.disabled=true;renderRequestsSummary()};
 ['#requestsSearch','#requestsStatusFilter','#requestsOwnerFilter','#requestsSourceFilter','#requestsTypeFilter','#requestsFrom','#requestsTo'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',renderRequestsSummary);el.addEventListener('change',renderRequestsSummary)}});
