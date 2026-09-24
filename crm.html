@@ -10,7 +10,7 @@
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./auth.css?v=1.0.0" />
-<link rel="stylesheet" href="./crm.css?v=1.4.1" />
+<link rel="stylesheet" href="./crm.css?v=1.4.2" />
 </head>
 <body>
 <div id="appShell" class="app-hidden shell">
@@ -56,7 +56,7 @@
   <main class="main">
     <header class="page-head">
       <div class="page-head-left"><nav class="header-projects" aria-label="Проекты"><span class="header-projects-label">Проекты</span><a href="./index.html?v=auth3">S&amp;OP09 plan</a><a class="active" href="./crm.html?v=auth3">B2B CRM Control Center</a><a href="./bcc.html?v=auth3">Weekly Project Review</a></nav><h1>ATOM B2B CRM Control Center</h1><p>Состояние B2B-воронки ELMA, активность менеджеров и качество данных</p></div>
-      <div class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
+      <div id="leadHeaderActions" class="actions"><button id="resetBtn" class="btn" type="button">Сбросить фильтры</button><button id="exportBtn" class="btn primary" type="button" disabled>Выгрузить CSV</button></div>
     </header>
     <div id="emptyState" class="info-line">Загрузите выгрузку ELMA, чтобы сформировать CRM-аналитику.</div>
     <section id="globalFilters" class="section card filter-panel hidden">
@@ -104,8 +104,18 @@
       </section>
 
       <section class="section card request-filter-panel">
+        <div class="request-search-hero">
+          <div class="request-search-copy">
+            <div class="request-search-title">Поиск по обращениям</div>
+            <div class="request-search-subtitle">Номер, тема, клиент, телефон, e-mail или любое значение из файла</div>
+          </div>
+          <div class="request-search-box">
+            <span class="request-search-icon">⌕</span>
+            <input id="requestsSearch" type="search" placeholder="Введите текст для поиска..." />
+            <button id="requestsSearchClear" class="request-search-clear" type="button">Очистить</button>
+          </div>
+        </div>
         <div class="request-filters">
-          <div class="field request-search"><label>Поиск</label><input id="requestsSearch" type="search" placeholder="Номер, тема, клиент, телефон, e-mail..." /></div>
           <div class="field"><label>Статус</label><select id="requestsStatusFilter"><option value="">Все статусы</option></select></div>
           <div class="field"><label>Ответственный</label><select id="requestsOwnerFilter"><option value="">Все ответственные</option></select></div>
           <div class="field"><label>Канал / источник</label><select id="requestsSourceFilter"><option value="">Все каналы</option></select></div>
@@ -267,6 +277,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="./auth.js?v=1.1.0"></script>
-<script src="./crm.js?v=3.2.0-requests"></script>
+<script src="./crm.js?v=3.2.1-requests-ui"></script>
 </body>
 </html>
