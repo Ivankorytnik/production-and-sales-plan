@@ -5,7 +5,8 @@ const CLOUD_BUCKET='plan-source-files';
 const PREFIX='registry__';
 const PROJECTS={
   sop09:{title:'S&OP09 plan',defaultSource:'ШТАБ'},
-  crm:{title:'B2B CRM Control Center',defaultSource:'ELMA'}
+  crm:{title:'B2B CRM Control Center',defaultSource:'ELMA'},
+  bcc:{title:'Weekly Project Review',defaultSource:'ШТАБ'}
 };
 const requestedProject=new URLSearchParams(location.search).get('project');
 const activeProject=Object.prototype.hasOwnProperty.call(PROJECTS,requestedProject)?requestedProject:'sop09';
