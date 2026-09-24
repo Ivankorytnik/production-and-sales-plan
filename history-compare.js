@@ -57,15 +57,29 @@ function decodeText(text){
 }
 function parseRegistryItem(item){
   const name=String(item&&item.name||'');
-  const m=name.match(/^registry__(\d+)__(.+?)__(\d{4}-\d{2}-\d{2})__(.+)$/);
-  if(!m)return null;
+  const modern=name.match(/^registry__(sop09|crm|bcc)__(\d+)__(.+?)__(\d{4}-\d{2}-\d{2})__(.+)$/);
+  if(modern){
+    return{
+      storageName:name,
+      path:(user&&user.id?user.id+'/':'')+name,
+      project:modern[1],
+      createdAt:Number(modern[2])||0,
+      source:decodeText(modern[3]),
+      actualDate:modern[4],
+      originalName:modern[5],
+      updatedAt:item.updated_at||item.created_at||''
+    };
+  }
+  const legacy=name.match(/^registry__(\d+)__(.+?)__(\d{4}-\d{2}-\d{2})__(.+)$/);
+  if(!legacy)return null;
   return{
     storageName:name,
     path:(user&&user.id?user.id+'/':'')+name,
-    createdAt:Number(m[1])||0,
-    source:decodeText(m[2]),
-    actualDate:m[3],
-    originalName:m[4],
+    project:'sop09',
+    createdAt:Number(legacy[1])||0,
+    source:decodeText(legacy[2]),
+    actualDate:legacy[3],
+    originalName:legacy[4],
     updatedAt:item.updated_at||item.created_at||''
   };
 }
@@ -150,10 +164,17 @@ function chooseBaseline(items,rangeKey){
 async function listRegistry(force){
   if(!client||!user||!user.id)return[];
   if(!force&&Date.now()-listCache.at<30000)return listCache.items;
-  const result=await client.storage.from(CLOUD_BUCKET).list(user.id,{limit:100,sortBy:{column:'updated_at',order:'desc'}});
-  if(result.error)throw result.error;
-  const items=(result.data||[]).map(parseRegistryItem).filter(Boolean);
-  listCache={at:Date.now(),items:items};
+  const all=[];
+  const limit=100;
+  for(let offset=0;;offset+=limit){
+    const result=await client.storage.from(CLOUD_BUCKET).list(user.id,{limit,offset,sortBy:{column:'updated_at',order:'desc'}});
+    if(result.error)throw result.error;
+    const page=result.data||[];
+    all.push(...page);
+    if(page.length<limit)break;
+  }
+  const items=all.map(parseRegistryItem).filter(x=>x&&x.project==='sop09');
+  listCache={at:Date.now(),items};
   return items;
 }
 function loadPeriod(){
