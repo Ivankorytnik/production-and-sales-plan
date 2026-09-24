@@ -10,7 +10,7 @@
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./auth.css?v=1.0.0" />
-<link rel="stylesheet" href="./crm.css?v=1.3.9" />
+<link rel="stylesheet" href="./crm.css?v=1.4.0" />
 </head>
 <body>
 <div id="appShell" class="app-hidden shell">
@@ -19,7 +19,7 @@
     <div class="nav-title">Данные</div>
     <nav class="project-nav"><a href="./sources.html?project=crm&v=auth3">Источники</a></nav>
     <div class="nav-title">CRM</div>
-    <nav class="page-nav"><a href="#source">Исходные данные</a><a id="navAnalytics" class="active" href="#analytics">Сводная ЭЛМА Лиды</a><a id="navAlfaSummary" href="#alfa-summary">Сводная Альфа РЛ</a><a id="navFunnel" href="#funnel">Воронка</a><a id="navDynamics" href="#dynamics">Динамика</a></nav>
+    <nav class="page-nav"><a href="#source">Исходные данные</a><a id="navAnalytics" class="active" href="#analytics">Сводная ЭЛМА Лиды</a><a id="navRequestsSummary" href="#requests-summary">Сводная обращения Элма</a><a id="navAlfaSummary" href="#alfa-summary">Сводная Альфа РЛ</a><a id="navFunnel" href="#funnel">Воронка</a><a id="navDynamics" href="#dynamics">Динамика</a></nav>
 
     <section id="source" class="sidebar-source">
       <div class="sidebar-source-title">Выгрузка лидов ELMA</div>
@@ -28,6 +28,15 @@
       <label class="btn primary file-pick sidebar-upload">Загрузить Excel<input id="crmFile" type="file" accept=".xlsx,.xls,.xlsm" /></label>
       <button id="clearBtn" class="btn sidebar-clear" type="button" disabled>Сбросить данные</button>
       <div id="fileStatus" class="statusline">Файл не загружен.</div>
+    </section>
+
+    <section id="requestsSource" class="sidebar-source">
+      <div class="sidebar-source-title">Обращения Элма</div>
+      <div class="sidebar-source-text">Загрузите актуальный Excel с обращениями ELMA. Используется первый лист.</div>
+      <div class="sidebar-source-note"><b>Конфиденциальность:</b> файл читается на вашем компьютере и не записывается в публичный репозиторий.</div>
+      <label class="btn primary file-pick sidebar-upload">Загрузить Excel<input id="requestsFile" type="file" accept=".xlsx,.xls,.xlsm" /></label>
+      <button id="requestsClearBtn" class="btn sidebar-clear" type="button" disabled>Сбросить данные</button>
+      <div id="requestsFileStatus" class="statusline">Файл не загружен.</div>
     </section>
 
     <section id="alfaSource" class="sidebar-source">
@@ -76,6 +85,51 @@
         <div class="table-wrap"><table class="tbl"><thead><tr><th>Компания</th><th>Дата создания</th><th>Статус</th><th>Вертикаль</th><th>Ответственный</th><th>Свежесть</th><th class="num">Дней</th><th>Ближайшая задача</th><th class="num">Автопарк</th><th class="num">ATOM</th><th>Контакт</th></tr></thead><tbody id="tbody"></tbody></table></div>
       </section>
     </div>
+
+    <section id="requestsSummaryView" class="dashboard hidden">
+      <section class="section alfa-summary-head">
+        <div>
+          <div class="panel-title">Сводная обращения Элма</div>
+          <div id="requestsSummaryMeta" class="dynamics-subtitle">Загрузите файл «Обращения Элма».</div>
+        </div>
+      </section>
+
+      <section class="section kpis alfa-kpis">
+        <div class="card kpi"><div class="label">Обращений</div><div id="rKTotal" class="value">0</div><div class="foot">строки файла</div></div>
+        <div class="card kpi"><div class="label">Статусов</div><div id="rKStatuses" class="value">0</div><div class="foot">уникальные значения</div></div>
+        <div class="card kpi"><div class="label">Ответственных</div><div id="rKOwners" class="value">0</div><div class="foot">уникальные значения</div></div>
+        <div class="card kpi"><div class="label">Источников</div><div id="rKSources" class="value">0</div><div class="foot">уникальные значения</div></div>
+      </section>
+
+      <section class="section grid2">
+        <div class="card panel">
+          <div class="panel-title">Распределение по статусам</div>
+          <div id="requestsStatusBars"></div>
+        </div>
+        <div class="card panel">
+          <div class="panel-title">По ответственным</div>
+          <div id="requestsOwnerBars"></div>
+        </div>
+      </section>
+
+      <section class="section card">
+        <div class="table-head">
+          <span id="requestsResultCount" class="result-count">Нет данных</span>
+          <div class="alfa-summary-filters">
+            <input id="requestsSearch" type="search" placeholder="Поиск по обращениям..." />
+            <select id="requestsStatusFilter"><option value="">Все статусы</option></select>
+            <select id="requestsOwnerFilter"><option value="">Все ответственные</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl alfa-summary-table">
+            <thead id="requestsSummaryHead"></thead>
+            <tbody id="requestsSummaryBody"></tbody>
+          </table>
+        </div>
+        <div id="requestsSummaryEmpty" class="empty">Загрузите Excel «Обращения Элма», чтобы построить сводную.</div>
+      </section>
+    </section>
 
     <section id="alfaSummaryView" class="dashboard hidden">
       <section class="section alfa-summary-head">
@@ -180,6 +234,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="./auth.js?v=1.1.0"></script>
-<script src="./crm.js?v=3.0.2-unified-auth"></script>
+<script src="./crm.js?v=3.1.0-requests"></script>
 </body>
 </html>
