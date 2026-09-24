@@ -164,7 +164,7 @@ function parseRequests(matrix,fileName){
     id:requestFieldName(headers,[/^номер$/i,/номер.*обращ/i,/идентификатор/i,/код.*обращ/i,/^id$/i],[/(^|_)(id|number|num)$/i,/request.*id|appeal.*id/i]),
     title:requestFieldName(headers,[/^тема$/i,/тема.*обращ/i,/название.*обращ/i,/наименование.*обращ/i,/^название$/i,/subject/i],[/subject|title|theme|topic/i]),
     status:requestFieldName(headers,[/^статус$/i,/статус.*обращ/i,/состояни/i,/этап/i,/status/i],[/status/i]),
-    owner:requestFieldName(headers,[/^ответствен/i,/ответствен.*фио/i,/исполнител/i,/назначен/i,/менеджер/i,/куратор/i,/владел/i,/owner/i],[/owner|responsible|assignee|executor|manager/i]),
+    owner:headers.find(h=>requestHeaderKey(h)==='responsibility')||requestFieldName(headers,[/^ответственный$/i],[/^responsibility$/i]),
     source:requestFieldName(headers,[/^источник$/i,/источник.*обращ/i,/^канал$/i,/канал.*обращ/i,/откуда/i,/source/i],[/source|channel|origin/i]),
     type:requestFieldName(headers,[/^тип$/i,/тип.*обращ/i,/категор/i,/классификац/i,/вид.*обращ/i,/направлен/i],[/type|category|kind|class/i]),
     created:requestFieldName(headers,[/^дата создания$/i,/дата.*создан/i,/создан.*дата/i,/дата.*обращ/i,/created/i],[/createdat|created_at|creationdate|created/i]),
@@ -241,13 +241,16 @@ function inferRequestField(headers,rows,kind,used=new Set()){
 function resolveRequestFields(s){
   const rows=s?.rows||[],headers=s?.headers||[],saved=s?.fields||{},used=new Set();
   const out={...saved};
-  ['created','status','owner','source','type'].forEach(kind=>{
+
+  // ELMA requests: responsible person must come only from "Ответственный [responsibility]".
+  const responsibilityHeader=headers.find(h=>requestHeaderKey(h)==='responsibility')
+    || headers.find(h=>/^ответственный$/i.test(requestHeaderLabel(h)));
+  out.owner=responsibilityHeader||'';
+  if(out.owner)used.add(out.owner);
+
+  ['created','status','source','type'].forEach(kind=>{
     let field=out[kind];
-    let valid=field&&headers.includes(field)&&requestValues(rows,field).length;
-    if(valid&&kind==='owner'){
-      const p=requestColumnProfile(rows,field);
-      if(p.uuidRate>.05||p.multiPersonRate>.2||p.singleNameRate<.25)valid=false;
-    }
+    const valid=field&&headers.includes(field)&&requestValues(rows,field).length;
     if(!valid)field=inferRequestField(headers,rows,kind,used);
     out[kind]=field||'';
     if(field)used.add(field);
@@ -336,7 +339,7 @@ function renderRequestsSummary(){
   requestChart(filtered,f.created);
 
   $('#requestsResultCount').textContent=rows.length?'Показано '+fmt(filtered.length)+' из '+fmt(rows.length):'Нет данных';
-  const map=[['Статус',f.status,statuses.length],['Дата',f.created,''],['Ответственный',f.owner,owners.length],['Канал',f.source,sources.length],['Тип',f.type,types.length]].map(x=>x[0]+': '+(x[1]||'не найдено')+(x[2]!==''?' ('+x[2]+')':'')).join(' · ');
+  const map=[['Статус',f.status,statuses.length],['Дата',f.created,''],['Ответственный',f.owner?f.owner:'Ответственный [responsibility] не найден',owners.length],['Канал',f.source,sources.length],['Тип',f.type,types.length]].map(x=>x[0]+': '+(x[1]||'не найдено')+(x[2]!==''?' ('+x[2]+')':'')).join(' · ');
   $('#requestsFieldMap').textContent=map;
 
   const priority=[f.id,f.created,f.title,f.status,f.type,f.source,f.owner,f.client,f.phone,f.email].filter(Boolean);
