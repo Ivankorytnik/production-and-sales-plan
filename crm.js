@@ -227,6 +227,7 @@ function setView(view){
   $('#alfaSummaryView').classList.toggle('hidden',!alfaSummary);
   $('#requestsSummaryView').classList.toggle('hidden',!requestsSummary);
   $('#globalFilters').classList.toggle('hidden',!analytics||!data.length);
+  const leadActions=$('#leadHeaderActions'); if(leadActions)leadActions.classList.toggle('hidden',!analytics);
   $('#emptyState').classList.toggle('hidden',funnel||dynamics||alfaSummary||requestsSummary||data.length>0);
   $('#navAnalytics').classList.toggle('active',analytics);
   $('#navDynamics').classList.toggle('active',dynamics);
@@ -256,6 +257,7 @@ function restoreRequests(){const s=requestsSnapshot();if(!s)return false;request
 requestsFile.onchange=async e=>{const f=e.target.files[0];if(!f)return;requestsStatus.textContent='Читаю файл...';try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],m=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}),snap=parseRequests(m,f.name);localStorage.setItem(REQUESTS_SNAPSHOT_KEY,JSON.stringify(snap));requestsStatus.textContent='Готово: '+f.name+' · '+fmt(snap.rows.length)+' обращений. Данные сохранены в браузере.';requestsStatus.className='statusline ok';requestsClear.disabled=false;renderRequestsSummary();if(location.hash==='#requests-summary')setView('requests-summary')}catch(err){requestsStatus.textContent='Ошибка: '+err.message;requestsStatus.className='statusline bad'}finally{requestsFile.value=''}};
 requestsClear.onclick=()=>{localStorage.removeItem(REQUESTS_SNAPSHOT_KEY);requestsStatus.textContent='Файл не загружен.';requestsStatus.className='statusline';requestsClear.disabled=true;renderRequestsSummary()};
 ['#requestsSearch','#requestsStatusFilter','#requestsOwnerFilter','#requestsSourceFilter','#requestsTypeFilter','#requestsFrom','#requestsTo'].forEach(id=>{const el=$(id);if(el){el.addEventListener('input',renderRequestsSummary);el.addEventListener('change',renderRequestsSummary)}});
+const requestsSearchClear=$('#requestsSearchClear');if(requestsSearchClear)requestsSearchClear.addEventListener('click',()=>{$('#requestsSearch').value='';renderRequestsSummary();$('#requestsSearch').focus()});
 restoreRequests();
 $('#clearBtn').onclick=()=>{localStorage.removeItem(SNAPSHOT_KEY);location.reload()};restoreSnapshot();setView(location.hash==='#dynamics'?'dynamics':location.hash==='#funnel'?'funnel':location.hash==='#alfa-summary'?'alfa-summary':location.hash==='#requests-summary'?'requests-summary':'analytics');
 })();
