@@ -5,6 +5,7 @@ const SUPABASE_URL='https://enlyiedwkarajvfsilel.supabase.co';
 const SUPABASE_KEY='sb_publishable_YK0GMEpWNTnEp3ImIvONKQ_3IPZdvq5';
 const STORAGE_KEY='atom-auth-v3';
 const REDIRECT_URL='https://ivankorytnik.github.io/production-and-sales-plan/';
+const RETURN_KEY='atom-auth-return-v1';
 const OLD_KEYS=['atom_access_token','atom_refresh_token','atom-global-auth-v1','atom-sales-plan-auth'];
 
 OLD_KEYS.forEach(key=>localStorage.removeItem(key));
@@ -90,6 +91,7 @@ function showGate(message='Введите рабочую почту @atom.team.'
       send.disabled=true;
       status.textContent='Отправляю ссылку...';
       status.className='atom-auth-status';
+      try{localStorage.setItem(RETURN_KEY,location.pathname+location.search+location.hash)}catch{}
       const {error}=await client.auth.signInWithOtp({
         email,
         options:{
@@ -141,6 +143,15 @@ async function openApp(auth){
   cleanAuthUrl();
   document.dispatchEvent(new CustomEvent('atom-auth-ready',{detail:auth}));
   if(typeof window.startAtomBccApp==='function')window.startAtomBccApp();
+  try{
+    const saved=localStorage.getItem(RETURN_KEY)||'';
+    localStorage.removeItem(RETURN_KEY);
+    const current=location.pathname+location.search+location.hash;
+    if(saved&&saved!==current&&saved.startsWith('/production-and-sales-plan/')){
+      location.replace(saved);
+      return true;
+    }
+  }catch{}
   return true;
 }
 
