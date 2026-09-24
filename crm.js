@@ -171,14 +171,24 @@ function requestColumnProfile(rows,header){
   const unique=[...new Set(vals)];
   const n=vals.length||1;
   const dateRate=vals.filter(v=>!!requestDate(v)).length/n;
-  const nameRate=vals.filter(v=>{
+  const uuidRate=vals.filter(v=>/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(v)).length/n;
+  const multiPersonRate=vals.filter(v=>{
+    const s=v.replace(/[\[\]{}]/g,' ').replace(/\s+/g,' ').trim();
+    const separators=(s.match(/[;,|]/g)||[]).length;
+    const surnamePairs=(s.match(/[А-ЯA-Z][а-яa-zёЁ-]+\s+[А-ЯA-Z][а-яa-zёЁ-]+/g)||[]).length;
+    return separators>0||surnamePairs>1||s.length>90;
+  }).length/n;
+  const singleNameRate=vals.filter(v=>{
+    if(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(v))return false;
+    if(/[;,|]/.test(v)||v.length>80)return false;
     const s=v.replace(/[.,()]/g,' ').replace(/\s+/g,' ').trim();
-    return /^[А-ЯA-Z][а-яa-zёЁ-]+\s+[А-ЯA-Z][а-яa-zёЁ-]+(?:\s+[А-ЯA-Z][а-яa-zёЁ-]+)?$/.test(s);
+    const parts=s.split(' ').filter(Boolean);
+    return parts.length>=2&&parts.length<=4&&parts.every(p=>/^[А-ЯA-Z][А-Яа-яA-Za-zёЁ-]+$/.test(p));
   }).length/n;
   const sourceRate=vals.filter(v=>/(сайт|форма|телефон|звон|email|e-mail|почт|чат|telegram|whatsapp|веб|web|реклама|партнер|партнёр|мероприят|дилер|входящ)/i.test(v)).length/n;
   const statusRate=vals.filter(v=>/(нов|открыт|закрыт|в работе|обработ|решен|решён|выполн|заверш|ожидан|отказ|неактив|квалиф|создан|принят|назначен)/i.test(v)).length/n;
   const avgLen=vals.reduce((a,v)=>a+v.length,0)/n;
-  return{count:vals.length,unique:unique.length,dateRate,nameRate,sourceRate,statusRate,avgLen};
+  return{count:vals.length,unique:unique.length,dateRate,nameRate:singleNameRate,singleNameRate,uuidRate,multiPersonRate,sourceRate,statusRate,avgLen};
 }
 function inferRequestField(headers,rows,kind,used=new Set()){
   let best='',bestScore=-Infinity;
@@ -196,8 +206,13 @@ function inferRequestField(headers,rows,kind,used=new Set()){
       if(/статус|состояни|этап|status/i.test(label+' '+key))score+=220;
       if(p.dateRate>.5)score-=200;
     }else if(kind==='owner'){
-      score=p.nameRate*150+(p.unique>=2&&p.unique<=120?20:0);
-      if(/ответствен|исполнител|менеджер|куратор|владел|owner|assignee|executor/i.test(label+' '+key))score+=220;
+      score=p.singleNameRate*220+(p.unique>=2&&p.unique<=120?25:0);
+      if(/^ответствен/i.test(label))score+=320;
+      else if(/ответствен|исполнител|менеджер|куратор|владел|owner|assignee|executor/i.test(label+' '+key))score+=220;
+      if(/список|участник|наблюдател|пользовател|согласующ|команда|members|users|participants/i.test(label+' '+key))score-=350;
+      score-=p.uuidRate*420;
+      score-=p.multiPersonRate*380;
+      if(p.avgLen>80)score-=180;
       if(p.dateRate>.5)score-=200;
     }else if(kind==='source'){
       score=p.sourceRate*150+(p.unique>=2&&p.unique<=80?25:0)+(p.avgLen<80?10:0);
@@ -218,7 +233,11 @@ function resolveRequestFields(s){
   const out={...saved};
   ['created','status','owner','source','type'].forEach(kind=>{
     let field=out[kind];
-    const valid=field&&headers.includes(field)&&requestValues(rows,field).length;
+    let valid=field&&headers.includes(field)&&requestValues(rows,field).length;
+    if(valid&&kind==='owner'){
+      const p=requestColumnProfile(rows,field);
+      if(p.uuidRate>.05||p.multiPersonRate>.2||p.singleNameRate<.25)valid=false;
+    }
     if(!valid)field=inferRequestField(headers,rows,kind,used);
     out[kind]=field||'';
     if(field)used.add(field);
