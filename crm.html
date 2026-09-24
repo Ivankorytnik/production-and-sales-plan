@@ -10,7 +10,7 @@
   <title>ATOM B2B CRM Control Center</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="stylesheet" href="./auth.css?v=1.0.0" />
-<link rel="stylesheet" href="./crm.css?v=1.4.0" />
+<link rel="stylesheet" href="./crm.css?v=1.4.1" />
 </head>
 <body>
 <div id="appShell" class="app-hidden shell">
@@ -94,11 +94,25 @@
         </div>
       </section>
 
-      <section class="section kpis alfa-kpis">
-        <div class="card kpi"><div class="label">Обращений</div><div id="rKTotal" class="value">0</div><div class="foot">строки файла</div></div>
-        <div class="card kpi"><div class="label">Статусов</div><div id="rKStatuses" class="value">0</div><div class="foot">уникальные значения</div></div>
-        <div class="card kpi"><div class="label">Ответственных</div><div id="rKOwners" class="value">0</div><div class="foot">уникальные значения</div></div>
-        <div class="card kpi"><div class="label">Источников</div><div id="rKSources" class="value">0</div><div class="foot">уникальные значения</div></div>
+      <section class="section kpis">
+        <div class="card kpi"><div class="label">Всего обращений</div><div id="rKTotal" class="value">0</div><div class="foot">в загруженном файле</div></div>
+        <div class="card kpi live"><div class="label">Открытые</div><div id="rKOpen" class="value">0</div><div class="foot">требуют обработки</div></div>
+        <div class="card kpi"><div class="label">Закрытые</div><div id="rKClosed" class="value">0</div><div class="foot">завершённые обращения</div></div>
+        <div class="card kpi stale"><div class="label">Без ответственного</div><div id="rKUnassigned" class="value">0</div><div class="foot">нет исполнителя</div></div>
+        <div class="card kpi new"><div class="label">За 7 дней</div><div id="rK7d" class="value">0</div><div class="foot">новые обращения</div></div>
+        <div class="card kpi"><div class="label">Каналов</div><div id="rKSources" class="value">0</div><div class="foot">источник / канал</div></div>
+      </section>
+
+      <section class="section card request-filter-panel">
+        <div class="request-filters">
+          <div class="field request-search"><label>Поиск</label><input id="requestsSearch" type="search" placeholder="Номер, тема, клиент, телефон, e-mail..." /></div>
+          <div class="field"><label>Статус</label><select id="requestsStatusFilter"><option value="">Все статусы</option></select></div>
+          <div class="field"><label>Ответственный</label><select id="requestsOwnerFilter"><option value="">Все ответственные</option></select></div>
+          <div class="field"><label>Канал / источник</label><select id="requestsSourceFilter"><option value="">Все каналы</option></select></div>
+          <div class="field"><label>Тип / тема</label><select id="requestsTypeFilter"><option value="">Все типы</option></select></div>
+          <div class="field"><label>С</label><input id="requestsFrom" type="date" /></div>
+          <div class="field"><label>По</label><input id="requestsTo" type="date" /></div>
+        </div>
       </section>
 
       <section class="section grid2">
@@ -107,22 +121,41 @@
           <div id="requestsStatusBars"></div>
         </div>
         <div class="card panel">
-          <div class="panel-title">По ответственным</div>
+          <div class="panel-title">Каналы / источники обращений</div>
+          <div id="requestsSourceBars"></div>
+        </div>
+      </section>
+
+      <section class="section grid2">
+        <div class="card panel">
+          <div class="panel-title">Типы / темы обращений</div>
+          <div id="requestsTypeBars"></div>
+        </div>
+        <div class="card panel">
+          <div class="panel-title">Нагрузка по ответственным</div>
           <div id="requestsOwnerBars"></div>
         </div>
+      </section>
+
+      <section class="section card dynamics-panel">
+        <div class="dynamics-head">
+          <div>
+            <div class="panel-title">Динамика поступления обращений</div>
+            <div class="dynamics-subtitle">По дате создания обращения, с учётом выбранных фильтров</div>
+          </div>
+          <div id="requestsDynTotal" class="dynamics-total"></div>
+        </div>
+        <div id="requestsDynNote" class="dynamics-note"></div>
+        <div id="requestsDynChart" class="dynamics-chart"></div>
       </section>
 
       <section class="section card">
         <div class="table-head">
           <span id="requestsResultCount" class="result-count">Нет данных</span>
-          <div class="alfa-summary-filters">
-            <input id="requestsSearch" type="search" placeholder="Поиск по обращениям..." />
-            <select id="requestsStatusFilter"><option value="">Все статусы</option></select>
-            <select id="requestsOwnerFilter"><option value="">Все ответственные</option></select>
-          </div>
+          <span id="requestsFieldMap" class="result-count"></span>
         </div>
         <div class="table-wrap">
-          <table class="tbl alfa-summary-table">
+          <table class="tbl requests-summary-table">
             <thead id="requestsSummaryHead"></thead>
             <tbody id="requestsSummaryBody"></tbody>
           </table>
@@ -234,6 +267,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="./auth.js?v=1.1.0"></script>
-<script src="./crm.js?v=3.1.0-requests"></script>
+<script src="./crm.js?v=3.2.0-requests"></script>
 </body>
 </html>
